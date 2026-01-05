@@ -1,18 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { 
   Building2, 
   Users, 
-  Package, 
-  FileText, 
-  TrendingUp, 
-  Calendar,
-  ClipboardList,
-  Truck,
   Menu,
   Bell,
-  Search
+  Search,
+  FileText
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,60 +22,52 @@ export default function DashboardPage() {
     alertas: 3
   };
 
-  // Módulos principais com ícones coloridos e bonitos
+  // Módulos principais com ícones 3D
   const mainModules = [
     { 
-      icon: "🏗️",
-      iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
+      iconPath: "/icons/building.png",
       label: "Dados da Obra", 
       href: "/projects",
       description: "Visualize e gerencie"
     },
     { 
-      icon: "👷",
-      iconBg: "bg-gradient-to-br from-orange-400 to-orange-600",
+      iconPath: "/icons/worker.png",
       label: "Colaboradores", 
       href: "/team",
       description: "Equipe e presença"
     },
     { 
-      icon: "💰",
-      iconBg: "bg-gradient-to-br from-green-400 to-green-600",
+      iconPath: "/icons/money.png",
       label: "Orçamento", 
       href: "/budget",
       description: "Controle financeiro"
     },
     { 
-      icon: "📋",
-      iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
+      iconPath: "/icons/planning.png",
       label: "Planejamento", 
       href: "/planning",
       description: "Cronograma"
     },
     { 
-      icon: "📝",
-      iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+      iconPath: "/icons/diary.png",
       label: "Diário de Obra", 
       href: "/daily-log",
       description: "Registro diário"
     },
     { 
-      icon: "📦",
-      iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
+      iconPath: "/icons/package.png",
       label: "Solicitação de Material", 
       href: "/material-request",
       description: "Requisições"
     },
     { 
-      icon: "🚚",
-      iconBg: "bg-gradient-to-br from-cyan-400 to-cyan-600",
+      iconPath: "/icons/truck.png",
       label: "Entrega de Material", 
       href: "/deliveries",
       description: "Acompanhamento"
     },
     { 
-      icon: "📊",
-      iconBg: "bg-gradient-to-br from-yellow-400 to-yellow-600",
+      iconPath: "/icons/chart.png",
       label: "Relatórios", 
       href: "/reports",
       description: "Análises"
@@ -131,9 +119,7 @@ export default function DashboardPage() {
         <div className="flex gap-3 overflow-x-auto pb-2">
           <div className="min-w-[140px] bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center text-lg shadow-md">
-                🏗️
-              </div>
+              <Building2 className="w-5 h-5 text-blue-600" />
               <span className="text-xs text-gray-500">Ativas</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.obrasAtivas}</p>
@@ -141,9 +127,7 @@ export default function DashboardPage() {
 
           <div className="min-w-[140px] bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-lg shadow-md">
-                👷
-              </div>
+              <Users className="w-5 h-5 text-blue-600" />
               <span className="text-xs text-gray-500">Equipe</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.colaboradores}</p>
@@ -151,9 +135,7 @@ export default function DashboardPage() {
 
           <div className="min-w-[140px] bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 bg-gradient-to-br from-red-400 to-red-600 rounded-lg flex items-center justify-center text-lg shadow-md">
-                ⚠️
-              </div>
+              <Bell className="w-5 h-5 text-orange-600" />
               <span className="text-xs text-gray-500">Alertas</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.alertas}</p>
@@ -161,7 +143,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Modules Grid 2x2 - ÍCONES COLORIDOS E BONITOS */}
+      {/* Main Modules Grid 2x2 - ÍCONES 3D GRANDES */}
       <div className="px-4 pb-24">
         <h2 className="text-sm font-semibold text-gray-900 mb-3">Módulos Principais</h2>
         
@@ -170,12 +152,19 @@ export default function DashboardPage() {
             <Link
               key={index}
               href={module.href}
-              className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-lg hover:border-gray-300 hover:-translate-y-1 transition-all group"
+              className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm hover:shadow-lg hover:border-gray-300 hover:-translate-y-1 transition-all group"
             >
               <div className="flex flex-col items-center text-center gap-3">
-                {/* Icon Container - COLORIDO E BONITO */}
-                <div className={`w-20 h-20 ${module.iconBg} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all`}>
-                  <span className="text-4xl filter drop-shadow-md">{module.icon}</span>
+                {/* Icon Container - SEM FUNDO, ÍCONE GRANDE */}
+                <div className="w-24 h-24 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Image
+                    src={module.iconPath}
+                    alt={module.label}
+                    width={96}
+                    height={96}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
                 </div>
                 
                 {/* Text */}
