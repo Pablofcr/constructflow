@@ -26,55 +26,63 @@ export default function DashboardPage() {
     alertas: 3
   };
 
-  // Módulos principais - Grid 2x2
+  // Módulos principais com ícones coloridos e bonitos
   const mainModules = [
     { 
-      icon: Building2, 
+      icon: "🏗️",
+      iconBg: "bg-gradient-to-br from-blue-400 to-blue-600",
       label: "Dados da Obra", 
       href: "/projects",
-      description: "Visualize e gerencie suas obras"
+      description: "Visualize e gerencie"
     },
     { 
-      icon: Users, 
-      label: "Colaboradores da Obra", 
+      icon: "👷",
+      iconBg: "bg-gradient-to-br from-orange-400 to-orange-600",
+      label: "Colaboradores", 
       href: "/team",
       description: "Equipe e presença"
     },
     { 
-      icon: TrendingUp, 
+      icon: "💰",
+      iconBg: "bg-gradient-to-br from-green-400 to-green-600",
       label: "Orçamento", 
       href: "/budget",
       description: "Controle financeiro"
     },
     { 
-      icon: Calendar, 
+      icon: "📋",
+      iconBg: "bg-gradient-to-br from-purple-400 to-purple-600",
       label: "Planejamento", 
       href: "/planning",
-      description: "Cronograma e tarefas"
+      description: "Cronograma"
     },
     { 
-      icon: ClipboardList, 
+      icon: "📝",
+      iconBg: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       label: "Diário de Obra", 
       href: "/daily-log",
       description: "Registro diário"
     },
     { 
-      icon: Package, 
+      icon: "📦",
+      iconBg: "bg-gradient-to-br from-pink-400 to-pink-600",
       label: "Solicitação de Material", 
       href: "/material-request",
       description: "Requisições"
     },
     { 
-      icon: Truck, 
+      icon: "🚚",
+      iconBg: "bg-gradient-to-br from-cyan-400 to-cyan-600",
       label: "Entrega de Material", 
       href: "/deliveries",
       description: "Acompanhamento"
     },
     { 
-      icon: FileText, 
+      icon: "📊",
+      iconBg: "bg-gradient-to-br from-yellow-400 to-yellow-600",
       label: "Relatórios", 
       href: "/reports",
-      description: "Análises e dados"
+      description: "Análises"
     }
   ];
 
@@ -85,7 +93,7 @@ export default function DashboardPage() {
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -112,7 +120,7 @@ export default function DashboardPage() {
             <input
               type="text"
               placeholder="Buscar obras, colaboradores, materiais..."
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
             />
           </div>
         </div>
@@ -123,23 +131,29 @@ export default function DashboardPage() {
         <div className="flex gap-3 overflow-x-auto pb-2">
           <div className="min-w-[140px] bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <Building2 className="w-4 h-4 text-blue-600" />
-              <span className="text-xs text-gray-500">Obras Ativas</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center text-lg shadow-md">
+                🏗️
+              </div>
+              <span className="text-xs text-gray-500">Ativas</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.obrasAtivas}</p>
           </div>
 
           <div className="min-w-[140px] bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span className="text-xs text-gray-500">Colaboradores</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-600 rounded-lg flex items-center justify-center text-lg shadow-md">
+                👷
+              </div>
+              <span className="text-xs text-gray-500">Equipe</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.colaboradores}</p>
           </div>
 
           <div className="min-w-[140px] bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-1">
-              <Bell className="w-4 h-4 text-orange-600" />
+              <div className="w-8 h-8 bg-gradient-to-br from-red-400 to-red-600 rounded-lg flex items-center justify-center text-lg shadow-md">
+                ⚠️
+              </div>
               <span className="text-xs text-gray-500">Alertas</span>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stats.alertas}</p>
@@ -147,7 +161,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main Modules Grid 2x2 */}
+      {/* Main Modules Grid 2x2 - ÍCONES COLORIDOS E BONITOS */}
       <div className="px-4 pb-24">
         <h2 className="text-sm font-semibold text-gray-900 mb-3">Módulos Principais</h2>
         
@@ -156,17 +170,17 @@ export default function DashboardPage() {
             <Link
               key={index}
               href={module.href}
-              className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all group"
+              className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-lg hover:border-gray-300 hover:-translate-y-1 transition-all group"
             >
               <div className="flex flex-col items-center text-center gap-3">
-                {/* Icon Container */}
-                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-blue-50 transition-colors">
-                  <module.icon className="w-8 h-8 text-gray-700 group-hover:text-blue-600 transition-colors" />
+                {/* Icon Container - COLORIDO E BONITO */}
+                <div className={`w-20 h-20 ${module.iconBg} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all`}>
+                  <span className="text-4xl filter drop-shadow-md">{module.icon}</span>
                 </div>
                 
                 {/* Text */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1 leading-tight">
+                  <h3 className="text-sm font-bold text-gray-900 mb-1 leading-tight">
                     {module.label}
                   </h3>
                   <p className="text-xs text-gray-500 leading-tight">
@@ -186,7 +200,7 @@ export default function DashboardPage() {
             onClick={() => setActiveTab("home")}
             className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${
               activeTab === "home"
-                ? "bg-blue-600 text-white"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                 : "text-gray-600 hover:text-gray-900"
             }`}
           >
