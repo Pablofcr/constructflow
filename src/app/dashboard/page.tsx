@@ -25,7 +25,7 @@ export default function DashboardPage() {
   // Módulos principais com ícones 3D
   const mainModules = [
     { 
-      iconPath: "/icons/building.png",
+      iconPath: "/icons/obra.png",
       label: "Dados da Obra", 
       href: "/projects",
       description: "Visualize e gerencie"
@@ -37,7 +37,7 @@ export default function DashboardPage() {
       description: "Equipe e presença"
     },
     { 
-      iconPath: "/icons/money.png",
+      iconPath: "/icons/orcamento.png",
       label: "Orçamento", 
       href: "/budget",
       description: "Controle financeiro"
