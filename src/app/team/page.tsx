@@ -8,13 +8,10 @@ import {
   Phone,
   Mail,
   Briefcase,
-  MapPin,
   Calendar,
   X,
   Menu,
-  UserCircle,
-  CheckCircle,
-  XCircle
+  UserCircle
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,7 +21,6 @@ export default function TeamPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Módulos do menu lateral
   const menuModules = [
     { id: "obras", iconPath: "/icons/obra.png", label: "Dados da Obra", href: "/projects" },
     { id: "colaboradores", iconPath: "/icons/worker.png", label: "Colaboradores", href: "/team" },
@@ -149,24 +145,17 @@ export default function TeamPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* SIDEBAR - Desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-24 bg-white border-r border-gray-200">
-        <div className="flex-1 flex flex-col items-center py-6 space-y-4">
+      <aside className="hidden lg:flex lg:flex-col lg:w-24 lg:h-screen lg:sticky lg:top-0 bg-white border-r border-gray-200 flex-shrink-0">
+        <div className="flex-1 flex flex-col items-center justify-center py-4 space-y-2">
           {menuModules.map((module) => (
             <Link key={module.id} href={module.href} className="group relative" title={module.label}>
-              <div className={`w-16 h-16 rounded-xl flex items-center justify-center transition-all ${
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all ${
                 activeModule === module.id ? "bg-blue-50" : "hover:bg-gray-50"
               }`}>
-                <Image
-                  src={module.iconPath}
-                  alt={module.label}
-                  width={48}
-                  height={48}
-                  className={`transition-all ${
-                    activeModule === module.id ? "filter-none" : "grayscale opacity-50 group-hover:opacity-75"
-                  }`}
-                />
+                <Image src={module.iconPath} alt={module.label} width={44} height={44}
+                  className={`transition-all ${activeModule === module.id ? "filter-none" : "grayscale opacity-50 group-hover:opacity-75"}`} />
               </div>
               {activeModule === module.id && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
@@ -177,9 +166,9 @@ export default function TeamPage() {
             </Link>
           ))}
         </div>
-        <div className="p-4 border-t border-gray-200">
-          <Link href="/dashboard" className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center hover:shadow-lg transition-all mx-auto">
-            <span className="text-2xl">🏠</span>
+        <div className="p-3 border-t border-gray-200 flex-shrink-0">
+          <Link href="/dashboard" className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center hover:shadow-lg transition-all mx-auto">
+            <span className="text-xl">🏠</span>
           </Link>
         </div>
       </aside>
@@ -188,7 +177,7 @@ export default function TeamPage() {
       {sidebarOpen && (
         <>
           <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-          <aside className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 lg:hidden shadow-xl">
+          <aside className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 lg:hidden shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <h2 className="text-lg font-bold text-gray-900">Menu</h2>
               <button onClick={() => setSidebarOpen(false)} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100">
@@ -224,9 +213,8 @@ export default function TeamPage() {
       )}
 
       {/* CONTEÚDO PRINCIPAL */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-4 lg:px-6">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <header className="bg-white border-b border-gray-200 px-4 py-4 lg:px-6 flex-shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100">
               <Menu className="w-5 h-5 text-gray-700" />
@@ -242,7 +230,6 @@ export default function TeamPage() {
             </button>
           </div>
 
-          {/* Stats */}
           <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
             <div className="min-w-[120px] bg-blue-50 rounded-lg p-3 border border-blue-200">
               <p className="text-xs text-blue-600 mb-1">Total</p>
@@ -258,14 +245,12 @@ export default function TeamPage() {
             </div>
           </div>
 
-          {/* Search */}
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input type="text" placeholder="Buscar colaboradores..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
           </div>
 
-          {/* Filters */}
           {showFilters && (
             <div className="flex gap-2 overflow-x-auto pb-2">
               {specialtyOptions.map((option) => (
@@ -280,7 +265,6 @@ export default function TeamPage() {
           )}
         </header>
 
-        {/* Lista de Colaboradores */}
         <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 space-y-4">
           {filteredColaboradores.map((colab) => (
             <div key={colab.id} className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all">
