@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENUMS
+enum ProjectStatus {
+  PLANEJAMENTO
+  EM_ANDAMENTO
+  PAUSADO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum TipoObra {
+  RESIDENCIAL
+  COMERCIAL
+  INDUSTRIAL
+  INFRAESTRUTURA
+  REFORMA
+}
+
+enum SubtipoResidencial {
+  UNIFAMILIAR
+  MULTIFAMILIAR
+  CONDOMINIO
+}
+
+enum PadraoEmpreendimento {
+  POPULAR
+  MEDIO
+  ALTO
+  LUXO
+}
+
+enum TeamMemberRole {
+  ENGENHEIRO
+  ARQUITETO
+  MESTRE_DE_OBRAS
+  PEDREIRO
+  ELETRICISTA
+  ENCANADOR
+  CARPINTEIRO
+  PINTOR
+  SERVENTE
+  ADMINISTRATIVO
+  OUTRO
+}
+
+// MODELS
+model Project {
+  id                    String        @id @default(uuid())
+  name                  String
+  description           String?
+  codigo                String        @unique
+  status                ProjectStatus @default(PLANEJAMENTO)
+  
+  // Tipo e características da obra
+  tipoObra              TipoObra
+  subtipoResidencial    SubtipoResidencial?
+  padraoEmpreendimento  PadraoEmpreendimento?
+  
+  // Endereço
+  enderecoRua           String
+  enderecoNumero        String
+  enderecoComplemento   String?
+  enderecoBairro        String
+  enderecoCidade        String
+  enderecoEstado        String
+  enderecoCEP           String
+  latitude              Float?
+  longitude             Float?
+  
+  // Datas
+  dataInicioEstimada    DateTime
+  dataInicioReal        DateTime?
+  prazoFinal            DateTime
+  
+  // Financeiro
+  orcamentoEstimado     Float         @default(0)
+  orcamentoReal         Float?
+  totalGasto            Float         @default(0)
+  
+  // Timestamps
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  
+  // Relações
+  budgetEstimated       BudgetEstimated?
+  teamMembers           TeamMember[]
+  
+  @@map("projects")
+}
+
+model BudgetEstimated {
+  id                    String   @id @default(uuid())
+  projectId             String   @unique
+  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Análise de Cenários (Matriz 3x3)
+  // Linha 1: Custo Baixo
+  baixoBaixo            Float    @default(0)
+  baixoMedio            Float    @default(0)
+  baixoAlto             Float    @default(0)
+  
+  // Linha 2: Custo Médio
+  medioBaixo            Float    @default(0)
+  medioMedio            Float    @default(0)
+  medioAlto             Float    @default(0)
+  
+  // Linha 3: Custo Alto
+  altoBaixo             Float    @default(0)
+  altoMedio             Float    @default(0)
+  altoAlto              Float    @default(0)
+  
+  // Cenário selecionado
+  cenarioSelecionado    String?  // Ex: "medioMedio"
+  valorSelecionado      Float?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  @@map("budget_estimated")
+}
+
+model TeamMember {
+  id                    String          @id @default(uuid())
+  name                  String
+  role                  TeamMemberRole
+  cpf                   String?
+  rg                    String?
+  telefone              String?
+  email                 String?
+  
+  // Endereço
+  enderecoRua           String?
+  enderecoNumero        String?
+  enderecoComplemento   String?
+  enderecoBairro        String?
+  enderecoCidade        String?
+  enderecoEstado        String?
+  enderecoCEP           String?
+  
+  // Centro de Custo
+  centroCustoTipo       String          // "OBRA" ou "ADMINISTRATIVO"
+  projectId             String?
+  project               Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  centroCustoNome       String?         // Nome do centro administrativo se não for obra
+  
+  // Timestamps
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  
+  @@map("team_members")
+}

@@ -1,25 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import {
-  Search,
-  Filter,
-  MapPin,
-  Users,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  ChevronRight,
-  X,
-  Menu
-} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Plus, Search, Eye, Edit, Trash2, Menu, X } from 'lucide-react';
+
+interface Project {
+  id: string;
+  codigo: string;
+  name: string;
+  status: string;
+  tipoObra: string;
+  enderecoCidade: string;
+  enderecoEstado: string;
+  orcamentoEstimado: number;
+  totalGasto: number;
+}
 
 export default function ProjectsPage() {
+  const router = useRouter();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
-  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("TODOS");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const menuModules = [
@@ -35,117 +40,148 @@ export default function ProjectsPage() {
 
   const activeModule = "obras";
 
-  const projetos = [
-    {
-      id: 1,
-      codigo: "OBR-2024-001",
-      nome: "Edifício Vila Madalena",
-      descricao: "Construção de edifício residencial com 15 andares",
-      status: "Em Andamento",
-      progresso: 65,
-      orçamento: 4500000,
-      gastos: 2925000,
-      inicio: "15/01/2024",
-      prazoFinal: "15/04/2025",
-      localizacao: "Vila Madalena, São Paulo - SP",
-      equipe: 45,
-      responsavel: "Eng. Carlos Silva"
-    },
-    {
-      id: 2,
-      codigo: "OBR-2024-002",
-      nome: "Centro Comercial Brooklin",
-      descricao: "Shopping center com área de lazer e estacionamento",
-      status: "Planejamento",
-      progresso: 15,
-      orçamento: 8200000,
-      gastos: 1230000,
-      inicio: "10/03/2024",
-      prazoFinal: "20/08/2025",
-      localizacao: "Brooklin, São Paulo - SP",
-      equipe: 12,
-      responsavel: "Eng. Maria Santos"
-    },
-    {
-      id: 3,
-      codigo: "OBR-2023-045",
-      nome: "Galpão Industrial Guarulhos",
-      descricao: "Galpão logístico com sistema automatizado",
-      status: "Concluído",
-      progresso: 100,
-      orçamento: 3200000,
-      gastos: 3150000,
-      inicio: "05/05/2023",
-      prazoFinal: "30/11/2024",
-      localizacao: "Guarulhos, São Paulo - SP",
-      equipe: 28,
-      responsavel: "Eng. Roberto Lima"
-    },
-    {
-      id: 4,
-      codigo: "OBR-2024-003",
-      nome: "Condomínio Alphaville",
-      descricao: "Condomínio residencial de alto padrão",
-      status: "Em Pausa",
-      progresso: 30,
-      orçamento: 6500000,
-      gastos: 1950000,
-      inicio: "20/02/2024",
-      prazoFinal: "10/06/2025",
-      localizacao: "Alphaville, Barueri - SP",
-      equipe: 8,
-      responsavel: "Eng. Ana Costa"
-    }
-  ];
+  useEffect(() => {
+    fetchProjects();
+  }, []);
 
-  const statusOptions = [
-    { value: "todos", label: "Todos" },
-    { value: "Em Andamento", label: "Em Andamento" },
-    { value: "Planejamento", label: "Planejamento" },
-    { value: "Em Pausa", label: "Em Pausa" },
-    { value: "Concluído", label: "Concluído" }
-  ];
+  useEffect(() => {
+    filterProjects();
+  }, [projects, searchTerm, statusFilter]);
 
-  const filteredProjetos = projetos.filter(projeto => {
-    const matchesSearch = 
-      projeto.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      projeto.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      projeto.localizacao.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === "todos" || projeto.status === filterStatus;
-    
-    return matchesSearch && matchesStatus;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Em Andamento": return "text-green-700 bg-green-50 border-green-200";
-      case "Planejamento": return "text-blue-700 bg-blue-50 border-blue-200";
-      case "Em Pausa": return "text-yellow-700 bg-yellow-50 border-yellow-200";
-      case "Concluído": return "text-purple-700 bg-purple-50 border-purple-200";
-      default: return "text-gray-700 bg-gray-50 border-gray-200";
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/projects');
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+        setFilteredProjects(data);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar projetos:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const filterProjects = () => {
+    let filtered = projects;
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.enderecoCidade.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== "TODOS") {
+      filtered = filtered.filter((p) => p.status === statusFilter);
+    }
+
+    setFilteredProjects(filtered);
+  };
+
+  const handleDelete = async (projectId: string, projectName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm(`Tem certeza que deseja excluir o projeto "${projectName}"?\n\nEsta ação não pode ser desfeita.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Erro ao excluir projeto');
+
+      setProjects(prev => prev.filter(p => p.id !== projectId));
+      
+    } catch (error) {
+      console.error('Erro ao excluir projeto:', error);
+      alert('Erro ao excluir projeto. Tente novamente.');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      PLANEJAMENTO: 'text-blue-700 bg-blue-50 border-blue-200',
+      EM_EXECUCAO: 'text-green-700 bg-green-50 border-green-200',
+      PAUSADO: 'text-yellow-700 bg-yellow-50 border-yellow-200',
+      CONCLUIDO: 'text-gray-700 bg-gray-50 border-gray-200',
+      CANCELADO: 'text-red-700 bg-red-50 border-red-200',
+    };
+
+    const labels = {
+      PLANEJAMENTO: 'Planejamento',
+      EM_EXECUCAO: 'Em Execução',
+      PAUSADO: 'Pausado',
+      CONCLUIDO: 'Concluído',
+      CANCELADO: 'Cancelado',
+    };
+
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-medium border ${styles[status as keyof typeof styles]}`}>
+        {labels[status as keyof typeof labels]}
+      </span>
+    );
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const stats = {
+    total: projects.length,
+    emExecucao: projects.filter(p => p.status === 'EM_EXECUCAO').length,
+    planejamento: projects.filter(p => p.status === 'PLANEJAMENTO').length,
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <div className="hidden lg:block lg:w-24 bg-white border-r border-gray-200 animate-pulse">
+          <div className="p-4 space-y-2">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className="h-14 bg-gray-200 rounded-xl"></div>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 p-6 animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-12 bg-gray-200 rounded mb-4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* SIDEBAR - Desktop - AJUSTADO PARA CABER TODOS OS ÍCONES */}
+      {/* SIDEBAR - Desktop */}
       <aside className="hidden lg:flex lg:flex-col lg:w-24 lg:h-screen lg:sticky lg:top-0 bg-white border-r border-gray-200 flex-shrink-0">
-        {/* Área de Ícones - ESPAÇAMENTO REDUZIDO */}
         <div className="flex-1 flex flex-col items-center justify-center py-4 space-y-2">
           {menuModules.map((module) => (
             <Link key={module.id} href={module.href} className="group relative" title={module.label}>
               <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-all ${
                 activeModule === module.id ? "bg-blue-50" : "hover:bg-gray-50"
               }`}>
-                <Image
-                  src={module.iconPath}
-                  alt={module.label}
-                  width={44}
+                <Image 
+                  src={module.iconPath} 
+                  alt={module.label} 
+                  width={44} 
                   height={44}
-                  className={`transition-all ${
-                    activeModule === module.id ? "filter-none" : "grayscale opacity-50 group-hover:opacity-75"
-                  }`}
+                  className={`transition-all ${activeModule === module.id ? "filter-none" : "grayscale opacity-50 group-hover:opacity-75"}`} 
                 />
               </div>
               {activeModule === module.id && (
@@ -157,10 +193,8 @@ export default function ProjectsPage() {
             </Link>
           ))}
         </div>
-
-        {/* Botão Home - Fixo no rodapé */}
         <div className="p-3 border-t border-gray-200 flex-shrink-0">
-          <Link href="/dashboard" className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center hover:shadow-lg transition-all mx-auto">
+          <Link href="/" className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center hover:shadow-lg transition-all mx-auto">
             <span className="text-xl">🏠</span>
           </Link>
         </div>
@@ -177,15 +211,24 @@ export default function ProjectsPage() {
                 <X className="w-5 h-5 text-gray-600" />
               </button>
             </div>
-
             <div className="p-4 space-y-2">
               {menuModules.map((module) => (
-                <Link key={module.id} href={module.href} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                  activeModule === module.id ? "bg-blue-50" : "hover:bg-gray-50"
-                }`} onClick={() => setSidebarOpen(false)}>
+                <Link 
+                  key={module.id} 
+                  href={module.href} 
+                  className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                    activeModule === module.id ? "bg-blue-50" : "hover:bg-gray-50"
+                  }`} 
+                  onClick={() => setSidebarOpen(false)}
+                >
                   <div className="w-12 h-12 flex items-center justify-center flex-shrink-0">
-                    <Image src={module.iconPath} alt={module.label} width={40} height={40}
-                      className={activeModule === module.id ? "filter-none" : "grayscale opacity-50"} />
+                    <Image 
+                      src={module.iconPath} 
+                      alt={module.label} 
+                      width={40} 
+                      height={40}
+                      className={activeModule === module.id ? "filter-none" : "grayscale opacity-50"} 
+                    />
                   </div>
                   <span className={`text-sm font-medium ${activeModule === module.id ? "text-blue-600" : "text-gray-700"}`}>
                     {module.label}
@@ -193,9 +236,8 @@ export default function ProjectsPage() {
                   {activeModule === module.id && <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full" />}
                 </Link>
               ))}
-
               <div className="pt-4 mt-4 border-t border-gray-200">
-                <Link href="/dashboard" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50" onClick={() => setSidebarOpen(false)}>
+                <Link href="/" className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50" onClick={() => setSidebarOpen(false)}>
                   <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
                     <span className="text-xl">🏠</span>
                   </div>
@@ -209,7 +251,6 @@ export default function ProjectsPage() {
 
       {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 py-4 lg:px-6 flex-shrink-0">
           <div className="flex items-center gap-3 mb-4">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100">
@@ -217,116 +258,162 @@ export default function ProjectsPage() {
             </button>
             <div className="flex-1">
               <h1 className="text-xl font-bold text-gray-900">Dados da Obra</h1>
-              <p className="text-xs text-gray-500">{filteredProjetos.length} projetos encontrados</p>
+              <p className="text-xs text-gray-500">{filteredProjects.length} projetos encontrados</p>
             </div>
-            <button onClick={() => setShowFilters(!showFilters)} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-              showFilters ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-            }`}>
-              <Filter className="w-5 h-5" />
+            <button
+              onClick={() => router.push('/projects/new')}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Novo Projeto
             </button>
+          </div>
+
+          <div className="flex gap-3 mb-3 overflow-x-auto pb-2">
+            <div className="min-w-[120px] bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <p className="text-xs text-blue-600 mb-1">Total</p>
+              <p className="text-2xl font-bold text-blue-900">{stats.total}</p>
+            </div>
+            <div className="min-w-[120px] bg-green-50 rounded-lg p-3 border border-green-200">
+              <p className="text-xs text-green-600 mb-1">Em Execução</p>
+              <p className="text-2xl font-bold text-green-900">{stats.emExecucao}</p>
+            </div>
+            <div className="min-w-[120px] bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+              <p className="text-xs text-yellow-600 mb-1">Planejamento</p>
+              <p className="text-2xl font-bold text-yellow-900">{stats.planejamento}</p>
+            </div>
           </div>
 
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input type="text" placeholder="Buscar obras..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome, código ou cidade..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all" 
+            />
           </div>
 
-          {showFilters && (
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {statusOptions.map((option) => (
-                <button key={option.value} onClick={() => setFilterStatus(option.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                    filterStatus === option.value ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100"
-                  }`}>
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {[
+              { value: "TODOS", label: "Todos" },
+              { value: "PLANEJAMENTO", label: "Planejamento" },
+              { value: "EM_EXECUCAO", label: "Em Execução" },
+              { value: "PAUSADO", label: "Pausado" },
+              { value: "CONCLUIDO", label: "Concluído" },
+              { value: "CANCELADO", label: "Cancelado" }
+            ].map((option) => (
+              <button 
+                key={option.value}
+                onClick={() => setStatusFilter(option.value)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                  statusFilter === option.value ? "bg-blue-600 text-white" : "bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </header>
 
-        {/* Lista de Projetos */}
         <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 space-y-4">
-          {filteredProjetos.map((projeto) => {
-            const percentualGasto = (projeto.gastos / projeto.orçamento) * 100;
-
-            return (
-              <div key={projeto.id} className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all">
+          {filteredProjects.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Plus className="h-8 w-8 text-gray-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    {searchTerm || statusFilter !== 'TODOS'
+                      ? 'Nenhum projeto encontrado'
+                      : 'Nenhum projeto cadastrado'}
+                  </h3>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    {searchTerm || statusFilter !== 'TODOS'
+                      ? 'Tente ajustar os filtros de busca'
+                      : 'Comece criando seu primeiro projeto'}
+                  </p>
+                  {!searchTerm && statusFilter === 'TODOS' && (
+                    <button
+                      onClick={() => router.push('/projects/new')}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all inline-flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Criar Primeiro Projeto
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            filteredProjects.map((project) => (
+              <div 
+                key={project.id} 
+                className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-1 bg-gray-100 rounded text-xs font-mono font-semibold text-gray-700">
-                        {projeto.codigo}
-                      </span>
-                      <span className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(projeto.status)}`}>
-                        {projeto.status}
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900 mb-1">{projeto.nome}</h3>
-                    <p className="text-sm text-gray-600 line-clamp-2">{projeto.descricao}</p>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
-                    <span className="font-medium">Progresso</span>
-                    <span className="font-bold text-blue-600">{projeto.progresso}%</span>
-                  </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 rounded-full transition-all" style={{ width: `${projeto.progresso}%` }} />
+                    <p className="text-sm text-gray-500 mb-1">{project.codigo}</p>
+                    <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2">
+                      {project.name}
+                    </h3>
+                    {getStatusBadge(project.status)}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <DollarSign className="w-3.5 h-3.5 text-gray-500" />
-                      <p className="text-xs text-gray-600">Orçamento</p>
-                    </div>
-                    <p className="text-sm font-bold text-gray-900">R$ {(projeto.orçamento / 1000000).toFixed(1)}M</p>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Localização</p>
+                    <p className="text-sm text-gray-900 font-medium">
+                      {project.enderecoCidade}/{project.enderecoEstado}
+                    </p>
                   </div>
-
-                  <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <TrendingUp className="w-3.5 h-3.5 text-gray-500" />
-                      <p className="text-xs text-gray-600">Gastos</p>
-                    </div>
-                    <p className="text-sm font-bold text-gray-900">R$ {(projeto.gastos / 1000000).toFixed(1)}M</p>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Tipo</p>
+                    <p className="text-sm text-gray-900 font-medium">{project.tipoObra}</p>
                   </div>
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                    <span className="text-xs">{projeto.localizacao}</span>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Orçamento</p>
+                    <p className="text-sm text-gray-900 font-medium">
+                      {formatCurrency(project.orcamentoEstimado)}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-4 h-4 text-gray-400" />
-                    <span className="text-xs">{projeto.equipe} colaboradores • {projeto.responsavel}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-xs">Início: {projeto.inicio} • Prazo: {projeto.prazoFinal}</span>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Gasto</p>
+                    <p className="text-sm text-blue-600 font-medium">
+                      {formatCurrency(project.totalGasto)}
+                    </p>
                   </div>
                 </div>
 
-                <button className="w-full py-3 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-semibold text-sm rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-2 group">
-                  Ver Detalhes
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => router.push(`/projects/${project.id}`)}
+                    className="flex-1 py-2.5 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-semibold text-sm rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Ver
+                  </button>
+                  
+                  <button
+                    onClick={() => router.push(`/projects/${project.id}/edit`)}
+                    className="flex-1 py-2.5 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-semibold text-sm rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Editar
+                  </button>
+                  
+                  <button
+                    onClick={(e) => handleDelete(project.id, project.name, e)}
+                    className="py-2.5 px-4 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-semibold text-sm rounded-lg border border-red-200 hover:border-red-600 transition-all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            );
-          })}
-
-          {filteredProjetos.length === 0 && (
-            <div className="text-center py-12 px-4">
-              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-base font-bold text-gray-900 mb-2">Nenhuma obra encontrada</h3>
-              <p className="text-sm text-gray-500">Tente ajustar os filtros ou buscar por outros termos</p>
-            </div>
+            ))
           )}
         </div>
       </div>
