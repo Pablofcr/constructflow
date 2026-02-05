@@ -6,11 +6,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ENUMS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 enum ProjectStatus {
   PLANEJAMENTO
   EM_ANDAMENTO
@@ -54,7 +58,10 @@ enum TeamMemberRole {
   OUTRO
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 model Project {
   id                    String        @id @default(uuid())
   name                  String
@@ -99,36 +106,128 @@ model Project {
   @@map("projects")
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ORÇAMENTO ESTIMADO - Análise de Viabilidade
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 model BudgetEstimated {
   id                    String   @id @default(uuid())
   projectId             String   @unique
   project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   
-  // Análise de Cenários (Matriz 3x3)
-  // Linha 1: Custo Baixo
-  baixoBaixo            Float    @default(0)
-  baixoMedio            Float    @default(0)
-  baixoAlto             Float    @default(0)
+  // ══════════════════════════════════════════════════════════════════════════
+  // CUSTOS DO TERRENO
+  // ══════════════════════════════════════════════════════════════════════════
+  landValue             Float    @default(0)      // Valor do terreno
+  iptuPercentage        Float    @default(0.005)  // % IPTU (ex: 0.5% = 0.005)
+  iptuValue             Float    @default(0)      // Valor calculado do IPTU
+  condominiumValue      Float    @default(0)      // Taxa de condomínio (se aplicável)
+  itbiPercentage        Float    @default(0.03)   // % ITBI + Escritura
+  itbiValue             Float    @default(0)      // Valor calculado ITBI
+  totalLandCost         Float    @default(0)      // Total custos terreno
   
-  // Linha 2: Custo Médio
-  medioBaixo            Float    @default(0)
-  medioMedio            Float    @default(0)
-  medioAlto             Float    @default(0)
+  // ══════════════════════════════════════════════════════════════════════════
+  // CUSTOS DA CONSTRUÇÃO
+  // ══════════════════════════════════════════════════════════════════════════
+  cubValue              Float    @default(0)      // CUB em R$/m²
+  cucValue              Float    @default(0)      // CUC = CUB * 1.2
+  cubSource             String   @default("manual") // "manual" ou "auto"
+  cubReferenceMonth     String?                   // Mês referência (ex: "2026-01")
+  cubType               String?                   // Tipo do CUB (ex: "R1-N")
+  constructedArea       Float    @default(0)      // Área construída m²
+  areaDiscount          Float    @default(15)     // Desconto de área (m²)
+  equivalentArea        Float    @default(0)      // Área equivalente = área - desconto
+  constructionCost      Float    @default(0)      // Custo construção = CUC * área equiv.
   
-  // Linha 3: Custo Alto
-  altoBaixo             Float    @default(0)
-  altoMedio             Float    @default(0)
-  altoAlto              Float    @default(0)
+  // ══════════════════════════════════════════════════════════════════════════
+  // DURAÇÃO E TOTAIS
+  // ══════════════════════════════════════════════════════════════════════════
+  projectDuration       Int      @default(12)     // Duração da obra em meses
+  totalEstimatedCost    Float    @default(0)      // Custo total = terreno + construção
   
-  // Cenário selecionado
-  cenarioSelecionado    String?  // Ex: "medioMedio"
-  valorSelecionado      Float?
+  // ══════════════════════════════════════════════════════════════════════════
+  // PRAZOS DE VENDA (meses após conclusão da obra)
+  // ══════════════════════════════════════════════════════════════════════════
+  adverseSaleDeadline   Int      @default(18)     // Prazo venda cenário adverso
+  expectedSaleDeadline  Int      @default(11)     // Prazo venda cenário esperado
+  idealSaleDeadline     Int      @default(7)      // Prazo venda cenário ideal
   
+  // ══════════════════════════════════════════════════════════════════════════
+  // VIABILIDADE - CENÁRIO ADVERSO (Venda a 140% do custo)
+  // ══════════════════════════════════════════════════════════════════════════
+  adverseSaleValue      Float    @default(0)      // Valor de venda
+  adverseBrokerage      Float    @default(0)      // Corretagem (5%)
+  adverseTaxes          Float    @default(0)      // Impostos (15% ganho capital)
+  adverseNetProfit      Float    @default(0)      // Lucro líquido
+  adverseProfitMargin   Float    @default(0)      // Margem de lucro (%)
+  adverseROE            Float    @default(0)      // ROE - Retorno sobre investimento (%)
+  adverseMonthlyReturn  Float    @default(0)      // Retorno mensal (%)
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // VIABILIDADE - CENÁRIO ESPERADO (Venda a 160% do custo)
+  // ══════════════════════════════════════════════════════════════════════════
+  expectedSaleValue     Float    @default(0)
+  expectedBrokerage     Float    @default(0)
+  expectedTaxes         Float    @default(0)
+  expectedNetProfit     Float    @default(0)
+  expectedProfitMargin  Float    @default(0)
+  expectedROE           Float    @default(0)
+  expectedMonthlyReturn Float    @default(0)
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // VIABILIDADE - CENÁRIO IDEAL (Venda a 180% do custo)
+  // ══════════════════════════════════════════════════════════════════════════
+  idealSaleValue        Float    @default(0)
+  idealBrokerage        Float    @default(0)
+  idealTaxes            Float    @default(0)
+  idealNetProfit        Float    @default(0)
+  idealProfitMargin     Float    @default(0)
+  idealROE              Float    @default(0)
+  idealMonthlyReturn    Float    @default(0)
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // MATRIZ DE CENÁRIOS 3x3 (Valor x Prazo)
+  // Primeira letra = Cenário de VALOR (A=Adverso, E=Esperado, I=Ideal)
+  // Segunda letra = Cenário de PRAZO (A=Adverso, E=Esperado, I=Ideal)
+  // ══════════════════════════════════════════════════════════════════════════
+  
+  // Linha 1: Valor Adverso (140%)
+  scenario_AA_monthlyReturn  Float  @default(0)  // Adverso valor + Adverso prazo
+  scenario_AA_totalMonths    Int    @default(0)
+  scenario_AE_monthlyReturn  Float  @default(0)  // Adverso valor + Esperado prazo
+  scenario_AE_totalMonths    Int    @default(0)
+  scenario_AI_monthlyReturn  Float  @default(0)  // Adverso valor + Ideal prazo
+  scenario_AI_totalMonths    Int    @default(0)
+  
+  // Linha 2: Valor Esperado (160%)
+  scenario_EA_monthlyReturn  Float  @default(0)  // Esperado valor + Adverso prazo
+  scenario_EA_totalMonths    Int    @default(0)
+  scenario_EE_monthlyReturn  Float  @default(0)  // Esperado valor + Esperado prazo
+  scenario_EE_totalMonths    Int    @default(0)
+  scenario_EI_monthlyReturn  Float  @default(0)  // Esperado valor + Ideal prazo
+  scenario_EI_totalMonths    Int    @default(0)
+  
+  // Linha 3: Valor Ideal (180%)
+  scenario_IA_monthlyReturn  Float  @default(0)  // Ideal valor + Adverso prazo
+  scenario_IA_totalMonths    Int    @default(0)
+  scenario_IE_monthlyReturn  Float  @default(0)  // Ideal valor + Esperado prazo
+  scenario_IE_totalMonths    Int    @default(0)
+  scenario_II_monthlyReturn  Float  @default(0)  // Ideal valor + Ideal prazo
+  scenario_II_totalMonths    Int    @default(0)
+  
+  // ══════════════════════════════════════════════════════════════════════════
+  // OUTROS
+  // ══════════════════════════════════════════════════════════════════════════
+  notes                 String?                   // Observações
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   
   @@map("budget_estimated")
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EQUIPE / COLABORADORES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 model TeamMember {
   id                    String          @id @default(uuid())
