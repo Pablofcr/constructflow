@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Eye, Edit, Trash2, Menu, X } from 'lucide-react';
+import { Plus, Search, Eye, DollarSign, Edit, Trash2, Menu, X } from 'lucide-react';
 
 interface Project {
   id: string;
   codigo: string;
   name: string;
-  status: string;
-  tipoObra: string;
+  status?: string;
+  tipoObra?: string;
   enderecoCidade: string;
   enderecoEstado: string;
   orcamentoEstimado: number;
@@ -51,10 +51,14 @@ export default function ProjectsPage() {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/projects');
+      const response = await fetch('/api/projects', { cache: 'no-store' });
       if (response.ok) {
-        const data = await response.json();
-        setProjects(data);
+        const json = await response.json();
+
+      // Suporta respostas no formato: array direto, { projects: [...] }, ou { data: [...] }
+      const data = Array.isArray(json) ? json : (json?.projects ?? json?.data ?? []);
+
+      setProjects(data);
         setFilteredProjects(data);
       }
     } catch (error) {
@@ -105,29 +109,29 @@ export default function ProjectsPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      PLANEJAMENTO: 'text-blue-700 bg-blue-50 border-blue-200',
-      EM_EXECUCAO: 'text-green-700 bg-green-50 border-green-200',
-      PAUSADO: 'text-yellow-700 bg-yellow-50 border-yellow-200',
-      CONCLUIDO: 'text-gray-700 bg-gray-50 border-gray-200',
-      CANCELADO: 'text-red-700 bg-red-50 border-red-200',
-    };
-
-    const labels = {
-      PLANEJAMENTO: 'Planejamento',
-      EM_EXECUCAO: 'Em Execução',
-      PAUSADO: 'Pausado',
-      CONCLUIDO: 'Concluído',
-      CANCELADO: 'Cancelado',
-    };
-
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-medium border ${styles[status as keyof typeof styles]}`}>
-        {labels[status as keyof typeof labels]}
-      </span>
-    );
+  const getStatusBadge = (status?: string) => {
+  const styles: Record<string, string> = {
+    PLANEJAMENTO: 'bg-blue-100 text-blue-800 border-blue-200',
+    EM_ANDAMENTO: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    PARALISADA: 'bg-red-100 text-red-800 border-red-200',
+    CONCLUIDA: 'bg-green-100 text-green-800 border-green-200'
   };
+
+  const labels: Record<string, string> = {
+    PLANEJAMENTO: 'Planejamento',
+    EM_ANDAMENTO: 'Em andamento',
+    PARALISADA: 'Paralisada',
+    CONCLUIDA: 'Concluída'
+  };
+
+  const safeStatus = status && styles[status] ? status : 'PLANEJAMENTO';
+
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${styles[safeStatus]}`}>
+      {labels[safeStatus]}
+    </span>
+  );
+};
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -140,7 +144,7 @@ export default function ProjectsPage() {
   const stats = {
     total: projects.length,
     emExecucao: projects.filter(p => p.status === 'EM_EXECUCAO').length,
-    planejamento: projects.filter(p => p.status === 'PLANEJAMENTO').length,
+    planejamento: projects.filter(p => (p.status ?? 'PLANEJAMENTO') === 'PLANEJAMENTO').length,
   };
 
   if (loading) {
@@ -372,7 +376,7 @@ export default function ProjectsPage() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Tipo</p>
-                    <p className="text-sm text-gray-900 font-medium">{project.tipoObra}</p>
+                    <p className="text-sm text-gray-900 font-medium">{project.tipoObra ?? '—'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Orçamento</p>
@@ -397,6 +401,14 @@ export default function ProjectsPage() {
                     Ver
                   </button>
                   
+                  <button
+                    onClick={() => router.push(`/budget`)}
+                    className="flex-1 py-2.5 bg-green-50 hover:bg-green-600 text-green-700 hover:text-white font-semibold text-sm rounded-lg border border-green-200 hover:border-green-600 transition-all flex items-center justify-center gap-2"
+                  >
+                    <DollarSign className="h-4 w-4" />
+                    Orçamentos
+                  </button>
+
                   <button
                     onClick={() => router.push(`/projects/${project.id}/edit`)}
                     className="flex-1 py-2.5 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-semibold text-sm rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-2"

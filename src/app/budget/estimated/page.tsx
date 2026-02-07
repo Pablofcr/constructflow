@@ -1,470 +1,230 @@
-"use client"
+'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useProject } from '@/contexts/project-context'
-import { Sidebar } from '@/components/sidebar'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { ArrowLeft, Save, Calculator, Loader2, Home, Building2, DollarSign, Clock, Target, Info } from 'lucide-react'
-import Link from 'next/link'
+import { ArrowLeft, Loader2, Save, Calculator } from 'lucide-react'
 import { ScenarioMatrix } from '@/components/scenario-matrix'
-import { StageBreakdown } from '@/components/stage-breakdown'
+import { useProject } from '@/contexts/project-context'
+
+interface BudgetData {
+  id: string
+  projectId: string
+  
+  landValue: number
+  iptuPercentage: number
+  iptuValue: number
+  itbiPercentage: number
+  itbiValue: number
+  condominiumValue: number
+  condominiumTotalValue: number
+  totalLandCost: number
+  
+  cubValue: number
+  cucValue: number
+  cubSource: string | null
+  cubReferenceMonth: string | null
+  cubType: string | null
+  
+  constructedArea: number
+  areaDiscount: number
+  equivalentArea: number
+  constructionCost: number
+  totalEstimatedCost: number
+  projectDuration: number | null
+  
+  adverseSaleValue: number | null
+  adverseBrokerage: number | null
+  adverseTaxes: number | null
+  adverseNetProfit: number | null
+  adverseProfitMargin: number | null
+  adverseROE: number | null
+  adverseMonthlyReturn: number | null
+  adverseSaleDeadline: number | null
+  
+  expectedSaleValue: number | null
+  expectedBrokerage: number | null
+  expectedTaxes: number | null
+  expectedNetProfit: number | null
+  expectedProfitMargin: number | null
+  expectedROE: number | null
+  expectedMonthlyReturn: number | null
+  expectedSaleDeadline: number | null
+  
+  idealSaleValue: number | null
+  idealBrokerage: number | null
+  idealTaxes: number | null
+  idealNetProfit: number | null
+  idealProfitMargin: number | null
+  idealROE: number | null
+  idealMonthlyReturn: number | null
+  idealSaleDeadline: number | null
+  
+  scenarioAAMonthlyReturn: number | null
+  scenarioAATotalMonths: number | null
+  scenarioAEMonthlyReturn: number | null
+  scenarioAETotalMonths: number | null
+  scenarioAIMonthlyReturn: number | null
+  scenarioAITotalMonths: number | null
+  scenarioEAMonthlyReturn: number | null
+  scenarioEATotalMonths: number | null
+  scenarioEEMonthlyReturn: number | null
+  scenarioEETotalMonths: number | null
+  scenarioEIMonthlyReturn: number | null
+  scenarioEITotalMonths: number | null
+  scenarioIAMonthlyReturn: number | null
+  scenarioIATotalMonths: number | null
+  scenarioIEMonthlyReturn: number | null
+  scenarioIETotalMonths: number | null
+  scenarioIIMonthlyReturn: number | null
+  scenarioIITotalMonths: number | null
+}
 
 interface Project {
   id: string
-  codigo: string
-  name: string
-  tipoObra: string
-  subtipoResidencial: string | null
-  enderecoEstado: string
+  codigo: string | null
+  name: string | null
+  padraoEmpreendimento: 'POPULAR' | 'MEDIO' | 'ALTO'
 }
 
-interface CubValue {
-  id: string
-  cubCode: string
-  totalValue: number
-  referenceYear: number
-  referenceMonth: number
-  standard: string
-  subtype: string
+// ✅ FUNÇÕES DE CÁLCULO IDÊNTICAS À API
+function calculateAreaDiscount(cubType: string | null): number {
+  if (!cubType) return 10
+  if (cubType.includes('-A')) return 15  // Alto
+  if (cubType.includes('-B') || cubType.includes('PIS')) return 8  // Popular
+  return 10  // Normal
 }
 
 export default function BudgetEstimatedPage() {
   const router = useRouter()
   const { activeProject } = useProject()
+
+  const projectId = activeProject?.id || ''
+
+  const [project, setProject] = useState<Project | null>(null)
+  const [budget, setBudget] = useState<BudgetData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [project, setProject] = useState<Project | null>(null)
-  const [availableCubs, setAvailableCubs] = useState<CubValue[]>([])
-  const [selectedCubId, setSelectedCubId] = useState<string>('')
-  const [detectedStandard, setDetectedStandard] = useState<string>('NORMAL')
 
-  const [formData, setFormData] = useState({
-    landValue: '',
-    iptuPercentage: '0.5',
-    condominiumValue: '0',
-    itbiPercentage: '3',
-    cubValue: '',
-    cubSource: 'manual',
-    cubReferenceMonth: '',
-    cubType: '',
-    constructedArea: '',
-    projectDuration: '12',
-    notes: ''
-  })
+  // ✅ ESTADOS EDITÁVEIS
+  const [landValue, setLandValue] = useState(0)
+  const [iptuPercent, setIptuPercent] = useState(0.5)
+  const [condominium, setCondominium] = useState(0)
+  const [itbiPercent, setItbiPercent] = useState(3)
 
-  const [calculatedValues, setCalculatedValues] = useState({
-    iptuValue: 0,
-    itbiValue: 0,
-    totalLandCost: 0,
-    cucValue: 0,
-    areaDiscount: 0,
-    equivalentArea: 0,
-    constructionCost: 0,
-    totalEstimatedCost: 0,
-    adverse: {
-      saleValue: 0,
-      brokerage: 0,
-      taxes: 0,
-      netProfit: 0,
-      profitMargin: 0,
-      roe: 0,
-      monthlyReturn: 0
-    },
-    expected: {
-      saleValue: 0,
-      brokerage: 0,
-      taxes: 0,
-      netProfit: 0,
-      profitMargin: 0,
-      roe: 0,
-      monthlyReturn: 0
-    },
-    ideal: {
-      saleValue: 0,
-      brokerage: 0,
-      taxes: 0,
-      netProfit: 0,
-      profitMargin: 0,
-      roe: 0,
-      monthlyReturn: 0
-    },
-    deadlines: {
-      adverse: 0,
-      expected: 0,
-      ideal: 0
-    },
-    matrix: {
-      AA: { monthlyReturn: 0, totalMonths: 0 },
-      AE: { monthlyReturn: 0, totalMonths: 0 },
-      AI: { monthlyReturn: 0, totalMonths: 0 },
-      EA: { monthlyReturn: 0, totalMonths: 0 },
-      EE: { monthlyReturn: 0, totalMonths: 0 },
-      EI: { monthlyReturn: 0, totalMonths: 0 },
-      IA: { monthlyReturn: 0, totalMonths: 0 },
-      IE: { monthlyReturn: 0, totalMonths: 0 },
-      II: { monthlyReturn: 0, totalMonths: 0 }
-    }
-  })
+  const [cubValue, setCubValue] = useState(0)
+  const [cubType, setCubType] = useState<string>('R1-A')
+  const [area, setArea] = useState(0)
+  const [duration, setDuration] = useState(12)
 
   useEffect(() => {
-    if (activeProject) {
-      fetchProjectData()
+    if (projectId) {
+      loadProjectAndBudget()
+    } else {
+      setProject(null)
+      setBudget(null)
+      setLoading(false)
     }
-  }, [activeProject])
+  }, [projectId])
 
   useEffect(() => {
-    if (project) {
-      fetchAvailableCubs()
+    if (budget) {
+      setLandValue(budget.landValue || 0)
+      setIptuPercent(budget.iptuPercentage || 0.5)
+      setCondominium(budget.condominiumValue || 0)
+      setItbiPercent(budget.itbiPercentage || 3)
+      setCubValue(budget.cubValue || 0)
+      setCubType(budget.cubType || 'R1-A')
+      setArea(budget.constructedArea || 0)
+      setDuration(budget.projectDuration || 12)
     }
-  }, [project])
+  }, [budget])
 
-  useEffect(() => {
-    calculateValues()
-  }, [formData, project])
-
-  const fetchProjectData = async () => {
-    if (!activeProject) return
-
+  const loadProjectAndBudget = async () => {
     try {
       setLoading(true)
-      
-      const projRes = await fetch(`/api/projects/${activeProject.id}`)
-      if (projRes.ok) {
-        const projData = await projRes.json()
-        setProject(projData)
+
+      const projectRes = await fetch(`/api/projects/${projectId}`)
+      if (!projectRes.ok) {
+        setProject(null)
+        setBudget(null)
+        return
       }
 
-      const budgetRes = await fetch(`/api/budget/estimated?projectId=${activeProject.id}`)
+      const projectData = await projectRes.json()
+      setProject(projectData)
+
+      const budgetRes = await fetch(`/api/budget/estimated?projectId=${projectId}`)
       if (budgetRes.ok) {
         const budgetData = await budgetRes.json()
-        
-        setFormData({
-          landValue: budgetData.landValue.toString(),
-          iptuPercentage: (budgetData.iptuPercentage * 100).toString(),
-          condominiumValue: budgetData.condominiumValue.toString(),
-          itbiPercentage: (budgetData.itbiPercentage * 100).toString(),
-          cubValue: budgetData.cubValue.toString(),
-          cubSource: budgetData.cubSource || 'manual',
-          cubReferenceMonth: budgetData.cubReferenceMonth || '',
-          cubType: budgetData.cubType || '',
-          constructedArea: budgetData.constructedArea.toString(),
-          projectDuration: budgetData.projectDuration.toString(),
-          notes: budgetData.notes || ''
-        })
+        setBudget(budgetData)
+      } else {
+        setBudget(null)
       }
     } catch (error) {
-      console.error('Erro ao buscar dados:', error)
+      console.error('Erro ao carregar dados:', error)
+      setProject(null)
+      setBudget(null)
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchAvailableCubs = async () => {
-    if (!project) return
+  // ✅ CÁLCULOS AUTOMÁTICOS - CORRIGIDOS
+  // SEMPRE dividir por 100 porque o campo é percentual (0,5 = 0,5%)
+  const iptuPerc = iptuPercent / 100
+  const itbiPerc = itbiPercent / 100
+  
+  const iptuValue = landValue * iptuPerc
+  const itbiValue = landValue * itbiPerc
+  const condominiumTotal = condominium * duration
+  const totalLandCost = landValue + iptuValue + itbiValue + condominiumTotal
+  
+  const cucValue = cubValue * 1.2
+  const areaDiscount = calculateAreaDiscount(cubType)
+  const equivalentArea = Math.max(0, area - areaDiscount)
+  const constructionCost = cucValue * equivalentArea
+  
+  const totalEstimatedCost = totalLandCost + constructionCost
 
-    try {
-      let subtype = ''
-      if (project.tipoObra === 'RESIDENCIAL') {
-        subtype = project.subtipoResidencial || 'UNIFAMILIAR'
-      } else if (project.tipoObra === 'COMERCIAL') {
-        subtype = 'SALA'
-      }
-
-      const url = `/api/budget/cub?state=${project.enderecoEstado}&projectType=${project.tipoObra}&subtype=${subtype}`
-      
-      const response = await fetch(url)
-      if (response.ok) {
-        const cubs = await response.json()
-        setAvailableCubs(cubs)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar CUBs:', error)
-    }
-  }
-
-  const handleCubSelection = (cubId: string) => {
-    setSelectedCubId(cubId)
-    const selectedCub = availableCubs.find(c => c.id === cubId)
+  const handleSave = async () => {
+    if (!projectId) return
     
-    if (selectedCub) {
-      // Determinar duração padrão sugerida baseada no padrão
-      let suggestedDuration = '12'
-      const cubCode = selectedCub.cubCode.toUpperCase()
-      if (cubCode.includes('-A')) suggestedDuration = '10'
-      else if (cubCode.includes('-B') || cubCode.includes('PIS')) suggestedDuration = '4'
-      else if (cubCode.includes('-N')) suggestedDuration = '7'
-      
-      setFormData(prev => ({
-        ...prev,
-        cubValue: selectedCub.totalValue.toString(),
-        cubSource: 'auto',
-        cubReferenceMonth: `${selectedCub.referenceYear}-${selectedCub.referenceMonth.toString().padStart(2, '0')}`,
-        cubType: selectedCub.cubCode,
-        projectDuration: prev.projectDuration || suggestedDuration // Sugere apenas se vazio
-      }))
-    }
-  }
-
-  const determineStandard = (cubType: string | null): string => {
-    if (!cubType) return 'NORMAL'
-    
-    const typeUpper = cubType.toUpperCase()
-    
-    // Verificar pelo código do CUB
-    if (typeUpper.includes('-A')) return 'ALTO'
-    if (typeUpper.includes('-B') || typeUpper.includes('PIS')) return 'BAIXO'
-    if (typeUpper.includes('-N')) return 'NORMAL'
-    
-    return 'NORMAL'
-  }
-
-  const determineSaleDeadlines = (cubType: string | null) => {
-    const standard = determineStandard(cubType)
-    setDetectedStandard(standard)
-    
-    // Para Residencial Unifamiliar - APENAS PRAZOS DE VENDA FIXOS
-    if (project?.tipoObra === 'RESIDENCIAL' && project?.subtipoResidencial === 'UNIFAMILIAR') {
-      if (standard === 'ALTO') {
-        return {
-          defaultConstructionMonths: 10,  // Sugestão padrão
-          adverseSaleMonths: 12,
-          expectedSaleMonths: 6,
-          idealSaleMonths: 0
-        }
-      } else if (standard === 'BAIXO' || standard === 'POPULAR') {
-        return {
-          defaultConstructionMonths: 4,   // Sugestão padrão
-          adverseSaleMonths: 6,
-          expectedSaleMonths: 3,
-          idealSaleMonths: 0
-        }
-      } else {
-        // NORMAL
-        return {
-          defaultConstructionMonths: 7,   // Sugestão padrão
-          adverseSaleMonths: 7,
-          expectedSaleMonths: 4,
-          idealSaleMonths: 0
-        }
-      }
-    }
-
-    // Outros tipos (valores padrão)
-    if (standard === 'ALTO') {
-      return {
-        defaultConstructionMonths: 10,
-        adverseSaleMonths: 12,
-        expectedSaleMonths: 6,
-        idealSaleMonths: 0
-      }
-    } else if (standard === 'BAIXO') {
-      return {
-        defaultConstructionMonths: 4,
-        adverseSaleMonths: 6,
-        expectedSaleMonths: 3,
-        idealSaleMonths: 0
-      }
-    } else {
-      return {
-        defaultConstructionMonths: 7,
-        adverseSaleMonths: 7,
-        expectedSaleMonths: 4,
-        idealSaleMonths: 0
-      }
-    }
-  }
-
-  const calculateViability = (totalCost: number, multiplier: number, duration: number) => {
-    const saleValue = totalCost * multiplier
-    const brokerage = saleValue * 0.05
-    const capitalGain = saleValue - brokerage - totalCost
-    const taxes = capitalGain * 0.15
-    const netProfit = saleValue - totalCost - brokerage - taxes
-    const profitMargin = (netProfit / saleValue) * 100
-    const roe = (netProfit / totalCost) * 100
-    const monthlyReturn = duration > 0 ? roe / duration : 0
-
-    return { saleValue, brokerage, taxes, netProfit, profitMargin, roe, monthlyReturn }
-  }
-
-  const calculateValues = () => {
-    const landVal = parseFloat(formData.landValue) || 0
-    const iptuPerc = parseFloat(formData.iptuPercentage) / 100 || 0.005
-    const itbiPerc = parseFloat(formData.itbiPercentage) / 100 || 0.03
-    const condVal = parseFloat(formData.condominiumValue) || 0
-    const cubVal = parseFloat(formData.cubValue) || 0
-    const constArea = parseFloat(formData.constructedArea) || 0
-    const duration = parseInt(formData.projectDuration) || 12
-
-    const iptuVal = landVal * iptuPerc
-    const itbiVal = landVal * itbiPerc
-    const totalLand = landVal + iptuVal + condVal + itbiVal
-
-    const cucVal = cubVal * 1.2
-    
-    const standard = determineStandard(formData.cubType)
-    let areaDisc = 15
-    if (standard === 'ALTO') areaDisc = 22.5
-    else if (standard === 'BAIXO') areaDisc = 10
-    
-    const equivArea = Math.max(0, constArea - areaDisc)
-    const constCost = cucVal * equivArea
-    const totalEst = totalLand + constCost
-
-    // Calcular viabilidade para os 3 cenários
-    const adverse = calculateViability(totalEst, 1.40, duration)
-    const expected = calculateViability(totalEst, 1.60, duration)
-    const ideal = calculateViability(totalEst, 1.80, duration)
-
-    // Determinar prazos de venda FIXOS da tabela
-    const deadlines = determineSaleDeadlines(formData.cubType)
-
-    // Calcular prazos TOTAIS = Duração informada + Prazo de venda fixo
-    const userDuration = parseInt(formData.projectDuration) || deadlines.defaultConstructionMonths
-    
-    const adverseTotalMonths = userDuration + deadlines.adverseSaleMonths
-    const expectedTotalMonths = userDuration + deadlines.expectedSaleMonths
-    const idealTotalMonths = userDuration + deadlines.idealSaleMonths
-
-    // Calcular matriz usando prazos totais calculados
-    const matrix = {
-      AA: {
-        monthlyReturn: adverseTotalMonths > 0 
-          ? adverse.roe / adverseTotalMonths 
-          : 0,
-        totalMonths: adverseTotalMonths
-      },
-      AE: {
-        monthlyReturn: expectedTotalMonths > 0 
-          ? adverse.roe / expectedTotalMonths 
-          : 0,
-        totalMonths: expectedTotalMonths
-      },
-      AI: {
-        monthlyReturn: idealTotalMonths > 0 
-          ? adverse.roe / idealTotalMonths 
-          : 0,
-        totalMonths: idealTotalMonths
-      },
-      EA: {
-        monthlyReturn: adverseTotalMonths > 0 
-          ? expected.roe / adverseTotalMonths 
-          : 0,
-        totalMonths: adverseTotalMonths
-      },
-      EE: {
-        monthlyReturn: expectedTotalMonths > 0 
-          ? expected.roe / expectedTotalMonths 
-          : 0,
-        totalMonths: expectedTotalMonths
-      },
-      EI: {
-        monthlyReturn: idealTotalMonths > 0 
-          ? expected.roe / idealTotalMonths 
-          : 0,
-        totalMonths: idealTotalMonths
-      },
-      IA: {
-        monthlyReturn: adverseTotalMonths > 0 
-          ? ideal.roe / adverseTotalMonths 
-          : 0,
-        totalMonths: adverseTotalMonths
-      },
-      IE: {
-        monthlyReturn: expectedTotalMonths > 0 
-          ? ideal.roe / expectedTotalMonths 
-          : 0,
-        totalMonths: expectedTotalMonths
-      },
-      II: {
-        monthlyReturn: idealTotalMonths > 0 
-          ? ideal.roe / idealTotalMonths 
-          : 0,
-        totalMonths: idealTotalMonths
-      }
-    }
-
-    setCalculatedValues({
-      iptuValue: iptuVal,
-      itbiValue: itbiVal,
-      totalLandCost: totalLand,
-      cucValue: cucVal,
-      areaDiscount: areaDisc,
-      equivalentArea: equivArea,
-      constructionCost: constCost,
-      totalEstimatedCost: totalEst,
-      adverse,
-      expected,
-      ideal,
-      deadlines: {
-        adverse: deadlines.adverseSaleMonths,
-        expected: deadlines.expectedSaleMonths,
-        ideal: deadlines.idealSaleMonths
-      },
-      matrix
-    })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!activeProject) {
-      alert('Nenhum projeto selecionado')
-      return
-    }
-
     setSaving(true)
-
     try {
-      const payload = {
-        projectId: activeProject.id,
-        landValue: formData.landValue,
-        iptuPercentage: parseFloat(formData.iptuPercentage) / 100,
-        condominiumValue: formData.condominiumValue,
-        itbiPercentage: parseFloat(formData.itbiPercentage) / 100,
-        cubValue: formData.cubValue,
-        cubSource: formData.cubSource,
-        cubReferenceMonth: formData.cubReferenceMonth || null,
-        cubType: formData.cubType || null,
-        constructedArea: formData.constructedArea,
-        projectDuration: formData.projectDuration,
-        notes: formData.notes
-      }
-
       const response = await fetch('/api/budget/estimated', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          landValue,
+          iptuPercentage: iptuPercent,
+          itbiPercentage: itbiPercent,
+          condominiumValue: condominium,
+          cubValue,
+          cubType,
+          constructedArea: area,
+          projectDuration: duration,
+        })
       })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Erro ao salvar orçamento')
+      
+      if (response.ok) {
+        alert('Orçamento salvo com sucesso!')
+        loadProjectAndBudget()
+      } else {
+        const error = await response.json()
+        console.error('Erro API:', error)
+        alert(`Erro ao salvar: ${error.details || error.error}`)
       }
-
-      alert('Orçamento estimado salvo com sucesso!')
-      router.push('/budget')
     } catch (error) {
-      console.error('Erro:', error)
-      alert(error instanceof Error ? error.message : 'Erro ao salvar orçamento')
+      console.error('Erro ao salvar:', error)
+      alert('Erro ao salvar orçamento')
     } finally {
       setSaving(false)
     }
   }
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | null | undefined) => {
+    if (!value) return 'R$ 0,00'
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -472,44 +232,41 @@ export default function BudgetEstimatedPage() {
     }).format(value)
   }
 
-  const getStandardBadgeColor = (standard: string) => {
-    if (standard === 'ALTO') return 'bg-purple-100 text-purple-800 border-purple-300'
-    if (standard === 'BAIXO') return 'bg-gray-100 text-gray-800 border-gray-300'
-    return 'bg-blue-100 text-blue-800 border-blue-300'
-  }
-
-  const getStandardLabel = (standard: string) => {
-    if (standard === 'ALTO') return 'Alto Padrão'
-    if (standard === 'BAIXO') return 'Baixo Padrão / Popular'
-    return 'Padrão Normal'
+  const formatPercent = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return '0,00%'
+    return `${value.toFixed(2)}%`
   }
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 md:ml-20 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Carregando orçamento...</p>
         </div>
       </div>
     )
   }
 
-  if (!activeProject || !project) {
+  if (!projectId || !project) {
     return (
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 md:ml-20">
-          <div className="max-w-4xl mx-auto p-4 md:p-6">
-            <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-              <Calculator className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Selecione um Projeto
-              </h3>
-              <p className="text-gray-500">
-                Escolha um projeto no seletor acima
-              </p>
-            </div>
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl border p-8 text-center">
+            <Calculator className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {!projectId ? 'Selecione um Projeto' : 'Projeto não encontrado'}
+            </h3>
+            <p className="text-gray-500 mb-4">
+              Use o seletor no topo da tela para escolher uma obra
+            </p>
+            <button
+              onClick={() => router.push('/budget')}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <ArrowLeft className="inline-block mr-2 h-4 w-4" />
+              Voltar
+            </button>
           </div>
         </div>
       </div>
@@ -517,334 +274,343 @@ export default function BudgetEstimatedPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1 md:ml-20">
-        <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
-          {/* Header */}
-          <div>
-            <Link href="/budget">
-              <Button variant="ghost" size="sm" className="mb-4">
-                <ArrowLeft className="h-4 w-4 mr-2" />
+    <div className="flex flex-col -m-4 md:-m-6 bg-gray-50" style={{ height: 'calc(100vh - 56px)' }}>
+      {/* Header - fixo no topo, não se move ao rolar */}
+      <div className="bg-white border-b shadow-sm flex-shrink-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/budget')}
+                className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
                 Voltar
-              </Button>
-            </Link>
+              </button>
+              <div className="border-l h-6" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">
+                  Orçamento Estimado
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {project.codigo} • {project.name}
+                </p>
+              </div>
+            </div>
             
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Calculator className="h-8 w-8 text-blue-600" />
-              Orçamento Estimado
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              {project.codigo} - {project.name}
-            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4" />
+                    Salvar
+                  </>
+                )}
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* DADOS BÁSICOS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* TERRENO */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Home className="h-5 w-5 text-green-600" />
-                  Custos do Terreno
-                </h2>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="landValue">Valor do Terreno *</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
-                      <Input
-                        id="landValue"
-                        type="number"
-                        step="0.01"
-                        value={formData.landValue}
-                        onChange={(e) => setFormData(prev => ({ ...prev, landValue: e.target.value }))}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
+      {/* Conteúdo rolável */}
+      <div className="flex-1 overflow-y-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="iptuPercentage">IPTU (%)</Label>
-                      <Input
-                        id="iptuPercentage"
-                        type="number"
-                        step="0.1"
-                        value={formData.iptuPercentage}
-                        onChange={(e) => setFormData(prev => ({ ...prev, iptuPercentage: e.target.value }))}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatCurrency(calculatedValues.iptuValue)}
-                      </p>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="condominiumValue">Condomínio</Label>
-                      <Input
-                        id="condominiumValue"
-                        type="number"
-                        step="0.01"
-                        value={formData.condominiumValue}
-                        onChange={(e) => setFormData(prev => ({ ...prev, condominiumValue: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="itbiPercentage">ITBI + Escritura (%)</Label>
-                    <Input
-                      id="itbiPercentage"
-                      type="number"
-                      step="0.1"
-                      value={formData.itbiPercentage}
-                      onChange={(e) => setFormData(prev => ({ ...prev, itbiPercentage: e.target.value }))}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      {formatCurrency(calculatedValues.itbiValue)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* CONSTRUÇÃO */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-blue-600" />
-                  Custos da Construção
-                </h2>
-                
-                <div className="space-y-4">
-                  {availableCubs.length > 0 && (
-                    <div>
-                      <Label>Selecionar CUB</Label>
-                      <Select value={selectedCubId} onValueChange={handleCubSelection}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableCubs.map((cub) => (
-                            <SelectItem key={cub.id} value={cub.id}>
-                              {cub.cubCode} - {formatCurrency(cub.totalValue)}/m²
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <div>
-                    <Label htmlFor="cubValue">CUB (R$/m²) *</Label>
-                    <Input
-                      id="cubValue"
-                      type="number"
-                      step="0.01"
-                      value={formData.cubValue}
-                      onChange={(e) => setFormData(prev => ({ ...prev, cubValue: e.target.value, cubSource: 'manual' }))}
-                      required
-                    />
-                    <div className="flex items-center justify-between mt-1">
-                      <p className="text-xs text-gray-500">
-                        CUC: {formatCurrency(calculatedValues.cucValue)}/m²
-                      </p>
-                      {formData.cubType && (
-                        <span className={`text-xs px-2 py-1 rounded border ${getStandardBadgeColor(detectedStandard)}`}>
-                          {getStandardLabel(detectedStandard)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="constructedArea">Área (m²) *</Label>
-                    <Input
-                      id="constructedArea"
-                      type="number"
-                      step="0.01"
-                      value={formData.constructedArea}
-                      onChange={(e) => setFormData(prev => ({ ...prev, constructedArea: e.target.value }))}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Equiv.: {calculatedValues.equivalentArea.toFixed(2)}m² (desconto: {calculatedValues.areaDiscount}m²)
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="projectDuration">Duração da Obra (meses) *</Label>
-                    <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <Input
-                        id="projectDuration"
-                        type="number"
-                        min="1"
-                        value={formData.projectDuration}
-                        onChange={(e) => setFormData(prev => ({ ...prev, projectDuration: e.target.value }))}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* INDICADOR DE PRAZOS */}
-            {formData.cubType && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-blue-900 mb-2">Prazos de Viabilidade</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-sm">
-                      <div>
-                        <p className="text-blue-700 font-medium">Padrão:</p>
-                        <p className="text-blue-900 font-semibold">{getStandardLabel(detectedStandard)}</p>
-                        <p className="text-xs text-blue-600 mt-1">CUB: {formData.cubType}</p>
-                      </div>
-                      <div>
-                        <p className="text-blue-700 font-medium">Duração Obra:</p>
-                        <p className="text-blue-900 font-semibold">{formData.projectDuration || '0'} meses</p>
-                        <p className="text-xs text-blue-600 mt-1">Informado pelo usuário</p>
-                      </div>
-                      <div>
-                        <p className="text-blue-700 font-medium">Cenário Adverso:</p>
-                        <p className="text-blue-900 font-semibold">+{calculatedValues.deadlines.adverse}m venda</p>
-                        <p className="text-xs text-blue-600 mt-1">Total: {
-                          (parseInt(formData.projectDuration) || 0) + calculatedValues.deadlines.adverse
-                        }m</p>
-                      </div>
-                      <div>
-                        <p className="text-blue-700 font-medium">Cenário Esperado:</p>
-                        <p className="text-blue-900 font-semibold">+{calculatedValues.deadlines.expected}m venda</p>
-                        <p className="text-xs text-blue-600 mt-1">Total: {
-                          (parseInt(formData.projectDuration) || 0) + calculatedValues.deadlines.expected
-                        }m</p>
-                      </div>
-                      <div>
-                        <p className="text-blue-700 font-medium">Cenário Ideal:</p>
-                        <p className="text-blue-900 font-semibold">+{calculatedValues.deadlines.ideal}m venda</p>
-                        <p className="text-xs text-blue-600 mt-1">Total: {
-                          (parseInt(formData.projectDuration) || 0) + calculatedValues.deadlines.ideal
-                        }m</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-blue-700 mt-3 italic">
-                      ℹ️ Total de meses = Duração da obra (editável) + Prazo de venda (fixo da tabela)
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* RESUMO DE CUSTOS */}
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Custo Total do Empreendimento
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="bg-white/10 rounded-lg p-4">
-                  <p className="text-sm text-blue-100 mb-1">Terreno</p>
-                  <p className="text-xl font-bold">{formatCurrency(calculatedValues.totalLandCost)}</p>
-                </div>
-                <div className="bg-white/10 rounded-lg p-4">
-                  <p className="text-sm text-blue-100 mb-1">Construção</p>
-                  <p className="text-xl font-bold">{formatCurrency(calculatedValues.constructionCost)}</p>
-                  <StageBreakdown 
-                    constructionCost={calculatedValues.constructionCost}
-                    standard={detectedStandard as 'ALTO' | 'NORMAL' | 'BAIXO'}
-                  />
-                </div>
-                <div className="bg-white/10 rounded-lg p-4">
-                  <p className="text-sm text-blue-100 mb-1">Total</p>
-                  <p className="text-2xl font-bold">{formatCurrency(calculatedValues.totalEstimatedCost)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* ANÁLISE DE VIABILIDADE COM MATRIZ */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-2">
-                <Target className="h-6 w-6 text-blue-600" />
-                Análise de Viabilidade
+        {/* ✅ 1. FORMULÁRIOS EDITÁVEIS NO TOPO */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* CUSTOS DO TERRENO */}
+          <div className="bg-white rounded-xl border shadow-sm">
+            <div className="px-6 py-4 border-b bg-green-50">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span className="text-xl">🏠</span>
+                Custos do Terreno
               </h2>
-              <p className="text-sm text-gray-500 mb-6">
-                Projeção de retornos considerando diferentes cenários de valor e prazo
-              </p>
-
-              <ScenarioMatrix
-                adverse={{
-                  value: 'Adverso',
-                  roe: calculatedValues.adverse.roe,
-                  saleValue: calculatedValues.adverse.saleValue,
-                  netProfit: calculatedValues.adverse.netProfit,
-                  profitMargin: calculatedValues.adverse.profitMargin
-                }}
-                expected={{
-                  value: 'Esperado',
-                  roe: calculatedValues.expected.roe,
-                  saleValue: calculatedValues.expected.saleValue,
-                  netProfit: calculatedValues.expected.netProfit,
-                  profitMargin: calculatedValues.expected.profitMargin
-                }}
-                ideal={{
-                  value: 'Ideal',
-                  roe: calculatedValues.ideal.roe,
-                  saleValue: calculatedValues.ideal.saleValue,
-                  netProfit: calculatedValues.ideal.netProfit,
-                  profitMargin: calculatedValues.ideal.profitMargin
-                }}
-                deadlines={{
-                  adverse: calculatedValues.deadlines.adverse,
-                  expected: calculatedValues.deadlines.expected,
-                  ideal: calculatedValues.deadlines.ideal
-                }}
-                matrix={calculatedValues.matrix}
-                constructionDuration={parseInt(formData.projectDuration) || 12}
-              />
             </div>
-
-            {/* Observações e Botão Salvar */}
-            <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <Label htmlFor="notes">Observações</Label>
-                <Input
-                  id="notes"
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Valor do Terreno *
+                </label>
+                <input
                   type="text"
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Ex: Valores baseados em..."
+                  inputMode="numeric"
+                  value={landValue ? landValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\./g, '').replace(',', '.')
+                    const num = parseFloat(raw)
+                    setLandValue(Number.isFinite(num) ? num : 0)
+                  }}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="R$ 290.000,00"
                 />
               </div>
 
-              <div className="flex gap-3 justify-end">
-                <Link href="/budget">
-                  <Button type="button" variant="outline" disabled={saving}>
-                    Cancelar
-                  </Button>
-                </Link>
-                <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700">
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Salvar Orçamento
-                    </>
-                  )}
-                </Button>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    IPTU (%)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={iptuPercent}
+                    onChange={(e) => setIptuPercent(Number(e.target.value))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formatCurrency(iptuValue)}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Condomínio (mensal)
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={condominium ? condominium.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\./g, '').replace(',', '.')
+                      const num = parseFloat(raw)
+                      setCondominium(Number.isFinite(num) ? num : 0)
+                    }}
+                    className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                    placeholder="R$ 0,00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Total: {formatCurrency(condominiumTotal)}
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ITBI + Escritura (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={itbiPercent}
+                  onChange={(e) => setItbiPercent(Number(e.target.value))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCurrency(itbiValue)}
+                </p>
               </div>
             </div>
-          </form>
+          </div>
+
+          {/* CUSTOS DA CONSTRUÇÃO */}
+          <div className="bg-white rounded-xl border shadow-sm">
+            <div className="px-6 py-4 border-b bg-blue-50">
+              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span className="text-xl">🏗️</span>
+                Custos da Construção
+              </h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  CUB (R$/m²) *
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cubValue ? cubValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\./g, '').replace(',', '.')
+                    const num = parseFloat(raw)
+                    setCubValue(Number.isFinite(num) ? num : 0)
+                  }}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="2.750,00"
+                />
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-500">
+                    CUC: {formatCurrency(cucValue)}/m²
+                  </p>
+                  <select
+                    value={cubType}
+                    onChange={(e) => setCubType(e.target.value)}
+                    className="text-xs border rounded px-2 py-1"
+                  >
+                    <option value="R1-A">Alto Padrão (R1-A)</option>
+                    <option value="R1-N">Médio Padrão (R1-N)</option>
+                    <option value="PIS">Popular (PIS)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Área (m²) *
+                </label>
+                <input
+                  type="number"
+                  value={area}
+                  onChange={(e) => setArea(Number(e.target.value))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="57"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Equiv.: {equivalentArea.toFixed(2)}m² (desconto: {areaDiscount}m²)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  Duração da Obra (meses) *
+                </label>
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  placeholder="12"
+                />
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* ✅ 2. BANNER AZUL */}
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-8 text-white">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+            <span className="text-3xl">💰</span>
+            Custo Total do Empreendimento
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+              <p className="text-sm text-blue-100 mb-2">Terreno</p>
+              <p className="text-3xl font-bold">
+                {formatCurrency(totalLandCost)}
+              </p>
+            </div>
+            <div className="bg-white/10 rounded-lg p-6 backdrop-blur-sm">
+              <p className="text-sm text-blue-100 mb-2">Construção</p>
+              <p className="text-3xl font-bold">
+                {formatCurrency(constructionCost)}
+              </p>
+              <p className="text-xs text-blue-100 mt-2">
+                CUC × Área Equivalente
+              </p>
+            </div>
+            <div className="bg-white/20 rounded-lg p-6 backdrop-blur-sm border-2 border-white/30">
+              <p className="text-sm text-blue-100 mb-2">Total</p>
+              <p className="text-4xl font-bold">
+                {formatCurrency(totalEstimatedCost)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ✅ 3. ANÁLISE DE VIABILIDADE */}
+        {budget && budget.adverseSaleValue ? (
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <span className="text-2xl">🎯</span>
+                Análise de Viabilidade
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Projeção de retornos considerando diferentes cenários de valor e prazo
+              </p>
+            </div>
+            
+            <div className="p-6">
+              {/* ✅ MATRIZ */}
+              {budget.scenarioAAMonthlyReturn !== null && (
+                <ScenarioMatrix
+                  adverse={{
+                    value: 'Adverso',
+                    roe: budget.adverseROE || 0,
+                    saleValue: budget.adverseSaleValue || 0,
+                    netProfit: budget.adverseNetProfit || 0,
+                    profitMargin: budget.adverseProfitMargin || 0,
+                  }}
+                  expected={{
+                    value: 'Esperado',
+                    roe: budget.expectedROE || 0,
+                    saleValue: budget.expectedSaleValue || 0,
+                    netProfit: budget.expectedNetProfit || 0,
+                    profitMargin: budget.expectedProfitMargin || 0,
+                  }}
+                  ideal={{
+                    value: 'Ideal',
+                    roe: budget.idealROE || 0,
+                    saleValue: budget.idealSaleValue || 0,
+                    netProfit: budget.idealNetProfit || 0,
+                    profitMargin: budget.idealProfitMargin || 0,
+                  }}
+                  deadlines={{
+                    adverse: budget.adverseSaleDeadline || 0,
+                    expected: budget.expectedSaleDeadline || 0,
+                    ideal: budget.idealSaleDeadline || 0,
+                  }}
+                  matrix={{
+                    AA: {
+                      monthlyReturn: budget.scenarioAAMonthlyReturn || 0,
+                      totalMonths: budget.scenarioAATotalMonths || 0,
+                    },
+                    AE: {
+                      monthlyReturn: budget.scenarioAEMonthlyReturn || 0,
+                      totalMonths: budget.scenarioAETotalMonths || 0,
+                    },
+                    AI: {
+                      monthlyReturn: budget.scenarioAIMonthlyReturn || 0,
+                      totalMonths: budget.scenarioAITotalMonths || 0,
+                    },
+                    EA: {
+                      monthlyReturn: budget.scenarioEAMonthlyReturn || 0,
+                      totalMonths: budget.scenarioEATotalMonths || 0,
+                    },
+                    EE: {
+                      monthlyReturn: budget.scenarioEEMonthlyReturn || 0,
+                      totalMonths: budget.scenarioEETotalMonths || 0,
+                    },
+                    EI: {
+                      monthlyReturn: budget.scenarioEIMonthlyReturn || 0,
+                      totalMonths: budget.scenarioEITotalMonths || 0,
+                    },
+                    IA: {
+                      monthlyReturn: budget.scenarioIAMonthlyReturn || 0,
+                      totalMonths: budget.scenarioIATotalMonths || 0,
+                    },
+                    IE: {
+                      monthlyReturn: budget.scenarioIEMonthlyReturn || 0,
+                      totalMonths: budget.scenarioIETotalMonths || 0,
+                    },
+                    II: {
+                      monthlyReturn: budget.scenarioIIMonthlyReturn || 0,
+                      totalMonths: budget.scenarioIITotalMonths || 0,
+                    },
+                  }}
+                  constructionDuration={duration}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <p className="text-yellow-800">
+              💡 Preencha os dados de Terreno e Construção acima e clique em "Salvar" para gerar a análise de viabilidade.
+            </p>
+          </div>
+        )}
+
+      </div>
       </div>
     </div>
   )

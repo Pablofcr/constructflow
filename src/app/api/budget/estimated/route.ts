@@ -2,30 +2,19 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // Função para calcular área de desconto baseado no padrão
+// ✅ PADRONIZADO: Alto=15m², Médio=10m², Popular=8m²
 function calculateAreaDiscount(standard: string): number {
   const standardUpper = standard.toUpperCase()
-  if (standardUpper === 'ALTO') return 22.5
-  if (standardUpper === 'BAIXO' || standardUpper === 'POPULAR') return 10
-  return 15
+  if (standardUpper === 'ALTO' || standardUpper === 'LUXO') return 15  // Alto padrão
+  if (standardUpper === 'BAIXO' || standardUpper === 'POPULAR') return 8  // Popular
+  return 10  // NORMAL/MÉDIO: padrão
 }
 
-// Função para determinar o padrão baseado no tipo de obra
-function determineStandard(tipoObra: string, subtipoResidencial?: string | null): string {
-  if (tipoObra === 'RESIDENCIAL') {
-    if (subtipoResidencial === 'MULTIFAMILIAR') return 'NORMAL'
-    return 'NORMAL'
-  }
-  if (tipoObra === 'COMERCIAL') return 'NORMAL'
-  return 'NORMAL'
-}
-
-// Função para determinar prazos de venda baseado no padrão e tipo de construção
+// ✅ PRAZOS DE VENDA CORRIGIDOS
 function determineSaleDeadlines(
-  tipoObra: string,
-  subtipoResidencial: string | null,
   cubType: string | null
 ): { adverse: number; expected: number; ideal: number } {
-  // Determinar padrão
+  // Determinar padrão baseado no CUB
   let standard = 'NORMAL'
   if (cubType) {
     if (cubType.includes('-A')) standard = 'ALTO'
@@ -33,67 +22,186 @@ function determineSaleDeadlines(
     else standard = 'NORMAL'
   }
 
-  // RESIDENCIAL UNIFAMILIAR (dados da tabela)
-  if (tipoObra === 'RESIDENCIAL' && subtipoResidencial === 'UNIFAMILIAR') {
-    if (standard === 'ALTO') {
-      return {
-        adverse: 24,    // 24 meses
-        expected: 13,   // 12-14 meses (média: 13)
-        ideal: 10       // até 10 meses
-      }
-    } else if (standard === 'BAIXO' || standard === 'POPULAR') {
-      return {
-        adverse: 12,    // 12 meses
-        expected: 7,    // 6-8 meses (média: 7)
-        ideal: 4        // até 4 meses
-      }
-    } else {
-      // NORMAL/MÉDIO
-      return {
-        adverse: 18,    // 18 meses
-        expected: 11,   // 10-12 meses (média: 11)
-        ideal: 7        // até 7 meses
-      }
+  // ALTO PADRÃO
+  if (standard === 'ALTO') {
+    return {
+      adverse: 12,   // +12 meses de venda após conclusão
+      expected: 6,   // +6 meses de venda após conclusão
+      ideal: 0       // vende durante a construção (na planta)
     }
   }
-
-  // OUTROS TIPOS (valores conservadores padrão)
-  // Até termos dados específicos, usamos valores razoáveis
-  if (standard === 'ALTO') {
-    return { adverse: 24, expected: 15, ideal: 12 }
-  } else if (standard === 'BAIXO') {
-    return { adverse: 15, expected: 9, ideal: 6 }
-  } else {
-    return { adverse: 18, expected: 12, ideal: 9 }
+  
+  // BAIXO PADRÃO
+  if (standard === 'BAIXO' || standard === 'POPULAR') {
+    return {
+      adverse: 8,    // +8 meses de venda após conclusão
+      expected: 3,   // +3 meses de venda após conclusão
+      ideal: 0       // vende durante a construção (na planta)
+    }
+  }
+  
+  // NORMAL/MÉDIO (padrão)
+  return {
+    adverse: 10,     // +10 meses de venda após conclusão
+    expected: 4,     // +4 meses de venda após conclusão
+    ideal: 0         // vende durante a construção (na planta)
   }
 }
 
-// Função para calcular análise de viabilidade para um cenário
-function calculateViability(
-  totalCost: number,
-  saleMultiplier: number,
-  projectDuration: number
-) {
+function calculateViability(totalCost: number, saleMultiplier: number, projectDuration: number) {
   const saleValue = totalCost * saleMultiplier
   const brokerage = saleValue * 0.05
   const capitalGain = saleValue - brokerage - totalCost
   const taxes = capitalGain * 0.15
   const netProfit = saleValue - totalCost - brokerage - taxes
-  const profitMargin = (netProfit / saleValue) * 100
-  const roe = (netProfit / totalCost) * 100
+  const profitMargin = saleValue > 0 ? (netProfit / saleValue) * 100 : 0
+  const roe = totalCost > 0 ? (netProfit / totalCost) * 100 : 0
   const monthlyReturn = projectDuration > 0 ? roe / projectDuration : 0
-
   return { saleValue, brokerage, taxes, netProfit, profitMargin, roe, monthlyReturn }
 }
 
-// Função para calcular retorno mensal considerando prazo de venda
-function calculateMonthlyReturnWithSale(
-  roe: number,
-  constructionDuration: number,
-  saleDeadline: number
-): number {
+function calculateMonthlyReturnWithSale(roe: number, constructionDuration: number, saleDeadline: number): number {
   const totalMonths = constructionDuration + saleDeadline
   return totalMonths > 0 ? roe / totalMonths : 0
+}
+
+// ✅ converte valores monetários para número (detecta formato automaticamente)
+function moneyToNumber(value: any, fallback = 0): number {
+  if (value === null || value === undefined) return fallback
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback
+
+  let s = String(value)
+    .trim()
+    .replace(/\s/g, '')
+    .replace('R$', '')
+
+  // Detectar formato:
+  // Se tem vírgula E ponto: formato brasileiro "1.234,56" → ponto é separador de milhares
+  // Se tem apenas vírgula: formato brasileiro "1234,56" → vírgula é decimal
+  // Se tem apenas ponto: formato americano "1234.56" → ponto é decimal
+  
+  const hasComma = s.includes(',')
+  const hasDot = s.includes('.')
+  
+  if (hasComma && hasDot) {
+    // Formato brasileiro: "1.234,56" → remover pontos, trocar vírgula por ponto
+    s = s.replace(/\./g, '').replace(',', '.')
+  } else if (hasComma) {
+    // Formato brasileiro: "1234,56" → trocar vírgula por ponto
+    s = s.replace(',', '.')
+  }
+  // Se tem apenas ponto ou nenhum: já está no formato correto (americano)
+
+  const n = parseFloat(s)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function toNumber(value: any, fallback = 0): number {
+  if (value === null || value === undefined) return fallback
+  const n = typeof value === 'number' ? value : parseFloat(String(value))
+  return Number.isFinite(n) ? n : fallback
+}
+
+function toInt(value: any, fallback = 0): number {
+  if (value === null || value === undefined) return fallback
+  const n = typeof value === 'number' ? value : parseInt(String(value), 10)
+  return Number.isFinite(n) ? n : fallback
+}
+
+// ✅ Compat layer: devolve no JSON os campos que o front espera
+function shapeBudgetResponse(budget: any) {
+  const data = (budget?.data ?? {}) as any
+
+  // tenta puxar matriz do data.matrix (se existir) – senão monta do próprio model
+  const m = data?.matrix ?? null
+
+  const scenario_AA_totalMonths = m?.AA?.totalMonths
+  const scenario_AE_totalMonths = m?.AE?.totalMonths
+  const scenario_AI_totalMonths = m?.AI?.totalMonths
+  const scenario_EA_totalMonths = m?.EA?.totalMonths
+  const scenario_EE_totalMonths = m?.EE?.totalMonths
+  const scenario_EI_totalMonths = m?.EI?.totalMonths
+  const scenario_IA_totalMonths = m?.IA?.totalMonths
+  const scenario_IE_totalMonths = m?.IE?.totalMonths
+  const scenario_II_totalMonths = m?.II?.totalMonths
+
+  return {
+    ...budget,
+
+    // espalha tudo que está dentro de data (para o front "enxergar" landValue, totalEstimatedCost, etc)
+    ...data,
+
+    // garante os nomes que o front provavelmente usa
+    landValue: data?.landValue ?? null,
+    iptuPercentage: data?.iptuPercentage ?? null,
+    condominiumValue: data?.condominiumValue ?? null,
+    condominiumTotalValue: data?.condominiumTotalValue ?? null,
+    itbiPercentage: data?.itbiPercentage ?? null,
+    cubValue: data?.cubValue ?? null,
+    cucValue: data?.cucValue ?? null,
+    cubSource: data?.cubSource ?? null,
+    cubReferenceMonth: data?.cubReferenceMonth ?? null,
+    cubType: data?.cubType ?? null,
+    constructedArea: data?.constructedArea ?? null,
+    projectDuration: data?.projectDuration ?? null,
+    areaDiscount: data?.areaDiscount ?? null,
+    equivalentArea: data?.equivalentArea ?? null,
+
+    iptuValue: data?.iptuValue ?? null,
+    itbiValue: data?.itbiValue ?? null,
+    totalLandCost: data?.totalLandCost ?? null,
+    constructionCost: data?.constructionCost ?? null,
+    totalEstimatedCost: data?.totalEstimatedCost ?? null,
+
+    adverseSaleValue: data?.viability?.adverse?.saleValue ?? null,
+    adverseBrokerage: data?.viability?.adverse?.brokerage ?? null,
+    adverseTaxes: data?.viability?.adverse?.taxes ?? null,
+    adverseNetProfit: data?.viability?.adverse?.netProfit ?? null,
+    adverseProfitMargin: data?.viability?.adverse?.profitMargin ?? null,
+    adverseROE: data?.viability?.adverse?.roe ?? null,
+    adverseMonthlyReturn: data?.viability?.adverse?.monthlyReturn ?? null,
+    adverseSaleDeadline: data?.saleDeadlines?.adverse ?? null,
+
+    expectedSaleValue: data?.viability?.expected?.saleValue ?? null,
+    expectedBrokerage: data?.viability?.expected?.brokerage ?? null,
+    expectedTaxes: data?.viability?.expected?.taxes ?? null,
+    expectedNetProfit: data?.viability?.expected?.netProfit ?? null,
+    expectedProfitMargin: data?.viability?.expected?.profitMargin ?? null,
+    expectedROE: data?.viability?.expected?.roe ?? null,
+    expectedMonthlyReturn: data?.viability?.expected?.monthlyReturn ?? null,
+    expectedSaleDeadline: data?.saleDeadlines?.expected ?? null,
+
+    idealSaleValue: data?.viability?.ideal?.saleValue ?? null,
+    idealBrokerage: data?.viability?.ideal?.brokerage ?? null,
+    idealTaxes: data?.viability?.ideal?.taxes ?? null,
+    idealNetProfit: data?.viability?.ideal?.netProfit ?? null,
+    idealProfitMargin: data?.viability?.ideal?.profitMargin ?? null,
+    idealROE: data?.viability?.ideal?.roe ?? null,
+    idealMonthlyReturn: data?.viability?.ideal?.monthlyReturn ?? null,
+    idealSaleDeadline: data?.saleDeadlines?.ideal ?? null,
+
+    // Matriz (monthlyReturn) — vem do model (compatível com schema atual)
+    scenarioAAMonthlyReturn: budget?.baixoBaixo ?? null,
+    scenarioAEMonthlyReturn: budget?.baixoMedio ?? null,
+    scenarioAIMonthlyReturn: budget?.baixoAlto ?? null,
+    scenarioEAMonthlyReturn: budget?.medioBaixo ?? null,
+    scenarioEEMonthlyReturn: budget?.medioMedio ?? null,
+    scenarioEIMonthlyReturn: budget?.medioAlto ?? null,
+    scenarioIAMonthlyReturn: budget?.altoBaixo ?? null,
+    scenarioIEMonthlyReturn: budget?.altoMedio ?? null,
+    scenarioIIMonthlyReturn: budget?.altoAlto ?? null,
+
+    // Matriz (totalMonths) — vem do data.matrix
+    scenarioAATotalMonths: scenario_AA_totalMonths ?? null,
+    scenarioAETotalMonths: scenario_AE_totalMonths ?? null,
+    scenarioAITotalMonths: scenario_AI_totalMonths ?? null,
+    scenarioEATotalMonths: scenario_EA_totalMonths ?? null,
+    scenarioEETotalMonths: scenario_EE_totalMonths ?? null,
+    scenarioEITotalMonths: scenario_EI_totalMonths ?? null,
+    scenarioIATotalMonths: scenario_IA_totalMonths ?? null,
+    scenarioIETotalMonths: scenario_IE_totalMonths ?? null,
+    scenarioIITotalMonths: scenario_II_totalMonths ?? null
+  }
 }
 
 // GET - Buscar orçamento estimado de um projeto
@@ -103,33 +211,22 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('projectId')
 
     if (!projectId) {
-      return NextResponse.json(
-        { error: 'projectId é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'projectId é obrigatório' }, { status: 400 })
     }
 
     const budget = await prisma.budgetEstimated.findUnique({
       where: { projectId },
-      include: {
-        project: true
-      }
+      include: { project: true }
     })
 
     if (!budget) {
-      return NextResponse.json(
-        { error: 'Orçamento não encontrado' },
-        { status: 404 }
-      )
+      return NextResponse.json(null, { status: 404 })
     }
 
-    return NextResponse.json(budget)
-  } catch (error) {
+    return NextResponse.json(shapeBudgetResponse(budget))
+  } catch (error: any) {
     console.error('Erro ao buscar orçamento:', error)
-    return NextResponse.json(
-      { error: 'Erro ao buscar orçamento' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Erro ao buscar orçamento' }, { status: 500 })
   }
 }
 
@@ -151,130 +248,120 @@ export async function POST(request: Request) {
       constructedArea,
       projectDuration,
       notes
-    } = body
+    } = body ?? {}
 
     if (!projectId) {
-      return NextResponse.json(
-        { error: 'projectId é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'projectId é obrigatório' }, { status: 400 })
     }
 
-    const project = await prisma.project.findUnique({
-      where: { id: projectId }
-    })
-
+    const project = await prisma.project.findUnique({ where: { id: projectId } })
     if (!project) {
-      return NextResponse.json(
-        { error: 'Projeto não encontrado' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Projeto não encontrado' }, { status: 404 })
     }
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CÁLCULOS - CUSTOS
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    const landVal = parseFloat(landValue) || 0
-    const iptuPerc = parseFloat(iptuPercentage) || 0.005
-    const itbiPerc = parseFloat(itbiPercentage) || 0.03
-    const condVal = parseFloat(condominiumValue) || 0
+    const landVal = moneyToNumber(landValue, 0)
+    // ✅ SEMPRE dividir por 100 porque o campo é percentual
+    const iptuPerc = moneyToNumber(iptuPercentage, 0.5) / 100
+    const itbiPerc = moneyToNumber(itbiPercentage, 3) / 100
+    const condVal = moneyToNumber(condominiumValue, 0)
+    const duration = toInt(projectDuration, 12)
 
     const iptuVal = landVal * iptuPerc
     const itbiVal = landVal * itbiPerc
-    const totalLand = landVal + iptuVal + condVal + itbiVal
+    
+    // ✅ CORREÇÃO: Condomínio é MENSAL, deve multiplicar pela duração da obra
+    const condominiumTotal = condVal * duration
+    const totalLand = landVal + iptuVal + condominiumTotal + itbiVal
 
-    const cubVal = parseFloat(cubValue) || 0
+    const cubVal = moneyToNumber(cubValue, 0)
     const cucVal = cubVal * 1.2
-    const constArea = parseFloat(constructedArea) || 0
+    const constArea = moneyToNumber(constructedArea, 0)
 
+    // ✅ CORRIGIDO: Determinar padrão APENAS do cubType
     let standard = 'NORMAL'
     if (cubType) {
-      if (cubType.includes('-A')) standard = 'ALTO'
-      else if (cubType.includes('-B') || cubType.includes('PIS')) standard = 'BAIXO'
+      if (String(cubType).includes('-A')) standard = 'ALTO'
+      else if (String(cubType).includes('-B') || String(cubType).includes('PIS')) standard = 'BAIXO'
       else standard = 'NORMAL'
-    } else {
-      standard = determineStandard(project.tipoObra, project.subtipoResidencial)
     }
 
     const areaDisc = calculateAreaDiscount(standard)
     const equivArea = Math.max(0, constArea - areaDisc)
     const constCost = cucVal * equivArea
     const totalEstimated = totalLand + constCost
-    const duration = parseInt(projectDuration) || 12
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // DETERMINAR PRAZOS DE VENDA
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    const saleDeadlines = determineSaleDeadlines(
-      project.tipoObra,
-      project.subtipoResidencial,
-      cubType
-    )
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // ANÁLISE DE VIABILIDADE - 3 CENÁRIOS BASE
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const saleDeadlines = determineSaleDeadlines(cubType ?? null)
 
     const adverse = calculateViability(totalEstimated, 1.40, duration)
     const expected = calculateViability(totalEstimated, 1.60, duration)
     const ideal = calculateViability(totalEstimated, 1.80, duration)
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // MATRIZ DE CENÁRIOS (9 combinações)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const scenario_AA = { monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.adverse), totalMonths: duration + saleDeadlines.adverse }
+    const scenario_AE = { monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.expected), totalMonths: duration + saleDeadlines.expected }
+    const scenario_AI = { monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.ideal), totalMonths: duration + saleDeadlines.ideal }
 
-    // Adverso Valor (ROE baseado em +40%)
-    const scenario_AA = {
-      monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.adverse),
-      totalMonths: duration + saleDeadlines.adverse
-    }
-    const scenario_AE = {
-      monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.expected),
-      totalMonths: duration + saleDeadlines.expected
-    }
-    const scenario_AI = {
-      monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.ideal),
-      totalMonths: duration + saleDeadlines.ideal
-    }
+    const scenario_EA = { monthlyReturn: calculateMonthlyReturnWithSale(expected.roe, duration, saleDeadlines.adverse), totalMonths: duration + saleDeadlines.adverse }
+    const scenario_EE = { monthlyReturn: calculateMonthlyReturnWithSale(expected.roe, duration, saleDeadlines.expected), totalMonths: duration + saleDeadlines.expected }
+    const scenario_EI = { monthlyReturn: calculateMonthlyReturnWithSale(expected.roe, duration, saleDeadlines.ideal), totalMonths: duration + saleDeadlines.ideal }
 
-    // Esperado Valor (ROE baseado em +60%)
-    const scenario_EA = {
-      monthlyReturn: calculateMonthlyReturnWithSale(expected.roe, duration, saleDeadlines.adverse),
-      totalMonths: duration + saleDeadlines.adverse
-    }
-    const scenario_EE = {
-      monthlyReturn: calculateMonthlyReturnWithSale(expected.roe, duration, saleDeadlines.expected),
-      totalMonths: duration + saleDeadlines.expected
-    }
-    const scenario_EI = {
-      monthlyReturn: calculateMonthlyReturnWithSale(expected.roe, duration, saleDeadlines.ideal),
-      totalMonths: duration + saleDeadlines.ideal
-    }
+    const scenario_IA = { monthlyReturn: calculateMonthlyReturnWithSale(ideal.roe, duration, saleDeadlines.adverse), totalMonths: duration + saleDeadlines.adverse }
+    const scenario_IE = { monthlyReturn: calculateMonthlyReturnWithSale(ideal.roe, duration, saleDeadlines.expected), totalMonths: duration + saleDeadlines.expected }
+    const scenario_II = { monthlyReturn: calculateMonthlyReturnWithSale(ideal.roe, duration, saleDeadlines.ideal), totalMonths: duration + saleDeadlines.ideal }
 
-    // Ideal Valor (ROE baseado em +80%)
-    const scenario_IA = {
-      monthlyReturn: calculateMonthlyReturnWithSale(ideal.roe, duration, saleDeadlines.adverse),
-      totalMonths: duration + saleDeadlines.adverse
-    }
-    const scenario_IE = {
-      monthlyReturn: calculateMonthlyReturnWithSale(ideal.roe, duration, saleDeadlines.expected),
-      totalMonths: duration + saleDeadlines.expected
-    }
-    const scenario_II = {
-      monthlyReturn: calculateMonthlyReturnWithSale(ideal.roe, duration, saleDeadlines.ideal),
-      totalMonths: duration + saleDeadlines.ideal
-    }
+    // payload completo dentro do Json
+    const payloadToStore = {
+      projectId,
+      landValue: landVal,
+      iptuPercentage: moneyToNumber(iptuPercentage, 0.5),  // Salva valor original (0,5)
+      iptuValue: iptuVal,
+      condominiumValue: condVal,  // valor mensal
+      condominiumTotalValue: condominiumTotal,  // ✅ valor total (mensal × duração)
+      itbiPercentage: moneyToNumber(itbiPercentage, 3),  // Salva valor original (3)
+      itbiValue: itbiVal,
+      totalLandCost: totalLand,
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // SALVAR NO BANCO
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      cubValue: cubVal,
+      cucValue: cucVal,
+      cubSource: cubSource ?? 'manual',
+      cubReferenceMonth: cubReferenceMonth ?? null,
+      cubType: cubType ?? null,
+
+      constructedArea: constArea,
+      areaDiscount: areaDisc,
+      equivalentArea: equivArea,
+      constructionCost: constCost,
+
+      projectDuration: duration,
+      totalEstimatedCost: totalEstimated,
+      standard,
+
+      saleDeadlines,
+
+      viability: { adverse, expected, ideal },
+
+      matrix: {
+        AA: scenario_AA,
+        AE: scenario_AE,
+        AI: scenario_AI,
+        EA: scenario_EA,
+        EE: scenario_EE,
+        EI: scenario_EI,
+        IA: scenario_IA,
+        IE: scenario_IE,
+        II: scenario_II
+      },
+
+      notes: notes ?? null
+    }
 
     const budget = await prisma.budgetEstimated.upsert({
       where: { projectId },
       update: {
-        // Terreno
+        // Campos obrigatórios do schema
         landValue: landVal,
         iptuPercentage: iptuPerc,
         iptuValue: iptuVal,
@@ -282,85 +369,39 @@ export async function POST(request: Request) {
         itbiPercentage: itbiPerc,
         itbiValue: itbiVal,
         totalLandCost: totalLand,
-
-        // Construção
         cubValue: cubVal,
         cucValue: cucVal,
-        cubSource: cubSource || 'manual',
-        cubReferenceMonth: cubReferenceMonth || null,
-        cubType: cubType || null,
+        cubSource: cubSource ?? 'manual',
+        cubReferenceMonth: cubReferenceMonth ?? null,
+        cubType: cubType ?? null,
         constructedArea: constArea,
         areaDiscount: areaDisc,
         equivalentArea: equivArea,
         constructionCost: constCost,
-
-        // Duração
-        projectDuration: duration,
-
-        // Total
         totalEstimatedCost: totalEstimated,
+        projectDuration: duration,
+        
+        // matriz 3x3 (schema atual)
+        baixoBaixo: scenario_AA.monthlyReturn,
+        baixoMedio: scenario_AE.monthlyReturn,
+        baixoAlto: scenario_AI.monthlyReturn,
+        medioBaixo: scenario_EA.monthlyReturn,
+        medioMedio: scenario_EE.monthlyReturn,
+        medioAlto: scenario_EI.monthlyReturn,
+        altoBaixo: scenario_IA.monthlyReturn,
+        altoMedio: scenario_IE.monthlyReturn,
+        altoAlto: scenario_II.monthlyReturn,
 
-        // Prazos de venda
-        adverseSaleDeadline: saleDeadlines.adverse,
-        expectedSaleDeadline: saleDeadlines.expected,
-        idealSaleDeadline: saleDeadlines.ideal,
+        cenarioSelecionado: body?.cenarioSelecionado ?? null,
+        valorSelecionado: body?.valorSelecionado ? toNumber(body.valorSelecionado, 0) : null,
 
-        // Viabilidade - Adverso
-        adverseSaleValue: adverse.saleValue,
-        adverseBrokerage: adverse.brokerage,
-        adverseTaxes: adverse.taxes,
-        adverseNetProfit: adverse.netProfit,
-        adverseProfitMargin: adverse.profitMargin,
-        adverseROE: adverse.roe,
-        adverseMonthlyReturn: adverse.monthlyReturn,
-
-        // Viabilidade - Esperado
-        expectedSaleValue: expected.saleValue,
-        expectedBrokerage: expected.brokerage,
-        expectedTaxes: expected.taxes,
-        expectedNetProfit: expected.netProfit,
-        expectedProfitMargin: expected.profitMargin,
-        expectedROE: expected.roe,
-        expectedMonthlyReturn: expected.monthlyReturn,
-
-        // Viabilidade - Ideal
-        idealSaleValue: ideal.saleValue,
-        idealBrokerage: ideal.brokerage,
-        idealTaxes: ideal.taxes,
-        idealNetProfit: ideal.netProfit,
-        idealProfitMargin: ideal.profitMargin,
-        idealROE: ideal.roe,
-        idealMonthlyReturn: ideal.monthlyReturn,
-
-        // Matriz de cenários
-        scenario_AA_monthlyReturn: scenario_AA.monthlyReturn,
-        scenario_AA_totalMonths: scenario_AA.totalMonths,
-        scenario_AE_monthlyReturn: scenario_AE.monthlyReturn,
-        scenario_AE_totalMonths: scenario_AE.totalMonths,
-        scenario_AI_monthlyReturn: scenario_AI.monthlyReturn,
-        scenario_AI_totalMonths: scenario_AI.totalMonths,
-
-        scenario_EA_monthlyReturn: scenario_EA.monthlyReturn,
-        scenario_EA_totalMonths: scenario_EA.totalMonths,
-        scenario_EE_monthlyReturn: scenario_EE.monthlyReturn,
-        scenario_EE_totalMonths: scenario_EE.totalMonths,
-        scenario_EI_monthlyReturn: scenario_EI.monthlyReturn,
-        scenario_EI_totalMonths: scenario_EI.totalMonths,
-
-        scenario_IA_monthlyReturn: scenario_IA.monthlyReturn,
-        scenario_IA_totalMonths: scenario_IA.totalMonths,
-        scenario_IE_monthlyReturn: scenario_IE.monthlyReturn,
-        scenario_IE_totalMonths: scenario_IE.totalMonths,
-        scenario_II_monthlyReturn: scenario_II.monthlyReturn,
-        scenario_II_totalMonths: scenario_II.totalMonths,
-
-        notes: notes || null,
+        data: payloadToStore,
         updatedAt: new Date()
       },
       create: {
         projectId,
         
-        // (mesmos campos do update)
+        // Campos obrigatórios do schema
         landValue: landVal,
         iptuPercentage: iptuPerc,
         iptuValue: iptuVal,
@@ -368,88 +409,46 @@ export async function POST(request: Request) {
         itbiPercentage: itbiPerc,
         itbiValue: itbiVal,
         totalLandCost: totalLand,
-
         cubValue: cubVal,
         cucValue: cucVal,
-        cubSource: cubSource || 'manual',
-        cubReferenceMonth: cubReferenceMonth || null,
-        cubType: cubType || null,
+        cubSource: cubSource ?? 'manual',
+        cubReferenceMonth: cubReferenceMonth ?? null,
+        cubType: cubType ?? null,
         constructedArea: constArea,
         areaDiscount: areaDisc,
         equivalentArea: equivArea,
         constructionCost: constCost,
-
-        projectDuration: duration,
         totalEstimatedCost: totalEstimated,
+        projectDuration: duration,
 
-        adverseSaleDeadline: saleDeadlines.adverse,
-        expectedSaleDeadline: saleDeadlines.expected,
-        idealSaleDeadline: saleDeadlines.ideal,
+        baixoBaixo: scenario_AA.monthlyReturn,
+        baixoMedio: scenario_AE.monthlyReturn,
+        baixoAlto: scenario_AI.monthlyReturn,
+        medioBaixo: scenario_EA.monthlyReturn,
+        medioMedio: scenario_EE.monthlyReturn,
+        medioAlto: scenario_EI.monthlyReturn,
+        altoBaixo: scenario_IA.monthlyReturn,
+        altoMedio: scenario_IE.monthlyReturn,
+        altoAlto: scenario_II.monthlyReturn,
 
-        adverseSaleValue: adverse.saleValue,
-        adverseBrokerage: adverse.brokerage,
-        adverseTaxes: adverse.taxes,
-        adverseNetProfit: adverse.netProfit,
-        adverseProfitMargin: adverse.profitMargin,
-        adverseROE: adverse.roe,
-        adverseMonthlyReturn: adverse.monthlyReturn,
+        cenarioSelecionado: body?.cenarioSelecionado ?? null,
+        valorSelecionado: body?.valorSelecionado ? toNumber(body.valorSelecionado, 0) : null,
 
-        expectedSaleValue: expected.saleValue,
-        expectedBrokerage: expected.brokerage,
-        expectedTaxes: expected.taxes,
-        expectedNetProfit: expected.netProfit,
-        expectedProfitMargin: expected.profitMargin,
-        expectedROE: expected.roe,
-        expectedMonthlyReturn: expected.monthlyReturn,
-
-        idealSaleValue: ideal.saleValue,
-        idealBrokerage: ideal.brokerage,
-        idealTaxes: ideal.taxes,
-        idealNetProfit: ideal.netProfit,
-        idealProfitMargin: ideal.profitMargin,
-        idealROE: ideal.roe,
-        idealMonthlyReturn: ideal.monthlyReturn,
-
-        scenario_AA_monthlyReturn: scenario_AA.monthlyReturn,
-        scenario_AA_totalMonths: scenario_AA.totalMonths,
-        scenario_AE_monthlyReturn: scenario_AE.monthlyReturn,
-        scenario_AE_totalMonths: scenario_AE.totalMonths,
-        scenario_AI_monthlyReturn: scenario_AI.monthlyReturn,
-        scenario_AI_totalMonths: scenario_AI.totalMonths,
-
-        scenario_EA_monthlyReturn: scenario_EA.monthlyReturn,
-        scenario_EA_totalMonths: scenario_EA.totalMonths,
-        scenario_EE_monthlyReturn: scenario_EE.monthlyReturn,
-        scenario_EE_totalMonths: scenario_EE.totalMonths,
-        scenario_EI_monthlyReturn: scenario_EI.monthlyReturn,
-        scenario_EI_totalMonths: scenario_EI.totalMonths,
-
-        scenario_IA_monthlyReturn: scenario_IA.monthlyReturn,
-        scenario_IA_totalMonths: scenario_IA.totalMonths,
-        scenario_IE_monthlyReturn: scenario_IE.monthlyReturn,
-        scenario_IE_totalMonths: scenario_IE.totalMonths,
-        scenario_II_monthlyReturn: scenario_II.monthlyReturn,
-        scenario_II_totalMonths: scenario_II.totalMonths,
-
-        notes: notes || null
+        data: payloadToStore
       },
-      include: {
-        project: true
-      }
+      include: { project: true }
     })
 
     await prisma.project.update({
       where: { id: projectId },
-      data: {
-        orcamentoEstimado: totalEstimated
-      }
+      data: { orcamentoEstimado: totalEstimated }
     })
 
-    return NextResponse.json(budget, { status: 201 })
-  } catch (error) {
+    return NextResponse.json(shapeBudgetResponse(budget), { status: 201 })
+  } catch (error: any) {
     console.error('Erro ao salvar orçamento:', error)
     return NextResponse.json(
-      { error: 'Erro ao salvar orçamento' },
+      { error: 'Erro ao salvar orçamento', details: error?.message ?? String(error) },
       { status: 500 }
     )
   }
@@ -462,21 +461,15 @@ export async function DELETE(request: Request) {
     const projectId = searchParams.get('projectId')
 
     if (!projectId) {
-      return NextResponse.json(
-        { error: 'projectId é obrigatório' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'projectId é obrigatório' }, { status: 400 })
     }
 
-    await prisma.budgetEstimated.delete({
-      where: { projectId }
-    })
-
+    await prisma.budgetEstimated.delete({ where: { projectId } })
     return NextResponse.json({ success: true })
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao deletar orçamento:', error)
     return NextResponse.json(
-      { error: 'Erro ao deletar orçamento' },
+      { error: 'Erro ao deletar orçamento', details: error?.message ?? String(error) },
       { status: 500 }
     )
   }

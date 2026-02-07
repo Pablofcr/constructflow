@@ -21,27 +21,28 @@ enum ProjectStatus {
   PAUSADO
   CONCLUIDO
   CANCELADO
+  EM_EXECUCAO
 }
 
 enum TipoObra {
   RESIDENCIAL
   COMERCIAL
-  INDUSTRIAL
-  INFRAESTRUTURA
-  REFORMA
+  MISTA
 }
 
 enum SubtipoResidencial {
   UNIFAMILIAR
   MULTIFAMILIAR
-  CONDOMINIO
 }
 
 enum PadraoEmpreendimento {
   POPULAR
-  MEDIO
+  MEDIO_PADRAO
   ALTO
   LUXO
+  MEDIO
+  BAIXO_PADRAO
+  ALTO_PADRAO
 }
 
 enum TeamMemberRole {
@@ -58,22 +59,59 @@ enum TeamMemberRole {
   OUTRO
 }
 
+enum BudgetRealStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  EXECUTING
+  COMPLETED
+  CANCELLED
+}
+
+enum StageStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum ServiceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum CompositionSource {
+  SINAPI
+  PINI
+  TCPO
+  CUSTOM
+}
+
+enum InsumoType {
+  MATERIAL
+  LABOR
+  EQUIPMENT
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 model Project {
-  id                    String        @id @default(uuid())
+  id                    String               @id @default(uuid())
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  codigo                String               @unique
   name                  String
   description           String?
-  codigo                String        @unique
-  status                ProjectStatus @default(PLANEJAMENTO)
-  
+  status                ProjectStatus        @default(PLANEJAMENTO)
+
   // Tipo e características da obra
   tipoObra              TipoObra
   subtipoResidencial    SubtipoResidencial?
-  padraoEmpreendimento  PadraoEmpreendimento?
-  
+  padraoEmpreendimento  PadraoEmpreendimento @default(MEDIO_PADRAO)
+
   // Endereço
   enderecoRua           String
   enderecoNumero        String
@@ -84,25 +122,26 @@ model Project {
   enderecoCEP           String
   latitude              Float?
   longitude             Float?
-  
+
+  // Financeiro
+  orcamentoEstimado     Float
+  orcamentoReal         Float?
+  totalGasto            Float                @default(0)
+
   // Datas
   dataInicioEstimada    DateTime
   dataInicioReal        DateTime?
   prazoFinal            DateTime
-  
-  // Financeiro
-  orcamentoEstimado     Float         @default(0)
-  orcamentoReal         Float?
-  totalGasto            Float         @default(0)
-  
-  // Timestamps
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  
+
+  // Links
+  linkOrcamento         String?
+  linkPlanejamento      String?
+
   // Relações
   budgetEstimated       BudgetEstimated?
+  budgetReal            BudgetReal[]
   teamMembers           TeamMember[]
-  
+
   @@map("projects")
 }
 
@@ -112,117 +151,339 @@ model Project {
 
 model BudgetEstimated {
   id                    String   @id @default(uuid())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @default(now()) @updatedAt
   projectId             String   @unique
-  project               Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+
   // ══════════════════════════════════════════════════════════════════════════
   // CUSTOS DO TERRENO
   // ══════════════════════════════════════════════════════════════════════════
-  landValue             Float    @default(0)      // Valor do terreno
-  iptuPercentage        Float    @default(0.005)  // % IPTU (ex: 0.5% = 0.005)
-  iptuValue             Float    @default(0)      // Valor calculado do IPTU
-  condominiumValue      Float    @default(0)      // Taxa de condomínio (se aplicável)
-  itbiPercentage        Float    @default(0.03)   // % ITBI + Escritura
-  itbiValue             Float    @default(0)      // Valor calculado ITBI
-  totalLandCost         Float    @default(0)      // Total custos terreno
-  
+  landValue             Float    @default(0)
+  iptuPercentage        Float    @default(0.005)
+  iptuValue             Float    @default(0)
+  condominiumValue      Float    @default(0)
+  itbiPercentage        Float    @default(0.03)
+  itbiValue             Float    @default(0)
+  totalLandCost         Float    @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
   // CUSTOS DA CONSTRUÇÃO
   // ══════════════════════════════════════════════════════════════════════════
-  cubValue              Float    @default(0)      // CUB em R$/m²
-  cucValue              Float    @default(0)      // CUC = CUB * 1.2
-  cubSource             String   @default("manual") // "manual" ou "auto"
-  cubReferenceMonth     String?                   // Mês referência (ex: "2026-01")
-  cubType               String?                   // Tipo do CUB (ex: "R1-N")
-  constructedArea       Float    @default(0)      // Área construída m²
-  areaDiscount          Float    @default(15)     // Desconto de área (m²)
-  equivalentArea        Float    @default(0)      // Área equivalente = área - desconto
-  constructionCost      Float    @default(0)      // Custo construção = CUC * área equiv.
-  
+  cubValue              Float    @default(0)
+  cucValue              Float    @default(0)
+  cubSource             String?
+  cubReferenceMonth     String?
+  cubType               String?
+  constructedArea       Float    @default(0)
+  areaDiscount          Float    @default(0)
+  equivalentArea        Float    @default(0)
+  constructionCost      Float    @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
   // DURAÇÃO E TOTAIS
   // ══════════════════════════════════════════════════════════════════════════
-  projectDuration       Int      @default(12)     // Duração da obra em meses
-  totalEstimatedCost    Float    @default(0)      // Custo total = terreno + construção
-  
+  projectDuration       Int?     @default(12)
+  totalEstimatedCost    Float    @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
-  // PRAZOS DE VENDA (meses após conclusão da obra)
+  // PRAZOS DE VENDA
   // ══════════════════════════════════════════════════════════════════════════
-  adverseSaleDeadline   Int      @default(18)     // Prazo venda cenário adverso
-  expectedSaleDeadline  Int      @default(11)     // Prazo venda cenário esperado
-  idealSaleDeadline     Int      @default(7)      // Prazo venda cenário ideal
-  
+  adverseSaleDeadline   Int?     @default(0)
+  expectedSaleDeadline  Int?     @default(0)
+  idealSaleDeadline     Int?     @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
-  // VIABILIDADE - CENÁRIO ADVERSO (Venda a 140% do custo)
+  // VIABILIDADE - CENÁRIO ADVERSO (140%)
   // ══════════════════════════════════════════════════════════════════════════
-  adverseSaleValue      Float    @default(0)      // Valor de venda
-  adverseBrokerage      Float    @default(0)      // Corretagem (5%)
-  adverseTaxes          Float    @default(0)      // Impostos (15% ganho capital)
-  adverseNetProfit      Float    @default(0)      // Lucro líquido
-  adverseProfitMargin   Float    @default(0)      // Margem de lucro (%)
-  adverseROE            Float    @default(0)      // ROE - Retorno sobre investimento (%)
-  adverseMonthlyReturn  Float    @default(0)      // Retorno mensal (%)
-  
+  adverseSaleValue      Float?   @default(0)
+  adverseBrokerage      Float?   @default(0)
+  adverseTaxes          Float?   @default(0)
+  adverseNetProfit      Float?   @default(0)
+  adverseProfitMargin   Float?   @default(0)
+  adverseROE            Float?   @default(0)
+  adverseMonthlyReturn  Float?   @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
-  // VIABILIDADE - CENÁRIO ESPERADO (Venda a 160% do custo)
+  // VIABILIDADE - CENÁRIO ESPERADO (160%)
   // ══════════════════════════════════════════════════════════════════════════
-  expectedSaleValue     Float    @default(0)
-  expectedBrokerage     Float    @default(0)
-  expectedTaxes         Float    @default(0)
-  expectedNetProfit     Float    @default(0)
-  expectedProfitMargin  Float    @default(0)
-  expectedROE           Float    @default(0)
-  expectedMonthlyReturn Float    @default(0)
-  
+  expectedSaleValue     Float?   @default(0)
+  expectedBrokerage     Float?   @default(0)
+  expectedTaxes         Float?   @default(0)
+  expectedNetProfit     Float?   @default(0)
+  expectedProfitMargin  Float?   @default(0)
+  expectedROE           Float?   @default(0)
+  expectedMonthlyReturn Float?   @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
-  // VIABILIDADE - CENÁRIO IDEAL (Venda a 180% do custo)
+  // VIABILIDADE - CENÁRIO IDEAL (180%)
   // ══════════════════════════════════════════════════════════════════════════
-  idealSaleValue        Float    @default(0)
-  idealBrokerage        Float    @default(0)
-  idealTaxes            Float    @default(0)
-  idealNetProfit        Float    @default(0)
-  idealProfitMargin     Float    @default(0)
-  idealROE              Float    @default(0)
-  idealMonthlyReturn    Float    @default(0)
-  
+  idealSaleValue        Float?   @default(0)
+  idealBrokerage        Float?   @default(0)
+  idealTaxes            Float?   @default(0)
+  idealNetProfit        Float?   @default(0)
+  idealProfitMargin     Float?   @default(0)
+  idealROE              Float?   @default(0)
+  idealMonthlyReturn    Float?   @default(0)
+
   // ══════════════════════════════════════════════════════════════════════════
   // MATRIZ DE CENÁRIOS 3x3 (Valor x Prazo)
-  // Primeira letra = Cenário de VALOR (A=Adverso, E=Esperado, I=Ideal)
-  // Segunda letra = Cenário de PRAZO (A=Adverso, E=Esperado, I=Ideal)
   // ══════════════════════════════════════════════════════════════════════════
-  
-  // Linha 1: Valor Adverso (140%)
-  scenario_AA_monthlyReturn  Float  @default(0)  // Adverso valor + Adverso prazo
-  scenario_AA_totalMonths    Int    @default(0)
-  scenario_AE_monthlyReturn  Float  @default(0)  // Adverso valor + Esperado prazo
-  scenario_AE_totalMonths    Int    @default(0)
-  scenario_AI_monthlyReturn  Float  @default(0)  // Adverso valor + Ideal prazo
-  scenario_AI_totalMonths    Int    @default(0)
-  
-  // Linha 2: Valor Esperado (160%)
-  scenario_EA_monthlyReturn  Float  @default(0)  // Esperado valor + Adverso prazo
-  scenario_EA_totalMonths    Int    @default(0)
-  scenario_EE_monthlyReturn  Float  @default(0)  // Esperado valor + Esperado prazo
-  scenario_EE_totalMonths    Int    @default(0)
-  scenario_EI_monthlyReturn  Float  @default(0)  // Esperado valor + Ideal prazo
-  scenario_EI_totalMonths    Int    @default(0)
-  
-  // Linha 3: Valor Ideal (180%)
-  scenario_IA_monthlyReturn  Float  @default(0)  // Ideal valor + Adverso prazo
-  scenario_IA_totalMonths    Int    @default(0)
-  scenario_IE_monthlyReturn  Float  @default(0)  // Ideal valor + Esperado prazo
-  scenario_IE_totalMonths    Int    @default(0)
-  scenario_II_monthlyReturn  Float  @default(0)  // Ideal valor + Ideal prazo
-  scenario_II_totalMonths    Int    @default(0)
-  
+  scenario_AA_monthlyReturn  Float?  @default(0)
+  scenario_AA_totalMonths    Int?    @default(0)
+  scenario_AE_monthlyReturn  Float?  @default(0)
+  scenario_AE_totalMonths    Int?    @default(0)
+  scenario_AI_monthlyReturn  Float?  @default(0)
+  scenario_AI_totalMonths    Int?    @default(0)
+  scenario_EA_monthlyReturn  Float?  @default(0)
+  scenario_EA_totalMonths    Int?    @default(0)
+  scenario_EE_monthlyReturn  Float?  @default(0)
+  scenario_EE_totalMonths    Int?    @default(0)
+  scenario_EI_monthlyReturn  Float?  @default(0)
+  scenario_EI_totalMonths    Int?    @default(0)
+  scenario_IA_monthlyReturn  Float?  @default(0)
+  scenario_IA_totalMonths    Int?    @default(0)
+  scenario_IE_monthlyReturn  Float?  @default(0)
+  scenario_IE_totalMonths    Int?    @default(0)
+  scenario_II_monthlyReturn  Float?  @default(0)
+  scenario_II_totalMonths    Int?    @default(0)
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // VALORES RESUMO MATRIZ (baixo/medio/alto)
+  // ══════════════════════════════════════════════════════════════════════════
+  baixoBaixo            Float?   @default(0)
+  baixoMedio            Float?   @default(0)
+  baixoAlto             Float?   @default(0)
+  medioBaixo            Float?   @default(0)
+  medioMedio            Float?   @default(0)
+  medioAlto             Float?   @default(0)
+  altoBaixo             Float?   @default(0)
+  altoMedio             Float?   @default(0)
+  altoAlto              Float?   @default(0)
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CENÁRIO SELECIONADO E DADOS COMPLETOS
+  // ══════════════════════════════════════════════════════════════════════════
+  cenarioSelecionado    String?
+  valorSelecionado      Float?
+  data                  Json?
+
   // ══════════════════════════════════════════════════════════════════════════
   // OUTROS
   // ══════════════════════════════════════════════════════════════════════════
-  notes                 String?                   // Observações
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  
+  notes                 String?
+
+  // Relações
+  project               Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  budgetReal            BudgetReal? @relation("BudgetRealEstimatedBudget")
+
+  @@index([projectId])
   @@map("budget_estimated")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ORÇAMENTO REAL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model BudgetReal {
+  id                  String            @id
+  projectId           String
+  name                String            @default("Orçamento Real")
+  description         String?
+  status              BudgetRealStatus  @default(DRAFT)
+
+  // Custos
+  totalDirectCost     Decimal           @default(0) @db.Decimal(15, 2)
+  bdiPercentage       Decimal           @default(25) @db.Decimal(5, 2)
+  totalWithBDI        Decimal           @default(0) @db.Decimal(15, 2)
+
+  // BDI Detalhado
+  bdiAdministration   Decimal?          @db.Decimal(5, 2)
+  bdiProfit           Decimal?          @db.Decimal(5, 2)
+  bdiTaxes            Decimal?          @db.Decimal(5, 2)
+  bdiRisk             Decimal?          @db.Decimal(5, 2)
+  bdiOthers           Decimal?          @db.Decimal(5, 2)
+
+  // Prazos
+  startDate           DateTime?
+  endDate             DateTime?
+  durationMonths      Int?
+
+  // Comparação com Estimado
+  estimatedBudgetId   String?           @unique
+  varianceAmount      Decimal?          @db.Decimal(15, 2)
+  variancePercent     Decimal?          @db.Decimal(5, 2)
+
+  // Observações
+  notes               String?
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @default(now())
+
+  // Relações
+  project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  estimatedBudget     BudgetEstimated?  @relation("BudgetRealEstimatedBudget", fields: [estimatedBudgetId], references: [id], onDelete: SetNull)
+  stages              BudgetStage[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("budget_real")
+}
+
+model BudgetStage {
+  id              String            @id
+  budgetRealId    String
+  name            String
+  description     String?
+  order           Int
+  code            String?
+
+  // Custos
+  totalCost       Decimal           @default(0) @db.Decimal(15, 2)
+  percentage      Decimal           @default(0) @db.Decimal(5, 2)
+
+  // Status
+  status          StageStatus       @default(PENDING)
+  progressPercent Decimal           @default(0) @db.Decimal(5, 2)
+
+  // Prazos
+  startDate       DateTime?
+  endDate         DateTime?
+
+  // Observações
+  notes           String?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+
+  // Relações
+  budgetReal      BudgetReal        @relation(fields: [budgetRealId], references: [id], onDelete: Cascade)
+  services        BudgetService[]
+
+  @@unique([budgetRealId, order])
+  @@index([budgetRealId])
+  @@index([order])
+  @@map("budget_stages")
+}
+
+model BudgetService {
+  id                  String              @id
+  stageId             String
+  description         String
+  code                String?
+
+  // Quantitativos
+  unit                String
+  quantity            Decimal             @db.Decimal(15, 4)
+  unitPrice           Decimal             @db.Decimal(15, 4)
+  totalPrice          Decimal             @db.Decimal(15, 2)
+
+  // Composição
+  compositionId       String?
+
+  // Status
+  status              ServiceStatus       @default(PENDING)
+  executedQuantity    Decimal?            @db.Decimal(15, 4)
+
+  // Observações
+  notes               String?
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @default(now())
+
+  // Relações
+  stage               BudgetStage         @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  composition         Composition?        @relation(fields: [compositionId], references: [id])
+  measurements        ServiceMeasurement[]
+
+  @@index([stageId])
+  @@index([compositionId])
+  @@map("budget_services")
+}
+
+model ServiceMeasurement {
+  id              String        @id
+  serviceId       String
+  description     String
+  formula         String?
+
+  // Dimensões
+  dimension1      Decimal?      @db.Decimal(15, 4)
+  dimension2      Decimal?      @db.Decimal(15, 4)
+  dimension3      Decimal?      @db.Decimal(15, 4)
+  multiplier      Decimal?      @db.Decimal(15, 4)
+  result          Decimal       @db.Decimal(15, 4)
+
+  // Observações
+  notes           String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now())
+
+  // Relações
+  service         BudgetService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@map("service_measurements")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPOSIÇÕES (SINAPI, etc)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Composition {
+  id              String              @id
+  code            String              @unique
+  source          CompositionSource
+  description     String
+  unit            String
+  unitCost        Decimal             @db.Decimal(15, 4)
+  productivity    Decimal?            @db.Decimal(15, 4)
+
+  // Categorização
+  category        String?
+  subcategory     String?
+
+  // Metadata
+  sourceDate      DateTime?
+  sourceMonth     String?
+  notes           String?
+
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @default(now())
+
+  // Relações
+  items           CompositionItem[]
+  services        BudgetService[]
+
+  @@index([code])
+  @@index([source])
+  @@index([category])
+  @@map("compositions")
+}
+
+model CompositionItem {
+  id              String       @id
+  compositionId   String
+  type            InsumoType
+  description     String
+  code            String?
+  unit            String
+
+  // Coeficiente e Preços
+  coefficient     Decimal      @db.Decimal(15, 6)
+  unitPrice       Decimal      @db.Decimal(15, 4)
+  totalPrice      Decimal      @db.Decimal(15, 4)
+  productivity    Decimal?     @db.Decimal(15, 4)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  // Relações
+  composition     Composition  @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+
+  @@index([compositionId])
+  @@index([type])
+  @@map("composition_items")
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -230,32 +491,105 @@ model BudgetEstimated {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 model TeamMember {
-  id                    String          @id @default(uuid())
-  name                  String
-  role                  TeamMemberRole
-  cpf                   String?
-  rg                    String?
-  telefone              String?
-  email                 String?
-  
+  id                  String         @id @default(uuid())
+  name                String
+  role                TeamMemberRole
+  cpf                 String?
+  rg                  String?
+  telefone            String?
+  email               String?
+
   // Endereço
-  enderecoRua           String?
-  enderecoNumero        String?
-  enderecoComplemento   String?
-  enderecoBairro        String?
-  enderecoCidade        String?
-  enderecoEstado        String?
-  enderecoCEP           String?
-  
+  enderecoRua         String?
+  enderecoNumero      String?
+  enderecoComplemento String?
+  enderecoBairro      String?
+  enderecoCidade      String?
+  enderecoEstado      String?
+  enderecoCEP         String?
+
   // Centro de Custo
-  centroCustoTipo       String          // "OBRA" ou "ADMINISTRATIVO"
-  projectId             String?
-  project               Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  centroCustoNome       String?         // Nome do centro administrativo se não for obra
-  
-  // Timestamps
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
-  
+  centroCustoTipo     String
+  projectId           String?
+  centroCustoNome     String?
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @default(now()) @updatedAt
+
+  // Relações
+  project             Project?       @relation(fields: [projectId], references: [id])
+
+  @@index([projectId])
   @@map("team_members")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COLABORADORES (SISTEMA ANTIGO) E ALOCAÇÕES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Collaborator {
+  id             String   @id
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+  name           String
+  cpf            String   @unique
+  birthDate      DateTime
+  role           String
+  specialty      String?
+  status         String   @default("active")
+  hireDate       DateTime
+  salary         Float
+  phone          String
+  email          String
+  costCenterId   String
+  costCenterType String
+
+  @@index([costCenterId])
+  @@index([status])
+  @@map("collaborators")
+}
+
+model CollaboratorAllocation {
+  id                   String    @id
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @default(now())
+  collaboratorId       String
+  costCenterId         String
+  costCenterType       String
+  startDate            DateTime
+  endDate              DateTime?
+  allocationPercentage Int       @default(100)
+  isActive             Boolean   @default(true)
+  notes                String?
+
+  @@index([collaboratorId])
+  @@index([costCenterId])
+  @@index([isActive])
+  @@map("collaborator_allocations")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CUB (Custo Unitário Básico)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model CubValue {
+  id             String   @id
+  createdAt      DateTime @default(now())
+  referenceYear  Int
+  referenceMonth Int
+  state          String
+  projectType    String
+  subtype        String
+  standard       String
+  cubCode        String
+  materials      Float
+  labor          Float
+  adminExpenses  Float
+  equipment      Float
+  totalValue     Float
+
+  @@index([referenceYear, referenceMonth], map: "cub_values_reference_idx")
+  @@index([state])
+  @@index([projectType, subtype, standard], map: "cub_values_type_idx")
+  @@map("cub_values")
 }

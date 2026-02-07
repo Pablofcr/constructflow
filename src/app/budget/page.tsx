@@ -15,6 +15,13 @@ interface BudgetEstimated {
   cubValue: number
   cubReferenceMonth: string | null
   updatedAt: string
+  // Valores recalculados mais recentes (podem ser diferentes dos campos antigos)
+  data?: {
+    totalEstimatedCost?: number
+    totalLandCost?: number
+    constructionCost?: number
+    cubValue?: number
+  }
 }
 
 export default function BudgetPage() {
@@ -41,6 +48,21 @@ export default function BudgetPage() {
       const response = await fetch(`/api/budget/estimated?projectId=${activeProject.id}`)
       if (response.ok) {
         const data = await response.json()
+        
+        // 🔍 DEBUG: Ver o que está vindo da API
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        console.log('📊 DADOS DA API (Resumo):')
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        console.log('totalEstimatedCost (direto):', data.totalEstimatedCost)
+        console.log('totalEstimatedCost (data):', data.data?.totalEstimatedCost)
+        console.log('constructionCost (direto):', data.constructionCost)
+        console.log('constructionCost (data):', data.data?.constructionCost)
+        console.log('totalLandCost (direto):', data.totalLandCost)
+        console.log('totalLandCost (data):', data.data?.totalLandCost)
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        console.log('Objeto data completo:', data.data)
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+        
         setBudgetEstimated(data)
       } else {
         setBudgetEstimated(null)
@@ -56,12 +78,51 @@ export default function BudgetPage() {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
     }).format(value)
   }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR')
+  }
+
+  // Função SIMPLIFICADA para pegar o valor correto (prioriza data recalculado)
+  const getValue = (budget: BudgetEstimated, fieldName: string): number => {
+    let result = 0
+    let source = 'direto'
+    
+    // Verificar se tem o campo no data e se não é null/undefined
+    if (budget.data) {
+      // Verificações específicas por campo
+      if (fieldName === 'totalEstimatedCost' && budget.data.totalEstimatedCost != null) {
+        result = budget.data.totalEstimatedCost
+        source = 'data'
+      }
+      else if (fieldName === 'totalLandCost' && budget.data.totalLandCost != null) {
+        result = budget.data.totalLandCost
+        source = 'data'
+      }
+      else if (fieldName === 'constructionCost' && budget.data.constructionCost != null) {
+        result = budget.data.constructionCost
+        source = 'data'
+      }
+      else if (fieldName === 'cubValue' && budget.data.cubValue != null) {
+        result = budget.data.cubValue
+        source = 'data'
+      }
+      else {
+        // Se não achou no data, pega do campo direto
+        const value = budget[fieldName as keyof BudgetEstimated]
+        result = typeof value === 'number' ? value : 0
+      }
+    } else {
+      // Se não tem data, pega do campo direto
+      const value = budget[fieldName as keyof BudgetEstimated]
+      result = typeof value === 'number' ? value : 0
+    }
+    
+    console.log(`getValue('${fieldName}'): ${result} (fonte: ${source})`)
+    return result
   }
 
   if (!activeProject) {
@@ -130,7 +191,7 @@ export default function BudgetPage() {
                       <div>
                         <p className="text-sm text-gray-500 mb-1">Valor Total Estimado</p>
                         <p className="text-3xl font-bold text-blue-600">
-                          {formatCurrency(budgetEstimated.totalEstimatedCost)}
+                          {formatCurrency(getValue(budgetEstimated, 'totalEstimatedCost'))}
                         </p>
                       </div>
 
@@ -138,22 +199,22 @@ export default function BudgetPage() {
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Terreno</p>
                           <p className="text-lg font-semibold text-gray-900">
-                            {formatCurrency(budgetEstimated.totalLandCost)}
+                            {formatCurrency(getValue(budgetEstimated, 'totalLandCost'))}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Construção</p>
                           <p className="text-lg font-semibold text-gray-900">
-                            {formatCurrency(budgetEstimated.constructionCost)}
+                            {formatCurrency(getValue(budgetEstimated, 'constructionCost'))}
                           </p>
                         </div>
                       </div>
 
-                      {budgetEstimated.cubValue > 0 && (
+                      {getValue(budgetEstimated, 'cubValue') > 0 && (
                         <div className="pt-4 border-t border-gray-100">
                           <p className="text-xs text-gray-500 mb-1">CUB Utilizado</p>
                           <p className="text-sm font-medium text-gray-700">
-                            {formatCurrency(budgetEstimated.cubValue)}/m²
+                            {formatCurrency(getValue(budgetEstimated, 'cubValue'))}/m²
                             {budgetEstimated.cubReferenceMonth && (
                               <span className="text-gray-500 ml-2">
                                 ({budgetEstimated.cubReferenceMonth})
@@ -170,7 +231,7 @@ export default function BudgetPage() {
                         </p>
                       </div>
 
-                      <Link href="/budget/estimated">
+                      <Link href={activeProject ? `/budget/estimated?projectId=${activeProject.id}` : "/budget/estimated"}>
                         <Button className="w-full bg-blue-600 hover:bg-blue-700">
                           Ver Detalhes
                           <ArrowRight className="h-4 w-4 ml-2" />
@@ -188,7 +249,7 @@ export default function BudgetPage() {
                       <p className="text-sm text-gray-500 mb-6">
                         Crie um orçamento estimado para análise rápida de viabilidade
                       </p>
-                      <Link href="/budget/estimated">
+                      <Link href={activeProject ? `/budget/estimated?projectId=${activeProject.id}` : "/budget/estimated"}>
                         <Button className="bg-blue-600 hover:bg-blue-700">
                           <Plus className="h-4 w-4 mr-2" />
                           Criar Orçamento Estimado
