@@ -291,6 +291,9 @@ model BudgetReal {
   description         String?
   status              BudgetRealStatus  @default(DRAFT)
 
+  // Estado (UF) para preços SINAPI
+  state               String?
+
   // Custos
   totalDirectCost     Decimal           @default(0) @db.Decimal(15, 2)
   bdiPercentage       Decimal           @default(25) @db.Decimal(5, 2)
@@ -323,6 +326,8 @@ model BudgetReal {
   project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   estimatedBudget     BudgetEstimated?  @relation("BudgetRealEstimatedBudget", fields: [estimatedBudgetId], references: [id], onDelete: SetNull)
   stages              BudgetStage[]
+  compositionOverrides ProjectCompositionOverride[]
+  itemOverrides       ProjectItemOverride[]
 
   @@index([projectId])
   @@index([status])
@@ -454,6 +459,8 @@ model Composition {
   // Relações
   items           CompositionItem[]
   services        BudgetService[]
+  statePrices     SinapiStatePrice[]
+  compositionOverrides ProjectCompositionOverride[]
 
   @@index([code])
   @@index([source])
@@ -480,10 +487,67 @@ model CompositionItem {
 
   // Relações
   composition     Composition  @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+  itemOverrides   ProjectItemOverride[]
 
   @@index([compositionId])
   @@index([type])
   @@map("composition_items")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PREÇOS SINAPI POR ESTADO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model SinapiStatePrice {
+  id              String       @id @default(uuid())
+  compositionId   String
+  state           String       @db.VarChar(2)
+  unitCost        Decimal      @db.Decimal(15, 4)
+  referenceMonth  String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  // Relações
+  composition     Composition  @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+
+  @@unique([compositionId, state])
+  @@index([state])
+  @@map("sinapi_state_prices")
+}
+
+model ProjectCompositionOverride {
+  id              String       @id @default(uuid())
+  budgetRealId    String
+  compositionId   String
+  overriddenCost  Decimal      @db.Decimal(15, 4)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now())
+
+  // Relações
+  budgetReal      BudgetReal   @relation(fields: [budgetRealId], references: [id], onDelete: Cascade)
+  composition     Composition  @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetRealId, compositionId])
+  @@map("project_composition_overrides")
+}
+
+model ProjectItemOverride {
+  id                String          @id @default(uuid())
+  budgetRealId      String
+  compositionItemId String
+  overriddenPrice   Decimal         @db.Decimal(15, 4)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now())
+
+  // Relações
+  budgetReal        BudgetReal      @relation(fields: [budgetRealId], references: [id], onDelete: Cascade)
+  compositionItem   CompositionItem @relation(fields: [compositionItemId], references: [id], onDelete: Cascade)
+
+  @@unique([budgetRealId, compositionItemId])
+  @@map("project_item_overrides")
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
