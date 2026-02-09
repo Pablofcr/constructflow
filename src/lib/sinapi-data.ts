@@ -13,6 +13,8 @@ export interface SinapiCompositionData {
   items: SinapiItemData[];
   // Preço unitário base (SP) - será ajustado por estado
   baseCost: number;
+  // Preço fixo (serviço terceirizado) - não aplica fator de estado
+  fixedPrice?: boolean;
 }
 
 export interface SinapiItemData {
@@ -846,6 +848,80 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
 
+  // --- Esquadrias alto padrão (alumínio/vidro - serviço terceirizado) ---
+  {
+    code: 'CF-07005',
+    description: 'Porta de correr 2 folhas em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 835.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00199A', description: 'Porta de correr 2 folhas alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 835.00 },
+    ],
+  },
+  {
+    code: 'CF-07006',
+    description: 'Porta de correr 4 folhas em alumínio minimalista/vidro laminado — alto padrão (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 975.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00200A', description: 'Porta de correr 4 folhas alumínio minimalista/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 975.00 },
+    ],
+  },
+  {
+    code: 'CF-07007',
+    description: 'Janela maxim-ar em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1200.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00201A', description: 'Janela maxim-ar alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1200.00 },
+    ],
+  },
+  {
+    code: 'CF-07008',
+    description: 'Janela de correr 2 folhas em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 840.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00202A', description: 'Janela de correr 2 folhas alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 840.00 },
+    ],
+  },
+  {
+    code: 'CF-07009',
+    description: 'Vidro fixo em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 685.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00203A', description: 'Vidro fixo alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 685.00 },
+    ],
+  },
+  {
+    code: 'CF-07010',
+    description: 'Fachada pele de vidro structural glazing em alumínio — alto padrão (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1500.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00204A', description: 'Fachada pele de vidro structural glazing alumínio — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1500.00 },
+    ],
+  },
+
   // ══════════════════════════════════════════════════════════════
   // ETAPA 08 - REVESTIMENTOS
   // ══════════════════════════════════════════════════════════════
@@ -1389,6 +1465,212 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
 
+  {
+    code: 'CF-11006',
+    description: 'Bacia sanitária monobloco, louça branca, incluindo instalação',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 680.00,
+    items: [
+      { code: 'INS-00182', description: 'Bacia sanitária monobloco louça branca', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 480.00 },
+      { code: 'INS-00183', description: 'Kit fixação bacia monobloco', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 25.00 },
+      { code: 'INS-00076', description: 'Anel de vedação', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 12.00 },
+      { code: 'INS-00077', description: 'Encanador', unit: 'h', type: 'LABOR', coefficient: 2.5, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 1.5, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'CF-11007',
+    description: 'Chuveiro comum ducha plástica, incluindo instalação',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 95.00,
+    items: [
+      { code: 'INS-00184', description: 'Ducha plástica simples', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 35.00 },
+      { code: 'INS-00185', description: 'Braço chuveiro PVC', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 8.00 },
+      { code: 'INS-00077', description: 'Encanador', unit: 'h', type: 'LABOR', coefficient: 1.0, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.5, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'CF-11008',
+    description: 'Chuveiro inox tipo Deca/Docol, incluindo instalação',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 450.00,
+    items: [
+      { code: 'INS-00186', description: 'Chuveiro inox Deca/Docol', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 320.00 },
+      { code: 'INS-00187', description: 'Braço chuveiro inox', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 45.00 },
+      { code: 'INS-00077', description: 'Encanador', unit: 'h', type: 'LABOR', coefficient: 1.5, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.5, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'CF-11009',
+    description: 'Bancada de granito Via Láctea (fornecimento e fabricação)',
+    unit: 'm²',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 850.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00188', description: 'Granito Via Láctea — fornecimento, fabricação e instalação', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 850.00 },
+    ],
+  },
+  {
+    code: 'CF-11010',
+    description: 'Bancada de granito Branco Prime (fornecimento e fabricação)',
+    unit: 'm²',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 1000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00189', description: 'Granito Branco Prime — fornecimento, fabricação e instalação', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1000.00 },
+    ],
+  },
+  {
+    code: 'CF-11011',
+    description: 'Bancada de granito Nano Glass (fornecimento e fabricação)',
+    unit: 'm²',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 2000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00190', description: 'Granito Nano Glass — fornecimento, fabricação e instalação', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 2000.00 },
+    ],
+  },
+  {
+    code: 'CF-11012',
+    description: 'Cuba de sobrepor alto padrão (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 850.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00191', description: 'Cuba de sobrepor alto padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 850.00 },
+    ],
+  },
+  {
+    code: 'CF-11013',
+    description: 'Cuba de sobrepor médio padrão (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 400.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00192', description: 'Cuba de sobrepor médio padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 400.00 },
+    ],
+  },
+  {
+    code: 'CF-11014',
+    description: 'Cuba dupla inox para cozinha alto padrão (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 1200.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00193', description: 'Cuba dupla inox cozinha alto padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1200.00 },
+    ],
+  },
+  {
+    code: 'CF-11015',
+    description: 'Cuba dupla inox para cozinha médio padrão (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 650.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00194', description: 'Cuba dupla inox cozinha médio padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 650.00 },
+    ],
+  },
+  {
+    code: 'CF-11016',
+    description: 'Cuba simples inox popular (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 400.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00195', description: 'Cuba simples inox popular', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 400.00 },
+    ],
+  },
+  {
+    code: 'CF-11017',
+    description: 'Torneira de mesa para bancada alto padrão (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 900.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00196', description: 'Torneira de mesa para bancada alto padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 900.00 },
+    ],
+  },
+  {
+    code: 'CF-11018',
+    description: 'Torneira de mesa para bancada médio padrão (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 450.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00197', description: 'Torneira de mesa para bancada médio padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 450.00 },
+    ],
+  },
+  {
+    code: 'CF-11019',
+    description: 'Torneira de mesa para bancada popular (fornecimento)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 50.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00198', description: 'Torneira de mesa para bancada popular', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 50.00 },
+    ],
+  },
+  {
+    code: 'CF-11020',
+    description: 'Kit instalação de torneira, cuba e sanitário — popular/médio padrão (plástico)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 78.00,
+    items: [
+      { code: 'INS-00199', description: 'Engate flexível 60cm plástico', unit: 'un', type: 'MATERIAL', coefficient: 2.0, unitPrice: 8.00 },
+      { code: 'INS-00200', description: 'Sifão plástico para cuba', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 15.00 },
+      { code: 'INS-00201', description: 'Válvula de escoamento padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 12.00 },
+      { code: 'INS-00077', description: 'Encanador', unit: 'h', type: 'LABOR', coefficient: 1.0, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.5, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'CF-11021',
+    description: 'Kit instalação de torneira, cuba e sanitário — alto padrão (inox)',
+    unit: 'un',
+    category: '11',
+    subcategory: 'Louças e Metais',
+    baseCost: 247.00,
+    items: [
+      { code: 'INS-00202', description: 'Engate flexível 60cm inox', unit: 'un', type: 'MATERIAL', coefficient: 2.0, unitPrice: 35.00 },
+      { code: 'INS-00203', description: 'Sifão inox para cuba', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 85.00 },
+      { code: 'INS-00204', description: 'Válvula de escoamento alto padrão', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 45.00 },
+      { code: 'INS-00077', description: 'Encanador', unit: 'h', type: 'LABOR', coefficient: 1.5, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.5, unitPrice: 18.55 },
+    ],
+  },
+
   // ══════════════════════════════════════════════════════════════
   // ETAPA 12 - INSTALAÇÕES ELÉTRICAS
   // ══════════════════════════════════════════════════════════════
@@ -1639,6 +1921,32 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     items: [
       { code: 'INS-00121', description: 'Puxador alumínio 30cm', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 28.00 },
       { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.3, unitPrice: 23.80 },
+    ],
+  },
+
+  // --- Gradis e guarda-corpos alto padrão (serviço terceirizado) ---
+  {
+    code: 'CF-15005',
+    description: 'Gradil com vidro laminado em alumínio — alto padrão (fornecimento e instalação)',
+    unit: 'm',
+    category: '15',
+    subcategory: 'Vidros e Ferragens',
+    baseCost: 850.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00205', description: 'Gradil com vidro laminado alumínio — alto padrão', unit: 'm', type: 'MATERIAL', coefficient: 1.0, unitPrice: 850.00 },
+    ],
+  },
+  {
+    code: 'CF-15006',
+    description: 'Guarda-corpo em vidro laminado temperado com torre inox — alto padrão (fornecimento e instalação)',
+    unit: 'm',
+    category: '15',
+    subcategory: 'Vidros e Ferragens',
+    baseCost: 1280.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00206', description: 'Guarda-corpo vidro laminado temperado com torre inox — alto padrão', unit: 'm', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1280.00 },
     ],
   },
 

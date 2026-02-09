@@ -35,7 +35,7 @@ async function seedSinapi() {
       skipped++;
       // Atualizar preços por estado mesmo se composição já existe
       for (const state of SUPPORTED_STATES) {
-        const stateCost = getStateCost(comp.baseCost, state);
+        const stateCost = comp.fixedPrice ? comp.baseCost : getStateCost(comp.baseCost, state);
         await prisma.sinapiStatePrice.upsert({
           where: {
             compositionId_state: {
@@ -100,7 +100,7 @@ async function seedSinapi() {
 
     // Criar preços por estado
     for (const state of SUPPORTED_STATES) {
-      const stateCost = getStateCost(comp.baseCost, state);
+      const stateCost = comp.fixedPrice ? comp.baseCost : getStateCost(comp.baseCost, state);
       await prisma.sinapiStatePrice.create({
         data: {
           compositionId,
