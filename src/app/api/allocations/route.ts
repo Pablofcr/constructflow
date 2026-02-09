@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 
 // GET - Listar alocações de um colaborador
 export async function GET(request: Request) {
@@ -93,7 +94,8 @@ export async function POST(request: Request) {
     // Criar alocação
     const allocation = await prisma.collaboratorAllocation.create({
       data: {
-        collaboratorId: body.collaboratorId,
+        id: randomUUID(),
+        collaborator: { connect: { id: body.collaboratorId } },
         costCenterId: body.costCenterId,
         costCenterType: body.costCenterType,
         startDate: new Date(body.startDate),

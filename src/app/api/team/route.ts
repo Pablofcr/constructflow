@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { randomUUID } from 'crypto'
 
 // GET - Listar colaboradores (com filtro opcional por centro de custo ou alocações)
 export async function GET(request: Request) {
@@ -137,6 +138,8 @@ export async function POST(request: Request) {
     // Criar colaborador
     const collaborator = await prisma.collaborator.create({
       data: {
+        id: randomUUID(),
+        updatedAt: new Date(),
         name: body.name,
         cpf: body.cpf,
         birthDate: new Date(body.birthDate),

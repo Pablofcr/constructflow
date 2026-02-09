@@ -5,6 +5,7 @@
 // Uso: Criar automaticamente as etapas ao criar um BudgetReal
 
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -172,6 +173,7 @@ export async function createDefaultStages(
 
     const created = await prisma.budgetStage.create({
       data: {
+        id: randomUUID(),
         budgetRealId,
         name: stage.name,
         code: stage.code,

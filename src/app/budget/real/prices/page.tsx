@@ -1,17 +1,18 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
 import { PriceTable } from '@/components/orcamento-real/PriceTable';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function PriceTablePage() {
+function PriceTableContent() {
   const searchParams = useSearchParams();
   const { activeProject } = useProject();
-  const budgetId = searchParams.get('budgetId');
-  const state = searchParams.get('state') || 'SP';
+  const budgetId = searchParams?.get('budgetId') ?? null;
+  const state = searchParams?.get('state') || 'SP';
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -45,5 +46,13 @@ export default function PriceTablePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PriceTablePage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>}>
+      <PriceTableContent />
+    </Suspense>
   );
 }

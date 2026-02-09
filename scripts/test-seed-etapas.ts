@@ -5,6 +5,7 @@
 // Uso: npx tsx scripts/test-seed-etapas.ts
 
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -182,6 +183,7 @@ async function main() {
 
   const budgetReal = await prisma.budgetReal.create({
     data: {
+      id: randomUUID(),
       projectId: project.id,
       name: 'Orçamento Real - Teste Seed',
       description: 'Orçamento criado automaticamente para teste das 18 etapas',
@@ -211,6 +213,7 @@ async function main() {
 
     const created = await prisma.budgetStage.create({
       data: {
+        id: randomUUID(),
         budgetRealId: budgetReal.id,
         name: stage.name,
         code: stage.code,

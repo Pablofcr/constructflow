@@ -40,9 +40,9 @@ export function useCubAuto({ estado, tipoObra, subtipo, padrao }: UseCubAutoProp
 
       try {
         const params = new URLSearchParams({
-          estado,
-          tipoObra,
-          padrao,
+          estado: estado!,
+          tipoObra: tipoObra!,
+          padrao: padrao!,
           ...(subtipo && { subtipo })
         })
 

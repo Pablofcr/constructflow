@@ -82,10 +82,10 @@ export default function ProjectDetailPage() {
   ]
 
   useEffect(() => {
-    if (params.id) {
-      fetchProject(params.id as string)
+    if (params?.id) {
+      fetchProject(params?.id as string)
     }
-  }, [params.id])
+  }, [params?.id])
 
   async function fetchProject(id: string) {
     try {

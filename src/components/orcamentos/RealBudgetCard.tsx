@@ -126,7 +126,7 @@ export default function RealBudgetCard({ budget, projectId }: Props) {
       {/* Valor Principal */}
       <div className="mb-6">
         <div className="text-3xl font-bold text-gray-900 mb-1">
-          {formatCurrency(budget.totalWithBDI)}
+          {formatCurrency(Number(budget.totalWithBDI))}
         </div>
         <div className="text-sm text-gray-500">
           Total com BDI ({Number(budget.bdiPercentage)}%)
@@ -138,7 +138,7 @@ export default function RealBudgetCard({ budget, projectId }: Props) {
         <div className="bg-white rounded-lg p-3 border border-gray-100">
           <div className="text-xs text-gray-500 mb-1">Custo Direto</div>
           <div className="text-base font-semibold text-gray-900">
-            {formatCurrency(budget.totalDirectCost)}
+            {formatCurrency(Number(budget.totalDirectCost))}
           </div>
         </div>
 

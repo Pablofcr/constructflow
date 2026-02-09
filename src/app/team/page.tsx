@@ -439,7 +439,7 @@ export default function TeamPage() {
       {showAdvancedFilter && (
         <AdvancedFilter
           onApplyFilter={handleApplyFilter}
-          currentCenter={activeProject}
+          currentCenter={activeProject ?? undefined}
           onClose={() => setShowAdvancedFilter(false)}
         />
       )}

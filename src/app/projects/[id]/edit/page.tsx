@@ -61,10 +61,10 @@ export default function EditProjectPage() {
 
   // Carregar projeto
   useEffect(() => {
-    if (params.id) {
-      fetchProject(params.id as string)
+    if (params?.id) {
+      fetchProject(params?.id as string)
     }
-  }, [params.id])
+  }, [params?.id])
 
   const fetchProject = async (id: string) => {
     try {
@@ -218,7 +218,7 @@ export default function EditProjectPage() {
         prazoFinal: new Date(formData.prazoFinal).toISOString(),
       }
       
-      const response = await fetch(`/api/projects/${params.id}`, {
+      const response = await fetch(`/api/projects/${params?.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -226,7 +226,7 @@ export default function EditProjectPage() {
       
       if (!response.ok) throw new Error('Erro ao atualizar projeto')
       
-      router.push(`/projects/${params.id}`)
+      router.push(`/projects/${params?.id}`)
     } catch (error) {
       console.error('Erro:', error)
       alert('Erro ao atualizar projeto. Verifique os dados e tente novamente.')
@@ -290,7 +290,7 @@ export default function EditProjectPage() {
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto">
       <div className="mb-6">
-        <Button variant="ghost" onClick={() => router.push(`/projects/${params.id}`)} className="mb-4">
+        <Button variant="ghost" onClick={() => router.push(`/projects/${params?.id}`)} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
@@ -584,7 +584,7 @@ export default function EditProjectPage() {
 
           {/* Actions */}
           <div className="flex gap-3 justify-end">
-            <Button type="button" variant="outline" onClick={() => router.push(`/projects/${params.id}`)} disabled={loading}>
+            <Button type="button" variant="outline" onClick={() => router.push(`/projects/${params?.id}`)} disabled={loading}>
               Cancelar
             </Button>
             <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">

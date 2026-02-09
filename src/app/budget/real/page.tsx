@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
@@ -66,11 +66,11 @@ interface ServiceData {
   } | null;
 }
 
-export default function BudgetRealPage() {
+function BudgetRealContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { activeProject } = useProject();
-  const budgetId = searchParams.get('budgetId');
+  const budgetId = searchParams?.get('budgetId') ?? null;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -376,5 +376,13 @@ export default function BudgetRealPage() {
         } : null}
       />
     </div>
+  );
+}
+
+export default function BudgetRealPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>}>
+      <BudgetRealContent />
+    </Suspense>
   );
 }

@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ✅ NOME CORRETO: CubValues (com V maiúsculo)
-    const cubValue = await prisma.cubValues.findFirst({
+    const cubValue = await prisma.cubValue.findFirst({
       where: {
         state: estado.toUpperCase(),
         cubCode: cubCode
