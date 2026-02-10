@@ -88,6 +88,22 @@ enum CompositionSource {
   CUSTOM
 }
 
+enum BudgetAIStatus {
+  PENDING
+  GENERATING
+  GENERATED
+  APPROVED
+  FAILED
+}
+
+enum ProjectFileCategory {
+  ARCHITECTURAL
+  STRUCTURAL
+  ELECTRICAL
+  HYDRAULIC
+  OTHER
+}
+
 enum InsumoType {
   MATERIAL
   LABOR
@@ -140,6 +156,8 @@ model Project {
   // Relações
   budgetEstimated       BudgetEstimated?
   budgetReal            BudgetReal[]
+  budgetAI              BudgetAI[]
+  files                 ProjectFile[]
   teamMembers           TeamMember[]
 
   @@map("projects")
@@ -459,6 +477,7 @@ model Composition {
   // Relações
   items           CompositionItem[]
   services        BudgetService[]
+  aiServices      BudgetAIService[]
   statePrices     SinapiStatePrice[]
   compositionOverrides ProjectCompositionOverride[]
 
@@ -634,6 +653,110 @@ model CollaboratorAllocation {
   @@index([costCenterId])
   @@index([isActive])
   @@map("collaborator_allocations")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ARQUIVOS DE PROJETO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model ProjectFile {
+  id              String              @id @default(uuid())
+  projectId       String
+  fileName        String
+  category        ProjectFileCategory @default(OTHER)
+  storagePath     String
+  fileSize        Int
+  uploadedAt      DateTime            @default(now())
+
+  // Relações
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_files")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ORÇAMENTO POR IA
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model BudgetAI {
+  id                String          @id @default(uuid())
+  projectId         String
+  name              String          @default("Orçamento por IA")
+  status            BudgetAIStatus  @default(PENDING)
+
+  // Estado (UF) para preços SINAPI
+  state             String?
+
+  // Custos
+  totalDirectCost   Decimal         @default(0) @db.Decimal(15, 2)
+
+  // Metadados IA
+  aiModel           String?
+  aiPromptTokens    Int?
+  aiOutputTokens    Int?
+  aiDurationMs      Int?
+  aiError           String?
+  generatedAt       DateTime?
+  filesUsed         Json?
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now())
+
+  // Relações
+  project           Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stages            BudgetAIStage[]
+
+  @@index([projectId])
+  @@map("budget_ai")
+}
+
+model BudgetAIStage {
+  id              String            @id @default(uuid())
+  budgetAIId      String
+  name            String
+  code            String?
+  order           Int
+  totalCost       Decimal           @default(0) @db.Decimal(15, 2)
+  percentage      Decimal           @default(0) @db.Decimal(5, 2)
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+
+  // Relações
+  budgetAI        BudgetAI          @relation(fields: [budgetAIId], references: [id], onDelete: Cascade)
+  services        BudgetAIService[]
+
+  @@unique([budgetAIId, order])
+  @@index([budgetAIId])
+  @@map("budget_ai_stages")
+}
+
+model BudgetAIService {
+  id                String            @id @default(uuid())
+  stageId           String
+  description       String
+  code              String?
+  unit              String
+  quantity          Decimal           @db.Decimal(15, 4)
+  unitPrice         Decimal           @db.Decimal(15, 4)
+  totalPrice        Decimal           @db.Decimal(15, 2)
+  compositionId     String?
+
+  // Campos IA
+  aiConfidence      Decimal?          @db.Decimal(3, 2)
+  aiReasoning       String?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @default(now())
+
+  // Relações
+  stage             BudgetAIStage     @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  composition       Composition?      @relation(fields: [compositionId], references: [id])
+
+  @@index([stageId])
+  @@index([compositionId])
+  @@map("budget_ai_services")
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

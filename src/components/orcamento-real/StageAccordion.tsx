@@ -39,12 +39,13 @@ interface StageAccordionProps {
     }>;
   };
   itemOverrides?: Record<string, number>;
-  onAddService: (stageId: string) => void;
-  onEditService: (serviceId: string) => void;
-  onDeleteService: (serviceId: string) => void;
+  onAddService?: (stageId: string) => void;
+  onEditService?: (serviceId: string) => void;
+  onDeleteService?: (serviceId: string) => void;
   onItemPriceChange?: (itemId: string, newPrice: number) => void;
   onItemPriceReset?: (itemId: string) => void;
   defaultExpanded?: boolean;
+  readOnly?: boolean;
 }
 
 export function StageAccordion({
@@ -56,6 +57,7 @@ export function StageAccordion({
   onItemPriceChange,
   onItemPriceReset,
   defaultExpanded = false,
+  readOnly = false,
 }: StageAccordionProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
@@ -98,21 +100,23 @@ export function StageAccordion({
           <ServiceTable
             services={stage.services}
             itemOverrides={itemOverrides}
-            onEditService={onEditService}
-            onDeleteService={onDeleteService}
+            onEditService={onEditService || (() => {})}
+            onDeleteService={onDeleteService || (() => {})}
             onItemPriceChange={onItemPriceChange}
             onItemPriceReset={onItemPriceReset}
           />
 
-          <div className="p-3 border-t border-gray-100">
-            <button
-              onClick={() => onAddService(stage.id)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar Servico
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="p-3 border-t border-gray-100">
+              <button
+                onClick={() => onAddService?.(stage.id)}
+                className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar Servico
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
