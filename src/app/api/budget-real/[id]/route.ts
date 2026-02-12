@@ -23,6 +23,9 @@ export async function GET(
                 projectComposition: {
                   include: { items: true },
                 },
+                composition: {
+                  include: { items: true },
+                },
               },
             },
           },
