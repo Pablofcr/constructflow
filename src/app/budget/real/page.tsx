@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
 import { SummaryBanner } from '@/components/orcamento-real/SummaryBanner';
-import { BDIConfigCard } from '@/components/orcamento-real/BDIConfigCard';
 import { StageAccordion } from '@/components/orcamento-real/StageAccordion';
 import { ServiceFormDialog } from '@/components/orcamento-real/ServiceFormDialog';
 import { ArrowLeft, Loader2, Save, TableProperties } from 'lucide-react';
@@ -148,32 +147,6 @@ function BudgetRealContent() {
   });
 
   const state = budget?.state || budget?.project?.enderecoEstado || 'SP';
-
-  const handleBDISave = async (values: {
-    bdiAdministration: number;
-    bdiProfit: number;
-    bdiTaxes: number;
-    bdiRisk: number;
-    bdiOthers: number;
-    bdiPercentage: number;
-  }) => {
-    if (!budget) return;
-    setSaving(true);
-    try {
-      await fetch(`/api/budget-real/${budget.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
-      // Recalculate totals
-      await fetch(`/api/budget-real/${budget.id}/recalculate`, { method: 'POST' });
-      await fetchBudget();
-    } catch (err) {
-      console.error('Erro ao salvar BDI:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleAddService = (stageId: string) => {
     setActiveStageId(stageId);
@@ -322,20 +295,7 @@ function BudgetRealContent() {
               {/* Summary */}
               <SummaryBanner
                 totalDirectCost={budget.totalDirectCost}
-                bdiPercentage={budget.bdiPercentage}
-                totalWithBDI={budget.totalWithBDI}
                 state={state}
-              />
-
-              {/* BDI Config */}
-              <BDIConfigCard
-                bdiAdministration={budget.bdiAdministration}
-                bdiProfit={budget.bdiProfit}
-                bdiTaxes={budget.bdiTaxes}
-                bdiRisk={budget.bdiRisk}
-                bdiOthers={budget.bdiOthers}
-                bdiPercentage={budget.bdiPercentage}
-                onSave={handleBDISave}
               />
 
               {/* 18 Stages Accordion */}

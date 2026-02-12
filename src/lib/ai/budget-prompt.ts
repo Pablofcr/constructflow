@@ -48,8 +48,9 @@ export function buildBudgetPrompt(project: ProjectInfo, files: FileInfo[]): stri
   return `Você é um engenheiro orçamentista especializado em construção civil brasileira.
 
 ## TAREFA
-Analise os PDFs de projeto anexados e gere um orçamento detalhado para a obra descrita abaixo.
+Analise os arquivos de projeto anexados (PDFs e/ou imagens) e gere um orçamento detalhado para a obra descrita abaixo.
 Extraia dimensões, áreas, quantidades e especificações dos projetos para calcular os quantitativos de cada serviço.
+NOTA: Arquivos PDF técnicos fornecem dados mais precisos. Imagens (plantas humanizadas, perspectivas) podem conter informações úteis mas com menor precisão — ajuste a confiança (aiConfidence) de acordo.
 
 ## DADOS DO PROJETO
 - Nome: ${project.name}

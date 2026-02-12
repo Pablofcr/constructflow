@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { supabase, BUCKET_NAME } from '@/lib/supabase';
 
+const ALLOWED_TYPES: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'image',
+  'image/png': 'image',
+  'image/webp': 'image',
+};
+
 // GET /api/projects/[id]/files
 export async function GET(
   request: NextRequest,
@@ -48,24 +55,34 @@ export async function POST(
       return NextResponse.json({ error: 'Arquivo é obrigatório' }, { status: 400 });
     }
 
-    // Validate file type
-    if (file.type !== 'application/pdf') {
-      return NextResponse.json({ error: 'Apenas arquivos PDF são permitidos' }, { status: 400 });
+    // Validate file type (PDF + images)
+    if (!ALLOWED_TYPES[file.type]) {
+      return NextResponse.json(
+        { error: 'Formato não suportado. Use PDF, JPG, PNG ou WebP.' },
+        { status: 400 }
+      );
     }
 
-    // Validate file size (50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Arquivo excede 50MB' }, { status: 400 });
+    // Validate file size (50MB for PDF, 20MB for images)
+    const maxSize = file.type === 'application/pdf' ? 50 * 1024 * 1024 : 20 * 1024 * 1024;
+    if (file.size > maxSize) {
+      const maxMB = maxSize / (1024 * 1024);
+      return NextResponse.json({ error: `Arquivo excede ${maxMB}MB` }, { status: 400 });
     }
+
+    // Sanitize filename for Supabase Storage (no accents, spaces, or special chars)
+    const safeName = file.name
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove accents
+      .replace(/[^a-zA-Z0-9._-]/g, '_'); // replace special chars with underscore
 
     // Upload to Supabase Storage
-    const storagePath = `${projectId}/${Date.now()}-${file.name}`;
+    const storagePath = `${projectId}/${Date.now()}-${safeName}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(storagePath, buffer, {
-        contentType: 'application/pdf',
+        contentType: file.type,
         upsert: false,
       });
 

@@ -55,14 +55,25 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
     const files = project.files;
 
     if (files.length === 0) {
-      throw new Error('Nenhum arquivo PDF anexado ao projeto');
+      throw new Error('Nenhum arquivo anexado ao projeto');
     }
 
-    // Limit: max 4 PDFs
-    const filesToUse = files.slice(0, 4);
+    // Limit: max 8 files
+    const filesToUse = files.slice(0, 8);
 
-    // Download PDFs from Supabase Storage as base64
-    const pdfContents: Anthropic.Messages.DocumentBlockParam[] = [];
+    // Detect file type from storage path extension
+    const getMediaType = (path: string): string => {
+      const ext = path.split('.').pop()?.toLowerCase();
+      switch (ext) {
+        case 'jpg': case 'jpeg': return 'image/jpeg';
+        case 'png': return 'image/png';
+        case 'webp': return 'image/webp';
+        default: return 'application/pdf';
+      }
+    };
+
+    // Download files from Supabase Storage as base64
+    const fileContents: Anthropic.Messages.ContentBlockParam[] = [];
 
     for (const file of filesToUse) {
       const { data, error } = await supabase.storage
@@ -76,19 +87,31 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
 
       const buffer = Buffer.from(await data.arrayBuffer());
       const base64 = buffer.toString('base64');
+      const mediaType = getMediaType(file.storagePath);
 
-      pdfContents.push({
-        type: 'document',
-        source: {
-          type: 'base64',
-          media_type: 'application/pdf',
-          data: base64,
-        },
-      });
+      if (mediaType === 'application/pdf') {
+        fileContents.push({
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: base64,
+          },
+        });
+      } else {
+        fileContents.push({
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+            data: base64,
+          },
+        });
+      }
     }
 
-    if (pdfContents.length === 0) {
-      throw new Error('Não foi possível baixar nenhum PDF');
+    if (fileContents.length === 0) {
+      throw new Error('Não foi possível baixar nenhum arquivo');
     }
 
     // Build prompt
@@ -115,7 +138,7 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
         {
           role: 'user',
           content: [
-            ...pdfContents,
+            ...fileContents,
             { type: 'text', text: prompt },
           ],
         },

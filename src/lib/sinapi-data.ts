@@ -42,6 +42,70 @@ export const SUPPORTED_STATES = ['CE', 'SP', 'RJ', 'MG', 'BA'];
 // ====================================================================
 export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   // ══════════════════════════════════════════════════════════════
+  // ETAPA 00 - TERRENO
+  // ══════════════════════════════════════════════════════════════
+  {
+    code: 'CF-00001',
+    description: 'Aquisição do terreno',
+    unit: 'vb',
+    category: '00',
+    subcategory: 'Terreno',
+    baseCost: 200000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00225', description: 'Valor do terreno', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 200000.00 },
+    ],
+  },
+  {
+    code: 'CF-00002',
+    description: 'ITBI - Imposto sobre Transmissão de Bens Imóveis',
+    unit: 'vb',
+    category: '00',
+    subcategory: 'Terreno',
+    baseCost: 6000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00226', description: 'ITBI (geralmente 3% sobre o valor do imóvel)', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 6000.00 },
+    ],
+  },
+  {
+    code: 'CF-00003',
+    description: 'Escritura pública e registro de imóvel',
+    unit: 'vb',
+    category: '00',
+    subcategory: 'Terreno',
+    baseCost: 5000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00227', description: 'Custas de escritura e registro em cartório', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 5000.00 },
+    ],
+  },
+  {
+    code: 'CF-00004',
+    description: 'IPTU proporcional ao período da obra',
+    unit: 'vb',
+    category: '00',
+    subcategory: 'Terreno',
+    baseCost: 2000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00228', description: 'IPTU proporcional', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 2000.00 },
+    ],
+  },
+  {
+    code: 'CF-00005',
+    description: 'Taxa de condomínio/associação durante a obra',
+    unit: 'vb',
+    category: '00',
+    subcategory: 'Terreno',
+    baseCost: 6000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00229', description: 'Condomínio/associação durante período da obra', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 6000.00 },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════
   // ETAPA 01 - SERVIÇOS PRELIMINARES
   // ══════════════════════════════════════════════════════════════
   {
@@ -851,74 +915,290 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   // --- Esquadrias alto padrão (alumínio/vidro - serviço terceirizado) ---
   {
     code: 'CF-07005',
-    description: 'Porta de correr 2 folhas em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    description: 'Porta de correr 2 folhas, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), trilho com desnível, c/ contra marco e arremate (fornecimento e instalação)',
     unit: 'm²',
     category: '07',
     subcategory: 'Esquadrias',
     baseCost: 835.00,
     fixedPrice: true,
     items: [
-      { code: 'INS-00199A', description: 'Porta de correr 2 folhas alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 835.00 },
+      { code: 'INS-00199A', description: 'Porta de correr 2 folhas, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), trilho c/ desnível, contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 835.00 },
     ],
   },
   {
     code: 'CF-07006',
-    description: 'Porta de correr 4 folhas em alumínio minimalista/vidro laminado — alto padrão (fornecimento e instalação)',
+    description: 'Porta de correr 4 folhas, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), todas folhas correm, trilho engastado incluso, c/ contra marco e arremate (fornecimento e instalação)',
     unit: 'm²',
     category: '07',
     subcategory: 'Esquadrias',
     baseCost: 975.00,
     fixedPrice: true,
     items: [
-      { code: 'INS-00200A', description: 'Porta de correr 4 folhas alumínio minimalista/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 975.00 },
+      { code: 'INS-00200A', description: 'Porta de correr 4 folhas, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), todas folhas correm, trilho engastado incluso, contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 975.00 },
     ],
   },
   {
     code: 'CF-07007',
-    description: 'Janela maxim-ar em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    description: 'Janela maxim-ar 1 folha, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), c/ contra marco e arremate (fornecimento e instalação)',
     unit: 'm²',
     category: '07',
     subcategory: 'Esquadrias',
-    baseCost: 1200.00,
+    baseCost: 1865.00,
     fixedPrice: true,
     items: [
-      { code: 'INS-00201A', description: 'Janela maxim-ar alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1200.00 },
+      { code: 'INS-00201A', description: 'Janela maxim-ar 1 folha, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1865.00 },
+    ],
+  },
+  {
+    code: 'CF-07011',
+    description: 'Janela maxim-ar 2 folhas, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), c/ contra marco e arremate (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1670.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00207', description: 'Janela maxim-ar 2 folhas, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1670.00 },
+    ],
+  },
+  {
+    code: 'CF-07012',
+    description: 'Janela maxim-ar 3 folhas, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), c/ contra marco e arremate (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1515.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00208', description: 'Janela maxim-ar 3 folhas, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1515.00 },
+    ],
+  },
+  {
+    code: 'CF-07013',
+    description: 'Janela maxim-ar 1 folha + peitoril fixo, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), c/ contra marco e arremate (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 895.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00209', description: 'Janela maxim-ar 1 folha + peitoril fixo, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 895.00 },
     ],
   },
   {
     code: 'CF-07008',
-    description: 'Janela de correr 2 folhas em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    description: 'Janela de correr 2 folhas, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), c/ contra marco e arremate (fornecimento e instalação)',
     unit: 'm²',
     category: '07',
     subcategory: 'Esquadrias',
     baseCost: 840.00,
     fixedPrice: true,
     items: [
-      { code: 'INS-00202A', description: 'Janela de correr 2 folhas alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 840.00 },
+      { code: 'INS-00202A', description: 'Janela de correr 2 folhas, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 840.00 },
     ],
   },
   {
     code: 'CF-07009',
-    description: 'Vidro fixo em alumínio/vidro laminado — alto padrão (fornecimento e instalação)',
+    description: 'Vidro fixo, Ecoline 2.5, alumínio preto, vidro laminado 6mm (3+3), c/ contra marco e arremate (fornecimento e instalação)',
     unit: 'm²',
     category: '07',
     subcategory: 'Esquadrias',
     baseCost: 685.00,
     fixedPrice: true,
     items: [
-      { code: 'INS-00203A', description: 'Vidro fixo alumínio/vidro laminado — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 685.00 },
+      { code: 'INS-00203A', description: 'Vidro fixo, Ecoline 2.5, alumínio preto, vidro lam. 6mm (3+3), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 685.00 },
     ],
   },
   {
     code: 'CF-07010',
-    description: 'Fachada pele de vidro structural glazing em alumínio — alto padrão (fornecimento e instalação)',
+    description: 'Fachada pele de vidro structural glazing, Ecoline 2.5, alumínio preto, vidro laminado 8mm (4+4), c/ contra marco e arremate (fornecimento e instalação)',
     unit: 'm²',
     category: '07',
     subcategory: 'Esquadrias',
     baseCost: 1500.00,
     fixedPrice: true,
     items: [
-      { code: 'INS-00204A', description: 'Fachada pele de vidro structural glazing alumínio — alto padrão', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1500.00 },
+      { code: 'INS-00204A', description: 'Fachada pele de vidro structural glazing, Ecoline 2.5, alumínio preto, vidro lam. 8mm (4+4), contra marco e arremate', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1500.00 },
+    ],
+  },
+  {
+    code: 'CF-07014',
+    description: 'Gradil com vidro laminado 8mm (4+4), alumínio preto (fornecimento e instalação)',
+    unit: 'm',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 850.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00205', description: 'Gradil com vidro laminado 8mm (4+4), alumínio preto', unit: 'm', type: 'MATERIAL', coefficient: 1.0, unitPrice: 850.00 },
+    ],
+  },
+  {
+    code: 'CF-07015',
+    description: 'Guarda-corpo em vidro temperado laminado 16mm (8+8), alumínio preto, com torre inox (fornecimento e instalação)',
+    unit: 'm',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1280.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00206', description: 'Guarda-corpo vidro temperado laminado 16mm (8+8), alumínio preto, com torre inox', unit: 'm', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1280.00 },
+    ],
+  },
+
+  // --- Portas e Portões em Alumínio ---
+  {
+    code: 'CF-07016',
+    description: 'Porta de giro para caixa d\'água, 1 folha em alumínio preto com veneziana vazada, linha Prime 2.5 (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1180.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00217', description: 'Porta de giro 1 folha, alumínio preto, veneziana vazada, linha Prime 2.5', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1180.00 },
+    ],
+  },
+  {
+    code: 'CF-07017',
+    description: 'Porta de giro para casa de gás, 2 folhas em alumínio preto com veneziana vazada, linha Prime 2.5 (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 967.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00218', description: 'Porta de giro 2 folhas, alumínio preto, veneziana vazada, linha Prime 2.5', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 967.00 },
+    ],
+  },
+  {
+    code: 'CF-07018',
+    description: 'Portão de giro para corredor lateral, 2 folhas em alumínio preto tubular com enchimento horizontal, linha Universal (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 799.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00219', description: 'Portão de giro 2 folhas, alumínio preto tubular, enchimento horizontal, linha Universal', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 799.00 },
+    ],
+  },
+  {
+    code: 'CF-07019',
+    description: 'Porta de giro para lavabo/banheiro externo, 1 folha com lambri corrugado, linha Prime 2.5 (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 711.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00220', description: 'Porta de giro 1 folha, lambri corrugado, linha Prime 2.5', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 711.00 },
+    ],
+  },
+  {
+    code: 'CF-07020',
+    description: 'Porta pivotante, 1 folha em alumínio ripado preto, estrutura tubular em alumínio, com fechadura eletrônica e puxador em alumínio (fornecimento e instalação)',
+    unit: 'm²',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1739.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00221', description: 'Porta pivotante 1 folha, alumínio ripado preto, estrutura tubular, fechadura eletrônica e puxador alumínio', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1739.00 },
+    ],
+  },
+
+  // --- Kit de Porta Pronta - Folha Leve/Média (NBR 15930) ---
+  {
+    code: 'SINAPI-90794',
+    description: 'Kit de porta pronta de madeira, folha leve/média, acabamento melamínico branco, batente metálico, 60x210cm, fixação com argamassa - fornecimento e instalação',
+    unit: 'un',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 810.00,
+    items: [
+      { code: 'INS-00210', description: 'Kit porta pronta leve 60x210cm, melamínico branco, batente metálico (marco, alizares, dobradiças e fechadura)', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 689.60 },
+      { code: 'INS-00216', description: 'Argamassa traço 1:3 (cimento e areia) para fixação de batente', unit: 'm³', type: 'MATERIAL', coefficient: 0.022, unitPrice: 680.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 2.06, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.67, unitPrice: 18.55 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.32, unitPrice: 23.80 },
+    ],
+  },
+  {
+    code: 'SINAPI-90795',
+    description: 'Kit de porta pronta de madeira, folha leve/média, acabamento melamínico branco, batente metálico, 70x210cm, fixação com argamassa - fornecimento e instalação',
+    unit: 'un',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 813.00,
+    items: [
+      { code: 'INS-00211', description: 'Kit porta pronta leve 70x210cm, melamínico branco, batente metálico (marco, alizares, dobradiças e fechadura)', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 689.60 },
+      { code: 'INS-00216', description: 'Argamassa traço 1:3 (cimento e areia) para fixação de batente', unit: 'm³', type: 'MATERIAL', coefficient: 0.0223, unitPrice: 680.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 2.17, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.71, unitPrice: 18.55 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.34, unitPrice: 23.80 },
+    ],
+  },
+  {
+    code: 'SINAPI-90796',
+    description: 'Kit de porta pronta de madeira, folha leve/média, acabamento melamínico branco, batente metálico, 80x210cm, fixação com argamassa - fornecimento e instalação',
+    unit: 'un',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 822.00,
+    items: [
+      { code: 'INS-00212', description: 'Kit porta pronta leve 80x210cm, melamínico branco, batente metálico (marco, alizares, dobradiças e fechadura)', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 689.60 },
+      { code: 'INS-00216', description: 'Argamassa traço 1:3 (cimento e areia) para fixação de batente', unit: 'm³', type: 'MATERIAL', coefficient: 0.0226, unitPrice: 680.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 2.27, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.74, unitPrice: 18.55 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.36, unitPrice: 23.80 },
+    ],
+  },
+  {
+    code: 'SINAPI-90797',
+    description: 'Kit de porta pronta de madeira, folha leve/média, acabamento melamínico branco, batente metálico, 90x210cm, fixação com argamassa - fornecimento e instalação',
+    unit: 'un',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 827.00,
+    items: [
+      { code: 'INS-00213', description: 'Kit porta pronta leve 90x210cm, melamínico branco, batente metálico (marco, alizares, dobradiças e fechadura)', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 689.60 },
+      { code: 'INS-00216', description: 'Argamassa traço 1:3 (cimento e areia) para fixação de batente', unit: 'm³', type: 'MATERIAL', coefficient: 0.0229, unitPrice: 680.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 2.38, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.78, unitPrice: 18.55 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.38, unitPrice: 23.80 },
+    ],
+  },
+
+  // --- Kit de Porta Pronta - Folha Pesada/Superpesada (NBR 15930) ---
+  {
+    code: 'SINAPI-90798',
+    description: 'Kit de porta pronta de madeira, folha pesada/superpesada, acabamento melamínico branco, batente metálico, 80x210cm, fixação com argamassa - fornecimento e instalação',
+    unit: 'un',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1194.00,
+    items: [
+      { code: 'INS-00214', description: 'Kit porta pronta pesada 80x210cm, melamínico branco, batente metálico, núcleo sólido (marco, alizares, dobradiças e fechadura)', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1045.00 },
+      { code: 'INS-00216', description: 'Argamassa traço 1:3 (cimento e areia) para fixação de batente', unit: 'm³', type: 'MATERIAL', coefficient: 0.0226, unitPrice: 680.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 2.48, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.85, unitPrice: 18.55 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.54, unitPrice: 23.80 },
+    ],
+  },
+  {
+    code: 'SINAPI-90799',
+    description: 'Kit de porta pronta de madeira, folha pesada/superpesada, acabamento melamínico branco, batente metálico, 90x210cm, fixação com argamassa - fornecimento e instalação',
+    unit: 'un',
+    category: '07',
+    subcategory: 'Esquadrias',
+    baseCost: 1229.00,
+    items: [
+      { code: 'INS-00215', description: 'Kit porta pronta pesada 90x210cm, melamínico branco, batente metálico, núcleo sólido (marco, alizares, dobradiças e fechadura)', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1074.00 },
+      { code: 'INS-00216', description: 'Argamassa traço 1:3 (cimento e areia) para fixação de batente', unit: 'm³', type: 'MATERIAL', coefficient: 0.0229, unitPrice: 680.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 2.59, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.89, unitPrice: 18.55 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.57, unitPrice: 23.80 },
     ],
   },
 
@@ -1085,15 +1365,94 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
       { code: 'INS-00020', description: 'Armador', unit: 'h', type: 'LABOR', coefficient: 0.2, unitPrice: 23.50 },
     ],
   },
+  {
+    code: 'SINAPI-87418',
+    description: 'Aplicação de gesso desempenado em parede, espessura 0,5cm',
+    unit: 'm²',
+    category: '08',
+    subcategory: 'Revestimentos',
+    baseCost: 22.50,
+    items: [
+      { code: 'INS-00247', description: 'Gesso em pó para revestimento', unit: 'kg', type: 'MATERIAL', coefficient: 5.0, unitPrice: 0.72 },
+      { code: 'INS-00248', description: 'Gesseiro', unit: 'h', type: 'LABOR', coefficient: 0.33, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.10, unitPrice: 18.55 },
+    ],
+  },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 09 - PISOS
+  // ETAPA 09 - FÔRROS
+  // ══════════════════════════════════════════════════════════════
+  {
+    code: 'SINAPI-96109',
+    description: 'Forro em placas de gesso 60x60cm, para ambientes residenciais, inclusive estrutura de fixação',
+    unit: 'm²',
+    category: '09',
+    subcategory: 'Fôrros',
+    baseCost: 62.94,
+    items: [
+      { code: 'INS-00249', description: 'Placa de gesso 60x60cm, e=12mm', unit: 'm²', type: 'MATERIAL', coefficient: 1.10, unitPrice: 18.00 },
+      { code: 'INS-00250', description: 'Arame galvanizado nº 18', unit: 'kg', type: 'MATERIAL', coefficient: 0.15, unitPrice: 18.50 },
+      { code: 'INS-00251', description: 'Prego 15x15', unit: 'kg', type: 'MATERIAL', coefficient: 0.05, unitPrice: 14.50 },
+      { code: 'INS-00248', description: 'Gesseiro', unit: 'h', type: 'LABOR', coefficient: 0.91, unitPrice: 25.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.52, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'SINAPI-96110',
+    description: 'Forro em drywall (placa de gesso acartonado), para ambientes residenciais, inclusive estrutura metálica',
+    unit: 'm²',
+    category: '09',
+    subcategory: 'Fôrros',
+    baseCost: 80.04,
+    items: [
+      { code: 'INS-00252', description: 'Placa de gesso acartonado ST 12,5mm', unit: 'm²', type: 'MATERIAL', coefficient: 1.10, unitPrice: 28.00 },
+      { code: 'INS-00253', description: 'Perfil metálico para drywall (montante + guia)', unit: 'm', type: 'MATERIAL', coefficient: 3.00, unitPrice: 5.50 },
+      { code: 'INS-00254', description: 'Pendural regulável para forro', unit: 'un', type: 'MATERIAL', coefficient: 1.80, unitPrice: 2.80 },
+      { code: 'INS-00255', description: 'Parafuso auto-brocante', unit: 'un', type: 'MATERIAL', coefficient: 15.0, unitPrice: 0.08 },
+      { code: 'INS-00256', description: 'Fita e massa para tratamento de junta', unit: 'm', type: 'MATERIAL', coefficient: 2.50, unitPrice: 1.20 },
+      { code: 'INS-00257', description: 'Montador de drywall', unit: 'h', type: 'LABOR', coefficient: 0.55, unitPrice: 26.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.55, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'SINAPI-96112',
+    description: 'Forro em réguas de madeira (lambri de pinus), para ambientes residenciais, inclusive estrutura de fixação',
+    unit: 'm²',
+    category: '09',
+    subcategory: 'Fôrros',
+    baseCost: 168.63,
+    items: [
+      { code: 'INS-00258', description: 'Lambri de pinus 10x1cm (forro de madeira)', unit: 'm²', type: 'MATERIAL', coefficient: 1.15, unitPrice: 75.00 },
+      { code: 'INS-00259', description: 'Caibro de pinus 5x5cm (estrutura de fixação)', unit: 'm', type: 'MATERIAL', coefficient: 2.50, unitPrice: 8.50 },
+      { code: 'INS-00260', description: 'Prego 17x27 com cabeça', unit: 'kg', type: 'MATERIAL', coefficient: 0.10, unitPrice: 15.00 },
+      { code: 'INS-00009', description: 'Carpinteiro', unit: 'h', type: 'LABOR', coefficient: 1.43, unitPrice: 23.80 },
+      { code: 'INS-00261', description: 'Ajudante de carpinteiro', unit: 'h', type: 'LABOR', coefficient: 0.86, unitPrice: 19.50 },
+    ],
+  },
+  {
+    code: 'CF-09001',
+    description: 'Forro de teto rebocado (massa única em teto), argamassa traço 1:2:8, e=20mm, inclusive chapisco',
+    unit: 'm²',
+    category: '09',
+    subcategory: 'Fôrros',
+    baseCost: 48.00,
+    items: [
+      { code: 'INS-00011', description: 'Cimento CP-II', unit: 'kg', type: 'MATERIAL', coefficient: 5.5, unitPrice: 0.62 },
+      { code: 'INS-00027', description: 'Cal hidratada', unit: 'kg', type: 'MATERIAL', coefficient: 3.0, unitPrice: 0.55 },
+      { code: 'INS-00012', description: 'Areia média', unit: 'm³', type: 'MATERIAL', coefficient: 0.022, unitPrice: 95.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 0.95, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.55, unitPrice: 18.55 },
+    ],
+  },
+
+  // ══════════════════════════════════════════════════════════════
+  // ETAPA 10 - PISOS
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-87261',
     description: 'Contrapiso em argamassa traço 1:4, e=4cm, desempenado',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 35.00,
     items: [
@@ -1107,7 +1466,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-87263',
     description: 'Piso cerâmico 45x45cm PEI-4, argamassa colante, rejunte',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 72.00,
     items: [
@@ -1122,7 +1481,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-87265',
     description: 'Porcelanato polido 60x60cm, argamassa colante AC-II',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 125.00,
     items: [
@@ -1137,7 +1496,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-87267',
     description: 'Rodapé cerâmico 8x45cm, argamassa colante',
     unit: 'm',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 18.50,
     items: [
@@ -1149,10 +1508,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09001',
+    code: 'CF-10001',
     description: 'Compactação de solo com compactador tipo sapo/placa vibratória, preparação para contrapiso',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 8.50,
     items: [
@@ -1162,10 +1521,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09002',
+    code: 'CF-10002',
     description: 'Mestramento e estudo de nível de piso com argamassa (mestras e taliscas para contrapiso)',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 10.80,
     items: [
@@ -1176,10 +1535,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09003',
+    code: 'CF-10003',
     description: 'Paginação de piso (demarcação de juntas, recortes e alinhamento para assentamento)',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 15.00,
     items: [
@@ -1189,10 +1548,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09004',
+    code: 'CF-10004',
     description: 'Revestimento de piso em porcelanato grande formato 1,20x1,20m, com argamassa ACIII',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 205.00,
     items: [
@@ -1205,10 +1564,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09005',
+    code: 'CF-10005',
     description: 'Rejuntamento de piso cerâmico/porcelanato, junta mínima, rejunte cimentício',
     unit: 'm²',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 8.60,
     items: [
@@ -1218,10 +1577,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09006',
+    code: 'CF-10006',
     description: 'Rodapé de porcelanato 8x120cm, assentado com argamassa ACIII, rejuntado',
     unit: 'm',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 32.00,
     items: [
@@ -1233,10 +1592,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-09007',
+    code: 'CF-10007',
     description: 'Rodapé de poliestireno (tipo Santa Luzia) 7cm, fixado com adesivo',
     unit: 'm',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 20.90,
     items: [
@@ -1250,7 +1609,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-87269',
     description: 'Soleira de granito cinza polido, l=15cm, e=2cm',
     unit: 'm',
-    category: '09',
+    category: '10',
     subcategory: 'Pisos',
     baseCost: 85.00,
     items: [
@@ -1262,13 +1621,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 10 - PINTURA
+  // ETAPA 11 - PINTURA
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-88489',
     description: 'Pintura PVA látex 2 demãos, sobre parede já preparada',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 12.00,
     items: [
@@ -1281,7 +1640,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-88491',
     description: 'Pintura acrílica 2 demãos, sobre massa corrida',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 28.00,
     items: [
@@ -1296,7 +1655,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-88493',
     description: 'Pintura texturizada acrílica, rolo de espuma',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 18.00,
     items: [
@@ -1309,7 +1668,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-88495',
     description: 'Emassamento de parede com massa corrida PVA, 2 demãos',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 12.50,
     items: [
@@ -1320,10 +1679,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   {
-    code: 'CF-10001',
+    code: 'CF-11001',
     description: 'Aplicação de selador acrílico em paredes internas e externas, 1 demão',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 5.80,
     items: [
@@ -1333,10 +1692,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-10002',
+    code: 'CF-11002',
     description: 'Emassamento de parede com massa acrílica, 2 demãos, incluindo lixamento',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 18.50,
     items: [
@@ -1347,10 +1706,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-10003',
+    code: 'CF-11003',
     description: 'Aplicação de textura Grafiatto em paredes externas, rolo ou desempenadeira',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 28.00,
     items: [
@@ -1362,10 +1721,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   {
-    code: 'CF-10005',
+    code: 'CF-11005',
     description: 'Emassamento de forro/teto com massa corrida PVA, 2 demãos, incluindo lixamento',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 16.50,
     items: [
@@ -1376,10 +1735,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-10004',
+    code: 'CF-11004',
     description: 'Pintura com tinta látex PVA em teto, 2 demãos, sobre superfície já preparada',
     unit: 'm²',
-    category: '10',
+    category: '11',
     subcategory: 'Pintura',
     baseCost: 14.50,
     items: [
@@ -1390,13 +1749,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 11 - LOUÇAS E METAIS
+  // ETAPA 12 - LOUÇAS E METAIS
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-86941',
     description: 'Bacia sanitária com caixa acoplada, louça branca',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 550.00,
     items: [
@@ -1411,7 +1770,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-86943',
     description: 'Lavatório de louça branca com coluna, incluindo torneira',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 420.00,
     items: [
@@ -1427,7 +1786,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-86945',
     description: 'Tanque de lavar roupa em louça, com torneira',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 380.00,
     items: [
@@ -1441,7 +1800,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-86947',
     description: 'Registro de pressão cromado 3/4"',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 95.00,
     items: [
@@ -1454,7 +1813,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-86949',
     description: 'Chuveiro elétrico 5500W, incluindo instalação',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 165.00,
     items: [
@@ -1466,10 +1825,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   {
-    code: 'CF-11006',
+    code: 'CF-12006',
     description: 'Bacia sanitária monobloco, louça branca, incluindo instalação',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 680.00,
     items: [
@@ -1481,10 +1840,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11007',
+    code: 'CF-12007',
     description: 'Chuveiro comum ducha plástica, incluindo instalação',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 95.00,
     items: [
@@ -1495,10 +1854,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11008',
+    code: 'CF-12008',
     description: 'Chuveiro inox tipo Deca/Docol, incluindo instalação',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 450.00,
     items: [
@@ -1509,10 +1868,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11009',
+    code: 'CF-12009',
     description: 'Bancada de granito Via Láctea (fornecimento e fabricação)',
     unit: 'm²',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 850.00,
     fixedPrice: true,
@@ -1521,10 +1880,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11010',
+    code: 'CF-12010',
     description: 'Bancada de granito Branco Prime (fornecimento e fabricação)',
     unit: 'm²',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 1000.00,
     fixedPrice: true,
@@ -1533,10 +1892,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11011',
+    code: 'CF-12011',
     description: 'Bancada de granito Nano Glass (fornecimento e fabricação)',
     unit: 'm²',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 2000.00,
     fixedPrice: true,
@@ -1545,10 +1904,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11012',
+    code: 'CF-12012',
     description: 'Cuba de sobrepor alto padrão (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 850.00,
     fixedPrice: true,
@@ -1557,10 +1916,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11013',
+    code: 'CF-12013',
     description: 'Cuba de sobrepor médio padrão (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 400.00,
     fixedPrice: true,
@@ -1569,10 +1928,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11014',
+    code: 'CF-12014',
     description: 'Cuba dupla inox para cozinha alto padrão (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 1200.00,
     fixedPrice: true,
@@ -1581,10 +1940,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11015',
+    code: 'CF-12015',
     description: 'Cuba dupla inox para cozinha médio padrão (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 650.00,
     fixedPrice: true,
@@ -1593,10 +1952,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11016',
+    code: 'CF-12016',
     description: 'Cuba simples inox popular (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 400.00,
     fixedPrice: true,
@@ -1605,10 +1964,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11017',
+    code: 'CF-12017',
     description: 'Torneira de mesa para bancada alto padrão (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 900.00,
     fixedPrice: true,
@@ -1617,10 +1976,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11018',
+    code: 'CF-12018',
     description: 'Torneira de mesa para bancada médio padrão (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 450.00,
     fixedPrice: true,
@@ -1629,10 +1988,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11019',
+    code: 'CF-12019',
     description: 'Torneira de mesa para bancada popular (fornecimento)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 50.00,
     fixedPrice: true,
@@ -1641,10 +2000,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11020',
+    code: 'CF-12020',
     description: 'Kit instalação de torneira, cuba e sanitário — popular/médio padrão (plástico)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 78.00,
     items: [
@@ -1656,10 +2015,10 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
-    code: 'CF-11021',
+    code: 'CF-12021',
     description: 'Kit instalação de torneira, cuba e sanitário — alto padrão (inox)',
     unit: 'un',
-    category: '11',
+    category: '12',
     subcategory: 'Louças e Metais',
     baseCost: 247.00,
     items: [
@@ -1672,13 +2031,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 12 - INSTALAÇÕES ELÉTRICAS
+  // ETAPA 13 - INSTALAÇÕES ELÉTRICAS
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-91926',
     description: 'Ponto de tomada 2P+T, incluindo eletroduto, fiação e caixa',
     unit: 'un',
-    category: '12',
+    category: '13',
     subcategory: 'Instalações Elétricas',
     baseCost: 125.00,
     items: [
@@ -1694,7 +2053,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-91928',
     description: 'Ponto de interruptor simples, incluindo eletroduto e fiação',
     unit: 'un',
-    category: '12',
+    category: '13',
     subcategory: 'Instalações Elétricas',
     baseCost: 115.00,
     items: [
@@ -1710,7 +2069,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-91930',
     description: 'Disjuntor termomagnético monopolar 20A',
     unit: 'un',
-    category: '12',
+    category: '13',
     subcategory: 'Instalações Elétricas',
     baseCost: 42.00,
     items: [
@@ -1722,7 +2081,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-91932',
     description: 'Quadro de distribuição de embutir, 18 disjuntores, com barramento',
     unit: 'un',
-    category: '12',
+    category: '13',
     subcategory: 'Instalações Elétricas',
     baseCost: 280.00,
     items: [
@@ -1736,7 +2095,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-91934',
     description: 'Luminária de embutir LED retangular 18W',
     unit: 'un',
-    category: '12',
+    category: '13',
     subcategory: 'Instalações Elétricas',
     baseCost: 85.00,
     items: [
@@ -1746,14 +2105,47 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
 
+  // --- Composições por m² baseadas em custo real (casa 258m²) ---
+  {
+    code: 'CF-13001',
+    description: 'Instalações elétricas completas por m² (eletrodutos, cabeamento, quadros, módulos e acabamentos)',
+    unit: 'm²',
+    category: '13',
+    subcategory: 'Instalações Elétricas',
+    baseCost: 119.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00239', description: 'Eletrodutos, caixas e conexões (rígidos, flexíveis, abraçadeiras, curvas, luvas)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 9.50 },
+      { code: 'INS-00240', description: 'Cabeamento elétrico e dados (fios 2,5/1,5/16mm², cabo coaxial, LAN Cat5, conectores)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 20.00 },
+      { code: 'INS-00241', description: 'Quadros de distribuição, módulos, disjuntores, interruptores, tomadas e espelhos', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 19.50 },
+      { code: 'INS-00015', description: 'Eletricista', unit: 'h', type: 'LABOR', coefficient: 1.7, unitPrice: 25.50 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 1.4, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'CF-13002',
+    description: 'Instalações luminotécnicas por m² (perfis de embutir, fitas LED, drivers e spots)',
+    unit: 'm²',
+    category: '13',
+    subcategory: 'Instalações Elétricas',
+    baseCost: 48.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00242', description: 'Perfis de embutir para LED (preto e branco, diversos tamanhos)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 23.50 },
+      { code: 'INS-00243', description: 'Fitas LED, drivers e spots (3000K, 12V, IP20/IP65)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 19.50 },
+      { code: 'INS-00015', description: 'Eletricista', unit: 'h', type: 'LABOR', coefficient: 0.12, unitPrice: 25.50 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.10, unitPrice: 18.55 },
+    ],
+  },
+
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 13 - INSTALAÇÕES HIDROSSANITÁRIAS
+  // ETAPA 14 - INSTALAÇÕES HIDROSSANITÁRIAS
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-89353',
     description: 'Tubo PVC soldável 25mm para água fria, incluindo conexões',
     unit: 'm',
-    category: '13',
+    category: '14',
     subcategory: 'Instalações Hidrossanitárias',
     baseCost: 18.50,
     items: [
@@ -1768,7 +2160,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-89355',
     description: 'Tubo PVC esgoto série normal 100mm, incluindo conexões',
     unit: 'm',
-    category: '13',
+    category: '14',
     subcategory: 'Instalações Hidrossanitárias',
     baseCost: 32.00,
     items: [
@@ -1783,7 +2175,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-89357',
     description: 'Caixa d\'água em polietileno 1000L, com acessórios',
     unit: 'un',
-    category: '13',
+    category: '14',
     subcategory: 'Instalações Hidrossanitárias',
     baseCost: 520.00,
     items: [
@@ -1798,7 +2190,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-89359',
     description: 'Registro de gaveta bruto 3/4"',
     unit: 'un',
-    category: '13',
+    category: '14',
     subcategory: 'Instalações Hidrossanitárias',
     baseCost: 65.00,
     items: [
@@ -1811,7 +2203,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-89361',
     description: 'Caixa sifonada PVC 150x150x50mm',
     unit: 'un',
-    category: '13',
+    category: '14',
     subcategory: 'Instalações Hidrossanitárias',
     baseCost: 42.00,
     items: [
@@ -1821,14 +2213,33 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
 
+  // --- Composição por m² baseada em custo real (casa 258m²) ---
+  {
+    code: 'CF-14001',
+    description: 'Instalações hidrossanitárias completas por m² (água fria, água quente e esgoto)',
+    unit: 'm²',
+    category: '14',
+    subcategory: 'Instalações Hidrossanitárias',
+    baseCost: 146.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00244', description: 'Tubulações e conexões de esgoto (PVC, joelhos, reduções, luvas, tês, caixas sifonadas, sifões)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 8.00 },
+      { code: 'INS-00245', description: 'Tubulações e conexões de água fria e quente (tubos, registros, engates, monocomandos)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 54.00 },
+      { code: 'INS-00246', description: 'Materiais de apoio (cimento, areia, colas, adesivos)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 3.00 },
+      { code: 'INS-00077', description: 'Encanador', unit: 'h', type: 'LABOR', coefficient: 1.8, unitPrice: 25.00 },
+      { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 0.9, unitPrice: 23.10 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.8, unitPrice: 18.55 },
+    ],
+  },
+
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 14 - INSTALAÇÕES ESPECIAIS
+  // ETAPA 15 - INSTALAÇÕES ESPECIAIS
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-91950',
     description: 'SPDA - Para-raios tipo Franklin com mastro',
     unit: 'un',
-    category: '14',
+    category: '15',
     subcategory: 'Instalações Especiais',
     baseCost: 2800.00,
     items: [
@@ -1844,7 +2255,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-91952',
     description: 'Tubulação de gás GLP, cobre 15mm, incluindo conexões',
     unit: 'm',
-    category: '14',
+    category: '15',
     subcategory: 'Instalações Especiais',
     baseCost: 65.00,
     items: [
@@ -1858,7 +2269,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-91954',
     description: 'Ponto de ar-condicionado split, tubulação e dreno',
     unit: 'un',
-    category: '14',
+    category: '15',
     subcategory: 'Instalações Especiais',
     baseCost: 450.00,
     items: [
@@ -1871,13 +2282,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 15 - VIDROS E FERRAGENS
+  // ETAPA 16 - VIDROS E FERRAGENS
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-72131',
     description: 'Vidro temperado 8mm, incolor, instalado',
     unit: 'm²',
-    category: '15',
+    category: '16',
     subcategory: 'Vidros e Ferragens',
     baseCost: 185.00,
     items: [
@@ -1891,7 +2302,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-72133',
     description: 'Fechadura de embutir externa, cromada, completa',
     unit: 'un',
-    category: '15',
+    category: '16',
     subcategory: 'Vidros e Ferragens',
     baseCost: 135.00,
     items: [
@@ -1903,7 +2314,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-72135',
     description: 'Fechadura de embutir interna, cromada, tipo alavanca',
     unit: 'un',
-    category: '15',
+    category: '16',
     subcategory: 'Vidros e Ferragens',
     baseCost: 95.00,
     items: [
@@ -1915,7 +2326,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-72137',
     description: 'Puxador de porta em alumínio 30cm',
     unit: 'un',
-    category: '15',
+    category: '16',
     subcategory: 'Vidros e Ferragens',
     baseCost: 48.00,
     items: [
@@ -1924,40 +2335,15 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
 
-  // --- Gradis e guarda-corpos alto padrão (serviço terceirizado) ---
-  {
-    code: 'CF-15005',
-    description: 'Gradil com vidro laminado em alumínio — alto padrão (fornecimento e instalação)',
-    unit: 'm',
-    category: '15',
-    subcategory: 'Vidros e Ferragens',
-    baseCost: 850.00,
-    fixedPrice: true,
-    items: [
-      { code: 'INS-00205', description: 'Gradil com vidro laminado alumínio — alto padrão', unit: 'm', type: 'MATERIAL', coefficient: 1.0, unitPrice: 850.00 },
-    ],
-  },
-  {
-    code: 'CF-15006',
-    description: 'Guarda-corpo em vidro laminado temperado com torre inox — alto padrão (fornecimento e instalação)',
-    unit: 'm',
-    category: '15',
-    subcategory: 'Vidros e Ferragens',
-    baseCost: 1280.00,
-    fixedPrice: true,
-    items: [
-      { code: 'INS-00206', description: 'Guarda-corpo vidro laminado temperado com torre inox — alto padrão', unit: 'm', type: 'MATERIAL', coefficient: 1.0, unitPrice: 1280.00 },
-    ],
-  },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 16 - PAISAGISMO
+  // ETAPA 17 - PAISAGISMO
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-98101',
     description: 'Plantio de grama esmeralda em placas',
     unit: 'm²',
-    category: '16',
+    category: '17',
     subcategory: 'Paisagismo',
     baseCost: 18.50,
     items: [
@@ -1971,7 +2357,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-98103',
     description: 'Plantio de muda ornamental, porte médio',
     unit: 'un',
-    category: '16',
+    category: '17',
     subcategory: 'Paisagismo',
     baseCost: 45.00,
     items: [
@@ -1982,10 +2368,51 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     ],
   },
   {
+    code: 'SINAPI-98509',
+    description: 'Plantio de arbusto ou cerca viva (sansão-do-campo ou equivalente), h=50 a 70cm',
+    unit: 'un',
+    category: '17',
+    subcategory: 'Paisagismo',
+    baseCost: 47.00,
+    items: [
+      { code: 'INS-00224', description: 'Muda de arbusto/cerca viva (sansão-do-campo ou equivalente), h=50 a 70cm', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 45.25 },
+      { code: 'INS-00124', description: 'Jardineiro', unit: 'h', type: 'LABOR', coefficient: 0.01, unitPrice: 20.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 0.05, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'SINAPI-98510',
+    description: 'Plantio de árvore ornamental com altura de muda menor ou igual a 2,00m',
+    unit: 'un',
+    category: '17',
+    subcategory: 'Paisagismo',
+    baseCost: 93.00,
+    items: [
+      { code: 'INS-00222', description: 'Muda de árvore ornamental (oiti/aroeira/angico/ipê/jacarandá ou equivalente), h=1m', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 54.00 },
+      { code: 'INS-00123', description: 'Terra vegetal adubada', unit: 'm³', type: 'MATERIAL', coefficient: 0.03, unitPrice: 85.00 },
+      { code: 'INS-00124', description: 'Jardineiro', unit: 'h', type: 'LABOR', coefficient: 0.21, unitPrice: 20.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 1.06, unitPrice: 18.55 },
+    ],
+  },
+  {
+    code: 'SINAPI-98511',
+    description: 'Plantio de árvore ornamental com altura de muda maior que 2,00m e menor ou igual a 4,00m',
+    unit: 'un',
+    category: '17',
+    subcategory: 'Paisagismo',
+    baseCost: 156.00,
+    items: [
+      { code: 'INS-00223', description: 'Muda de árvore ornamental (oiti/aroeira/angico/ipê/jacarandá ou equivalente), h=2m', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 111.00 },
+      { code: 'INS-00123', description: 'Terra vegetal adubada', unit: 'm³', type: 'MATERIAL', coefficient: 0.05, unitPrice: 85.00 },
+      { code: 'INS-00124', description: 'Jardineiro', unit: 'h', type: 'LABOR', coefficient: 0.24, unitPrice: 20.00 },
+      { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 1.21, unitPrice: 18.55 },
+    ],
+  },
+  {
     code: 'SINAPI-98105',
     description: 'Espalhamento de terra vegetal, e=10cm',
     unit: 'm²',
-    category: '16',
+    category: '17',
     subcategory: 'Paisagismo',
     baseCost: 12.00,
     items: [
@@ -1995,13 +2422,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 17 - LIMPEZA FINAL
+  // ETAPA 18 - LIMPEZA FINAL
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-99814',
     description: 'Limpeza geral da obra para entrega',
     unit: 'm²',
-    category: '17',
+    category: '18',
     subcategory: 'Limpeza Final',
     baseCost: 8.50,
     items: [
@@ -2013,7 +2440,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-99816',
     description: 'Remoção de entulho com caçamba estacionária 5m³',
     unit: 'un',
-    category: '17',
+    category: '18',
     subcategory: 'Limpeza Final',
     baseCost: 380.00,
     items: [
@@ -2025,7 +2452,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-99818',
     description: 'Polimento de piso de concreto/granilite',
     unit: 'm²',
-    category: '17',
+    category: '18',
     subcategory: 'Limpeza Final',
     baseCost: 15.00,
     items: [
@@ -2036,13 +2463,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
 
   // ══════════════════════════════════════════════════════════════
-  // ETAPA 18 - ADMINISTRAÇÃO DA OBRA
+  // ETAPA 19 - ADMINISTRAÇÃO DA OBRA
   // ══════════════════════════════════════════════════════════════
   {
     code: 'SINAPI-90778',
     description: 'Engenheiro civil pleno - custo mensal',
     unit: 'mês',
-    category: '18',
+    category: '19',
     subcategory: 'Administração da Obra',
     baseCost: 15500.00,
     items: [
@@ -2053,7 +2480,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-90780',
     description: 'Mestre de obras - custo mensal',
     unit: 'mês',
-    category: '18',
+    category: '19',
     subcategory: 'Administração da Obra',
     baseCost: 7800.00,
     items: [
@@ -2064,7 +2491,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-90782',
     description: 'Almoxarife - custo mensal',
     unit: 'mês',
-    category: '18',
+    category: '19',
     subcategory: 'Administração da Obra',
     baseCost: 3500.00,
     items: [
@@ -2075,7 +2502,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-90784',
     description: 'Vigia noturno - custo mensal',
     unit: 'mês',
-    category: '18',
+    category: '19',
     subcategory: 'Administração da Obra',
     baseCost: 3200.00,
     items: [
@@ -2086,7 +2513,7 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
     code: 'SINAPI-90786',
     description: 'EPI - Kit completo por trabalhador',
     unit: 'un',
-    category: '18',
+    category: '19',
     subcategory: 'Administração da Obra',
     baseCost: 185.00,
     items: [
@@ -2096,6 +2523,116 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
       { code: 'INS-00137', description: 'Óculos de proteção', unit: 'un', type: 'MATERIAL', coefficient: 1.0, unitPrice: 15.00 },
       { code: 'INS-00138', description: 'Protetor auricular', unit: 'un', type: 'MATERIAL', coefficient: 2.0, unitPrice: 8.00 },
       { code: 'INS-00139', description: 'Cinto de segurança', unit: 'un', type: 'MATERIAL', coefficient: 0.5, unitPrice: 85.00 },
+    ],
+  },
+
+  // --- Projetos e Aprovações (dentro de Serviços Preliminares) ---
+  {
+    code: 'CF-01001',
+    description: 'Projeto arquitetônico',
+    unit: 'm²',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 40.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00230', description: 'Projeto arquitetônico (honorários)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 40.00 },
+    ],
+  },
+  {
+    code: 'CF-01002',
+    description: 'Projeto estrutural e calculista',
+    unit: 'm²',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 18.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00231', description: 'Projeto estrutural (honorários)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 18.00 },
+    ],
+  },
+  {
+    code: 'CF-01003',
+    description: 'Projeto elétrico',
+    unit: 'm²',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 10.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00232', description: 'Projeto elétrico (honorários)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 10.00 },
+    ],
+  },
+  {
+    code: 'CF-01004',
+    description: 'Projeto hidrossanitário',
+    unit: 'm²',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 10.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00233', description: 'Projeto hidrossanitário (honorários)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 10.00 },
+    ],
+  },
+  {
+    code: 'CF-01005',
+    description: 'Projeto de ar condicionado e climatização',
+    unit: 'm²',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 8.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00234', description: 'Projeto de climatização (honorários)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 8.00 },
+    ],
+  },
+  {
+    code: 'CF-01006',
+    description: 'Projeto de interiores e decoração',
+    unit: 'm²',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 30.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00235', description: 'Projeto de interiores (honorários)', unit: 'm²', type: 'MATERIAL', coefficient: 1.0, unitPrice: 30.00 },
+    ],
+  },
+  {
+    code: 'CF-01007',
+    description: 'Sondagem e investigação geotécnica',
+    unit: 'vb',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 4000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00236', description: 'Sondagem SPT e relatório geotécnico', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 4000.00 },
+    ],
+  },
+  {
+    code: 'CF-01008',
+    description: 'Levantamento topográfico',
+    unit: 'vb',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 2500.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00237', description: 'Levantamento topográfico e planialtimétrico', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 2500.00 },
+    ],
+  },
+  {
+    code: 'CF-01009',
+    description: 'Taxas, alvarás e aprovações na prefeitura',
+    unit: 'vb',
+    category: '01',
+    subcategory: 'Serviços Preliminares',
+    baseCost: 3000.00,
+    fixedPrice: true,
+    items: [
+      { code: 'INS-00238', description: 'Taxas de aprovação, alvará de construção e habite-se', unit: 'vb', type: 'MATERIAL', coefficient: 1.0, unitPrice: 3000.00 },
     ],
   },
 ];

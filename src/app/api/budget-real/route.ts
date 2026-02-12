@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Criar 18 etapas padrão
+    // Criar etapas padrão (00-19)
     for (const stage of DEFAULT_STAGES) {
       await prisma.budgetStage.create({
         data: {

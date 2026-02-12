@@ -134,6 +134,7 @@ export default function ProjectsPage() {
 };
 
   const formatCurrency = (value: number) => {
+    if (value === null || value === undefined || isNaN(value)) return 'R$ 0';
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
@@ -321,7 +322,7 @@ export default function ProjectsPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6">
           {filteredProjects.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
               <div className="flex flex-col items-center gap-4">
@@ -352,80 +353,84 @@ export default function ProjectsPage() {
               </div>
             </div>
           ) : (
-            filteredProjects.map((project) => (
-              <div 
-                key={project.id} 
-                className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-500 mb-1">{project.codigo}</p>
-                    <h3 className="text-base font-bold text-gray-900 mb-2 line-clamp-2">
-                      {project.name}
-                    </h3>
-                    {getStatusBadge(project.status)}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">{project.codigo}</p>
+                      <h3 className="text-sm font-bold text-gray-900 mt-0.5 truncate">
+                        {project.name}
+                      </h3>
+                    </div>
+                    <div className="ml-2 flex-shrink-0">
+                      {getStatusBadge(project.status)}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3 text-xs">
+                    <div>
+                      <span className="text-gray-500">Local: </span>
+                      <span className="text-gray-900 font-medium">
+                        {project.enderecoCidade}/{project.enderecoEstado}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Tipo: </span>
+                      <span className="text-gray-900 font-medium">{project.tipoObra ?? '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Orç.: </span>
+                      <span className="text-gray-900 font-medium">
+                        {formatCurrency(project.orcamentoEstimado)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Gasto: </span>
+                      <span className="text-blue-600 font-medium">
+                        {formatCurrency(project.totalGasto)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                      className="flex-1 py-2 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-medium text-xs rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      Ver
+                    </button>
+
+                    <button
+                      onClick={() => router.push(`/budget`)}
+                      className="flex-1 py-2 bg-green-50 hover:bg-green-600 text-green-700 hover:text-white font-medium text-xs rounded-lg border border-green-200 hover:border-green-600 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <DollarSign className="h-3.5 w-3.5" />
+                      Orçamentos
+                    </button>
+
+                    <button
+                      onClick={() => router.push(`/projects/${project.id}/edit`)}
+                      className="flex-1 py-2 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-medium text-xs rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      Editar
+                    </button>
+
+                    <button
+                      onClick={(e) => handleDelete(project.id, project.name, e)}
+                      className="py-2 px-3 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-medium text-xs rounded-lg border border-red-200 hover:border-red-600 transition-all"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Localização</p>
-                    <p className="text-sm text-gray-900 font-medium">
-                      {project.enderecoCidade}/{project.enderecoEstado}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Tipo</p>
-                    <p className="text-sm text-gray-900 font-medium">{project.tipoObra ?? '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Orçamento</p>
-                    <p className="text-sm text-gray-900 font-medium">
-                      {formatCurrency(project.orcamentoEstimado)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Gasto</p>
-                    <p className="text-sm text-blue-600 font-medium">
-                      {formatCurrency(project.totalGasto)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                    className="flex-1 py-2.5 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-semibold text-sm rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Eye className="h-4 w-4" />
-                    Ver
-                  </button>
-                  
-                  <button
-                    onClick={() => router.push(`/budget`)}
-                    className="flex-1 py-2.5 bg-green-50 hover:bg-green-600 text-green-700 hover:text-white font-semibold text-sm rounded-lg border border-green-200 hover:border-green-600 transition-all flex items-center justify-center gap-2"
-                  >
-                    <DollarSign className="h-4 w-4" />
-                    Orçamentos
-                  </button>
-
-                  <button
-                    onClick={() => router.push(`/projects/${project.id}/edit`)}
-                    className="flex-1 py-2.5 bg-gray-50 hover:bg-blue-600 text-gray-700 hover:text-white font-semibold text-sm rounded-lg border border-gray-200 hover:border-blue-600 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Editar
-                  </button>
-                  
-                  <button
-                    onClick={(e) => handleDelete(project.id, project.name, e)}
-                    className="py-2.5 px-4 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-semibold text-sm rounded-lg border border-red-200 hover:border-red-600 transition-all"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>

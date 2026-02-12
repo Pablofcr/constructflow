@@ -94,6 +94,15 @@ function calculateAreaDiscount(cubType: string | null): number {
   return 10  // Normal
 }
 
+function getDefaultCubType(padrao: string | undefined): string {
+  switch (padrao) {
+    case 'POPULAR': return 'PIS'
+    case 'MEDIO': return 'R1-N'
+    case 'ALTO': return 'R1-A'
+    default: return 'R1-N'
+  }
+}
+
 export default function BudgetEstimatedPage() {
   const router = useRouter()
   const { activeProject } = useProject()
@@ -112,7 +121,7 @@ export default function BudgetEstimatedPage() {
   const [itbiPercent, setItbiPercent] = useState(3)
 
   const [cubValue, setCubValue] = useState(0)
-  const [cubType, setCubType] = useState<string>('R1-A')
+  const [cubType, setCubType] = useState<string>('R1-N')
   const [area, setArea] = useState(0)
   const [duration, setDuration] = useState(12)
 
@@ -133,11 +142,13 @@ export default function BudgetEstimatedPage() {
       setCondominium(budget.condominiumValue || 0)
       setItbiPercent(budget.itbiPercentage || 3)
       setCubValue(budget.cubValue || 0)
-      setCubType(budget.cubType || 'R1-A')
+      setCubType(budget.cubType || getDefaultCubType(project?.padraoEmpreendimento))
       setArea(budget.constructedArea || 0)
       setDuration(budget.projectDuration || 12)
+    } else if (project) {
+      setCubType(getDefaultCubType(project.padraoEmpreendimento))
     }
-  }, [budget])
+  }, [budget, project])
 
   const loadProjectAndBudget = async () => {
     try {

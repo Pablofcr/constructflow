@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Upload, FileText, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { X, Upload, FileText, Image, Trash2, Loader2, Sparkles, AlertTriangle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ProjectFileData {
@@ -29,6 +29,13 @@ const CATEGORY_OPTIONS = [
   { value: 'HYDRAULIC', label: 'Hidraulico' },
   { value: 'OTHER', label: 'Outro' },
 ];
+
+const ACCEPTED_TYPES = 'application/pdf,image/jpeg,image/png,image/webp';
+
+function isImageFile(fileName: string): boolean {
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  return ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+}
 
 export function GenerateAIBudgetDialog({
   open,
@@ -61,8 +68,14 @@ export function GenerateAIBudgetDialog({
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        if (file.type !== 'application/pdf') {
-          alert(`${file.name} não é um PDF`);
+        const isAllowed =
+          file.type === 'application/pdf' ||
+          file.type === 'image/jpeg' ||
+          file.type === 'image/png' ||
+          file.type === 'image/webp';
+
+        if (!isAllowed) {
+          alert(`${file.name}: formato nao suportado. Use PDF, JPG, PNG ou WebP.`);
           continue;
         }
 
@@ -107,6 +120,8 @@ export function GenerateAIBudgetDialog({
     handleUpload(e.dataTransfer.files);
   };
 
+  const hasImages = existingFiles.some((f) => isImageFile(f.fileName));
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-auto">
@@ -122,35 +137,71 @@ export function GenerateAIBudgetDialog({
         </div>
 
         <div className="p-4 space-y-4">
+          {/* Info Notices */}
+          <div className="space-y-2">
+            <div className="flex gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-blue-800">
+                <p className="font-medium mb-1">Dicas para melhores resultados:</p>
+                <ul className="space-y-0.5 list-disc list-inside text-blue-700">
+                  <li>Evite espacos e caracteres especiais no nome do arquivo</li>
+                  <li>Nomeie os arquivos de forma descritiva (ex: planta-baixa-terreo.pdf)</li>
+                  <li>Selecione a categoria correta para cada arquivo</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-800">
+                <p className="font-medium">PDF vs Imagem:</p>
+                <p className="text-amber-700 mt-0.5">
+                  Arquivos <strong>PDF tecnicos</strong> (plantas, projetos) trazem <strong>maior precisao</strong> nos calculos.
+                  Imagens como plantas humanizadas e perspectivas 3D podem ser usadas, porem com <strong>menor confiabilidade</strong> nos quantitativos.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Existing Files */}
           {existingFiles.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-700 mb-2">
-                PDFs Anexados ({existingFiles.length})
+                Arquivos Anexados ({existingFiles.length})
               </h3>
               <div className="space-y-2">
-                {existingFiles.map((file) => (
-                  <div
-                    key={file.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="h-4 w-4 text-purple-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{file.fileName}</p>
-                        <p className="text-xs text-gray-500">
-                          {categoryLabel(file.category)} - {formatSize(file.fileSize)}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDelete(file.id)}
-                      className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0"
+                {existingFiles.map((file) => {
+                  const isImg = isImageFile(file.fileName);
+                  return (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isImg ? (
+                          <Image className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                        ) : (
+                          <FileText className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{file.fileName}</p>
+                          <p className="text-xs text-gray-500">
+                            {categoryLabel(file.category)} - {formatSize(file.fileSize)}
+                            {isImg && (
+                              <span className="ml-1 text-amber-600">(imagem)</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(file.id)}
+                        className="p-1 text-gray-400 hover:text-red-500 flex-shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -158,7 +209,7 @@ export function GenerateAIBudgetDialog({
           {/* Upload Area */}
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-sm font-medium text-gray-700">Enviar PDF</h3>
+              <h3 className="text-sm font-medium text-gray-700">Enviar Arquivo</h3>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -195,9 +246,11 @@ export function GenerateAIBudgetDialog({
                 <>
                   <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-sm text-gray-600">
-                    Arraste PDFs aqui ou clique para selecionar
+                    Arraste arquivos aqui ou clique para selecionar
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">PDF, max 50MB cada</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    PDF (max 50MB) | JPG, PNG, WebP (max 20MB)
+                  </p>
                 </>
               )}
             </div>
@@ -205,12 +258,22 @@ export function GenerateAIBudgetDialog({
             <input
               ref={fileInputRef}
               type="file"
-              accept="application/pdf"
+              accept={ACCEPTED_TYPES}
               multiple
               className="hidden"
               onChange={(e) => handleUpload(e.target.files)}
             />
           </div>
+
+          {/* Image-only warning */}
+          {hasImages && existingFiles.every((f) => isImageFile(f.fileName)) && (
+            <div className="flex gap-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700">
+                Voce anexou apenas imagens. Para maior precisao, considere incluir tambem os PDFs tecnicos dos projetos.
+              </p>
+            </div>
+          )}
 
           {/* Generate Button */}
           <div className="pt-2">
@@ -233,7 +296,7 @@ export function GenerateAIBudgetDialog({
             </Button>
             {existingFiles.length === 0 && (
               <p className="text-xs text-gray-500 text-center mt-2">
-                Envie pelo menos 1 PDF para gerar
+                Envie pelo menos 1 arquivo para gerar
               </p>
             )}
           </div>

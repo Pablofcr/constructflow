@@ -34,6 +34,7 @@ interface CompositionBrowserProps {
 
 const CATEGORIES = [
   { value: '', label: 'Todas as etapas' },
+  { value: '00', label: '00 - Terreno' },
   { value: '01', label: '01 - Preliminares' },
   { value: '02', label: '02 - Infraestrutura' },
   { value: '03', label: '03 - Supraestrutura' },
@@ -42,16 +43,17 @@ const CATEGORIES = [
   { value: '06', label: '06 - Impermeabilizacao' },
   { value: '07', label: '07 - Esquadrias' },
   { value: '08', label: '08 - Revestimentos' },
-  { value: '09', label: '09 - Pisos' },
-  { value: '10', label: '10 - Pintura' },
-  { value: '11', label: '11 - Loucas e Metais' },
-  { value: '12', label: '12 - Eletrica' },
-  { value: '13', label: '13 - Hidrossanitarias' },
-  { value: '14', label: '14 - Inst. Especiais' },
-  { value: '15', label: '15 - Vidros e Ferragens' },
-  { value: '16', label: '16 - Paisagismo' },
-  { value: '17', label: '17 - Limpeza Final' },
-  { value: '18', label: '18 - Administracao' },
+  { value: '09', label: '09 - Fôrros' },
+  { value: '10', label: '10 - Pisos' },
+  { value: '11', label: '11 - Pintura' },
+  { value: '12', label: '12 - Loucas e Metais' },
+  { value: '13', label: '13 - Eletrica' },
+  { value: '14', label: '14 - Hidrossanitarias' },
+  { value: '15', label: '15 - Inst. Especiais' },
+  { value: '16', label: '16 - Vidros e Ferragens' },
+  { value: '17', label: '17 - Paisagismo' },
+  { value: '18', label: '18 - Limpeza Final' },
+  { value: '19', label: '19 - Administracao' },
 ];
 
 export function CompositionBrowser({ open, state, onClose, onSelect }: CompositionBrowserProps) {

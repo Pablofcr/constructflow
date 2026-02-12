@@ -1,5 +1,5 @@
 // ====================================================================
-// SEED: 18 ETAPAS PADRÃO DA CONSTRUÇÃO CIVIL
+// SEED: 20 ETAPAS PADRÃO DA CONSTRUÇÃO CIVIL (00-19)
 // ====================================================================
 // Arquivo: src/lib/seed-etapas.ts
 // Uso: Criar automaticamente as etapas ao criar um BudgetReal
@@ -21,15 +21,22 @@ export interface DefaultStage {
 }
 
 // ====================================================================
-// 18 ETAPAS PADRÃO (TOTAL: 100%)
+// 20 ETAPAS PADRÃO (00-19)
 // ====================================================================
 export const DEFAULT_STAGES: DefaultStage[] = [
+  {
+    name: 'Terreno',
+    code: '00',
+    order: 0,
+    percentage: 0,
+    description: 'Aquisição do terreno, ITBI, escritura, registro, IPTU e taxas de condomínio',
+  },
   {
     name: 'Serviços Preliminares',
     code: '01',
     order: 1,
     percentage: 2,
-    description: 'Limpeza do terreno, locação da obra, canteiro, tapumes, instalações provisórias',
+    description: 'Limpeza do terreno, locação da obra, canteiro, tapumes, instalações provisórias, projetos e aprovações',
   },
   {
     name: 'Infraestrutura',
@@ -81,72 +88,79 @@ export const DEFAULT_STAGES: DefaultStage[] = [
     description: 'Chapisco, emboço, reboco, azulejos, pastilhas',
   },
   {
-    name: 'Pisos',
+    name: 'Fôrros',
     code: '09',
     order: 9,
-    percentage: 7,
+    percentage: 3,
+    description: 'Forro de gesso (placa 60x60, drywall), forro de madeira, forro rebocado',
+  },
+  {
+    name: 'Pisos',
+    code: '10',
+    order: 10,
+    percentage: 6,
     description: 'Contrapiso, cerâmica, porcelanato, pedras, rodapés',
   },
   {
     name: 'Pintura',
-    code: '10',
-    order: 10,
+    code: '11',
+    order: 11,
     percentage: 5,
     description: 'Pintura de paredes, tetos, esquadrias (interna e externa)',
   },
   {
     name: 'Louças e Metais',
-    code: '11',
-    order: 11,
+    code: '12',
+    order: 12,
     percentage: 3,
     description: 'Bacias, lavatórios, tanques, torneiras, registros, chuveiros',
   },
   {
     name: 'Instalações Elétricas',
-    code: '12',
-    order: 12,
+    code: '13',
+    order: 13,
     percentage: 6,
     description: 'Eletrodutos, fios, cabos, quadros, disjuntores, tomadas, interruptores, luminárias',
   },
   {
     name: 'Instalações Hidrossanitárias',
-    code: '13',
-    order: 13,
+    code: '14',
+    order: 14,
     percentage: 5,
     description: 'Tubulações de água fria/quente, esgoto, águas pluviais, reservatórios',
   },
   {
     name: 'Instalações Especiais',
-    code: '14',
-    order: 14,
+    code: '15',
+    order: 15,
     percentage: 2,
     description: 'SPDA (para-raios), gás, ar-condicionado, alarme, CFTV, automação',
   },
   {
     name: 'Vidros e Ferragens',
-    code: '15',
-    order: 15,
+    code: '16',
+    order: 16,
     percentage: 2,
     description: 'Vidros temperados, laminados, fechaduras, dobradiças, puxadores',
   },
   {
     name: 'Paisagismo',
-    code: '16',
-    order: 16,
+    code: '17',
+    order: 17,
     percentage: 1,
     description: 'Jardins, gramados, mudas, irrigação',
   },
   {
     name: 'Limpeza Final',
-    code: '17',
-    order: 17,
+    code: '18',
+    order: 18,
     percentage: 1,
     description: 'Limpeza geral da obra, remoção de entulhos, polimento de pisos',
   },
   {
     name: 'Administração da Obra',
-    code: '18',
-    order: 18,
+    code: '19',
+    order: 19,
     percentage: 5,
     description: 'Engenheiro, mestre de obras, almoxarife, vigia, equipamentos de segurança',
   },
@@ -253,19 +267,25 @@ export const COMMON_SERVICES_BY_STAGE: Record<string, string[]> = {
     'Revestimento cerâmico',
   ],
   '09': [
+    'Forro de gesso 60x60',
+    'Forro drywall',
+    'Forro de madeira (lambri)',
+    'Forro de teto rebocado',
+  ],
+  '10': [
     'Contrapiso',
     'Cerâmica para piso',
     'Porcelanato',
     'Rodapé de cerâmica',
     'Soleira de granito',
   ],
-  '10': [
+  '11': [
     'Pintura com PVA',
     'Pintura acrílica',
     'Pintura texturizada',
     'Massa corrida',
   ],
-  '11': [
+  '12': [
     'Bacia sanitária',
     'Lavatório',
     'Tanque de lavar roupa',
@@ -273,7 +293,7 @@ export const COMMON_SERVICES_BY_STAGE: Record<string, string[]> = {
     'Registro de pressão',
     'Chuveiro elétrico',
   ],
-  '12': [
+  '13': [
     'Eletroduto PVC',
     'Fio de cobre',
     'Quadro de distribuição',
@@ -282,29 +302,29 @@ export const COMMON_SERVICES_BY_STAGE: Record<string, string[]> = {
     'Interruptor',
     'Luminária',
   ],
-  '13': [
+  '14': [
     'Tubo PVC água fria',
     'Tubo PVC esgoto',
     'Conexões PVC',
     'Caixa d\'água',
     'Registro de gaveta',
   ],
-  '14': [
+  '15': [
     'SPDA (para-raios)',
     'Tubulação de gás',
     'Split de ar-condicionado',
     'Central de alarme',
   ],
-  '15': [
+  '16': [
     'Vidro temperado',
     'Fechadura externa',
     'Fechadura interna',
     'Dobradiça',
     'Puxador',
   ],
-  '16': ['Grama', 'Mudas de plantas', 'Terra vegetal', 'Sistema de irrigação'],
-  '17': ['Limpeza geral', 'Remoção de entulho', 'Polimento de piso'],
-  '18': [
+  '17': ['Grama', 'Mudas de plantas', 'Terra vegetal', 'Sistema de irrigação'],
+  '18': ['Limpeza geral', 'Remoção de entulho', 'Polimento de piso'],
+  '19': [
     'Engenheiro civil',
     'Mestre de obras',
     'Almoxarife',
