@@ -284,6 +284,7 @@ model BudgetEstimated {
   // ══════════════════════════════════════════════════════════════════════════
   cenarioSelecionado    String?
   valorSelecionado      Float?
+  taxRegime             String?  @default("PF")
   data                  Json?
 
   // ══════════════════════════════════════════════════════════════════════════

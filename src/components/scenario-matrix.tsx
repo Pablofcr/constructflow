@@ -96,6 +96,10 @@ export function ScenarioMatrix({
                 <p className="text-xs text-orange-600">+40% sobre custo</p>
               </div>
               <div className="pt-2 border-t border-orange-200">
+                <p className="text-xs text-orange-600">Lucro Líquido</p>
+                <p className={`font-bold ${adverse.netProfit >= 0 ? 'text-orange-900' : 'text-red-600'}`}>{formatCurrency(adverse.netProfit)}</p>
+              </div>
+              <div className="pt-2 border-t border-orange-200">
                 <p className="text-xs text-orange-600">Prazo de Venda</p>
                 <p className="font-bold text-orange-900">{deadlines.adverse} meses</p>
               </div>
@@ -119,6 +123,10 @@ export function ScenarioMatrix({
                 <p className="text-xs text-blue-600">+60% sobre custo</p>
               </div>
               <div className="pt-2 border-t border-blue-200">
+                <p className="text-xs text-blue-600">Lucro Líquido</p>
+                <p className={`font-bold ${expected.netProfit >= 0 ? 'text-blue-900' : 'text-red-600'}`}>{formatCurrency(expected.netProfit)}</p>
+              </div>
+              <div className="pt-2 border-t border-blue-200">
                 <p className="text-xs text-blue-600">Prazo de Venda</p>
                 <p className="font-bold text-blue-900">{deadlines.expected} meses</p>
               </div>
@@ -140,6 +148,10 @@ export function ScenarioMatrix({
                 <p className="text-xs text-green-600">Valor de Venda</p>
                 <p className="font-bold text-green-900">{formatCurrency(ideal.saleValue)}</p>
                 <p className="text-xs text-green-600">+80% sobre custo</p>
+              </div>
+              <div className="pt-2 border-t border-green-200">
+                <p className="text-xs text-green-600">Lucro Líquido</p>
+                <p className={`font-bold ${ideal.netProfit >= 0 ? 'text-green-900' : 'text-red-600'}`}>{formatCurrency(ideal.netProfit)}</p>
               </div>
               <div className="pt-2 border-t border-green-200">
                 <p className="text-xs text-green-600">Prazo de Venda</p>

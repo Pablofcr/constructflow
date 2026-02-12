@@ -48,11 +48,28 @@ function determineSaleDeadlines(
   }
 }
 
-function calculateViability(totalCost: number, saleMultiplier: number, projectDuration: number) {
+function calculateViability(totalCost: number, saleMultiplier: number, projectDuration: number, taxRegime: string = 'PF') {
   const saleValue = totalCost * saleMultiplier
   const brokerage = saleValue * 0.05
-  const capitalGain = saleValue - brokerage - totalCost
-  const taxes = capitalGain * 0.15
+
+  let taxes: number
+  switch (taxRegime) {
+    case 'PJ_PRESUMIDO':
+      taxes = saleValue * 0.0593
+      break
+    case 'PJ_SIMPLES':
+      taxes = saleValue * 0.1133
+      break
+    case 'PJ_RET':
+      taxes = saleValue * 0.04
+      break
+    default: { // PF
+      const capitalGain = saleValue - brokerage - totalCost
+      taxes = capitalGain > 0 ? capitalGain * 0.15 : 0
+      break
+    }
+  }
+
   const netProfit = saleValue - totalCost - brokerage - taxes
   const profitMargin = saleValue > 0 ? (netProfit / saleValue) * 100 : 0
   const roe = totalCost > 0 ? (netProfit / totalCost) * 100 : 0
@@ -146,6 +163,7 @@ function shapeBudgetResponse(budget: any) {
     projectDuration: data?.projectDuration ?? null,
     areaDiscount: data?.areaDiscount ?? null,
     equivalentArea: data?.equivalentArea ?? null,
+    taxRegime: budget?.taxRegime ?? data?.taxRegime ?? 'PF',
 
     iptuValue: data?.iptuValue ?? null,
     itbiValue: data?.itbiValue ?? null,
@@ -247,8 +265,11 @@ export async function POST(request: Request) {
       cubType,
       constructedArea,
       projectDuration,
+      taxRegime: rawTaxRegime,
       notes
     } = body ?? {}
+
+    const taxRegime = ['PF', 'PJ_PRESUMIDO', 'PJ_SIMPLES', 'PJ_RET'].includes(rawTaxRegime) ? rawTaxRegime : 'PF'
 
     if (!projectId) {
       return NextResponse.json({ error: 'projectId é obrigatório' }, { status: 400 })
@@ -296,9 +317,9 @@ export async function POST(request: Request) {
 
     const saleDeadlines = determineSaleDeadlines(cubType ?? null)
 
-    const adverse = calculateViability(totalEstimated, 1.40, duration)
-    const expected = calculateViability(totalEstimated, 1.60, duration)
-    const ideal = calculateViability(totalEstimated, 1.80, duration)
+    const adverse = calculateViability(totalEstimated, 1.40, duration, taxRegime)
+    const expected = calculateViability(totalEstimated, 1.60, duration, taxRegime)
+    const ideal = calculateViability(totalEstimated, 1.80, duration, taxRegime)
 
     const scenario_AA = { monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.adverse), totalMonths: duration + saleDeadlines.adverse }
     const scenario_AE = { monthlyReturn: calculateMonthlyReturnWithSale(adverse.roe, duration, saleDeadlines.expected), totalMonths: duration + saleDeadlines.expected }
@@ -338,6 +359,7 @@ export async function POST(request: Request) {
       projectDuration: duration,
       totalEstimatedCost: totalEstimated,
       standard,
+      taxRegime,
 
       saleDeadlines,
 
@@ -394,13 +416,14 @@ export async function POST(request: Request) {
 
         cenarioSelecionado: body?.cenarioSelecionado ?? null,
         valorSelecionado: body?.valorSelecionado ? toNumber(body.valorSelecionado, 0) : null,
+        taxRegime,
 
         data: payloadToStore,
         updatedAt: new Date()
       },
       create: {
         projectId,
-        
+
         // Campos obrigatórios do schema
         landValue: landVal,
         iptuPercentage: iptuPerc,
@@ -433,6 +456,7 @@ export async function POST(request: Request) {
 
         cenarioSelecionado: body?.cenarioSelecionado ?? null,
         valorSelecionado: body?.valorSelecionado ? toNumber(body.valorSelecionado, 0) : null,
+        taxRegime,
 
         data: payloadToStore
       },
