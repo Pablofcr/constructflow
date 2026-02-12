@@ -230,7 +230,8 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
 
       for (const svc of aiStage.services) {
         const quantity = Math.max(0, Number(svc.quantity) || 0);
-        const unitPrice = Number(svc.unitPrice) || (svc.code ? compositionPrices[svc.code] || 0 : 0);
+        // Project composition price takes priority over AI-estimated price
+        const unitPrice = (svc.code && compositionPrices[svc.code]) ? compositionPrices[svc.code] : (Number(svc.unitPrice) || 0);
         const totalPrice = Math.round(quantity * unitPrice * 100) / 100;
         const compositionId = svc.code ? compositionByCode[svc.code] || null : null;
         const projectCompId = svc.code ? projectCompositionByCode[svc.code] || null : null;
