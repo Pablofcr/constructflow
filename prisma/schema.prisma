@@ -307,7 +307,7 @@ model BudgetEstimated {
 model BudgetReal {
   id                  String            @id
   projectId           String
-  name                String            @default("Orçamento Real")
+  name                String            @default("Orçamento Completo")
   description         String?
   status              BudgetRealStatus  @default(DRAFT)
 
@@ -559,6 +559,7 @@ model ProjectComposition {
   sourceComposition Composition?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   items             ProjectCompositionItem[]
   services          BudgetService[]
+  aiServices        BudgetAIService[]
 
   @@unique([projectId, code])
   @@index([projectId])
@@ -716,6 +717,9 @@ model BudgetAI {
   generatedAt       DateTime?
   filesUsed         Json?
 
+  // Flag para indicar que preços foram ajustados manualmente
+  manuallyEdited    Boolean         @default(false)
+
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @default(now())
 
@@ -749,15 +753,16 @@ model BudgetAIStage {
 }
 
 model BudgetAIService {
-  id                String            @id @default(uuid())
-  stageId           String
-  description       String
-  code              String?
-  unit              String
-  quantity          Decimal           @db.Decimal(15, 4)
-  unitPrice         Decimal           @db.Decimal(15, 4)
-  totalPrice        Decimal           @db.Decimal(15, 2)
-  compositionId     String?
+  id                    String            @id @default(uuid())
+  stageId               String
+  description           String
+  code                  String?
+  unit                  String
+  quantity              Decimal           @db.Decimal(15, 4)
+  unitPrice             Decimal           @db.Decimal(15, 4)
+  totalPrice            Decimal           @db.Decimal(15, 2)
+  compositionId         String?
+  projectCompositionId  String?
 
   // Campos IA
   aiConfidence      Decimal?          @db.Decimal(3, 2)
@@ -767,11 +772,13 @@ model BudgetAIService {
   updatedAt         DateTime          @default(now())
 
   // Relações
-  stage             BudgetAIStage     @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  composition       Composition?      @relation(fields: [compositionId], references: [id])
+  stage             BudgetAIStage      @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  composition       Composition?       @relation(fields: [compositionId], references: [id])
+  projectComposition ProjectComposition? @relation(fields: [projectCompositionId], references: [id])
 
   @@index([stageId])
   @@index([compositionId])
+  @@index([projectCompositionId])
   @@map("budget_ai_services")
 }
 

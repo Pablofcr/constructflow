@@ -4,6 +4,7 @@ import { anthropic } from './claude-client';
 import { buildBudgetPrompt } from './budget-prompt';
 import { SINAPI_COMPOSITIONS } from '@/lib/sinapi-data';
 import { DEFAULT_STAGES } from '@/lib/seed-etapas';
+import { initializeProjectCompositions } from '@/lib/project-compositions';
 import type Anthropic from '@anthropic-ai/sdk';
 
 interface AIServiceResult {
@@ -168,20 +169,43 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
       throw new Error('Resposta da IA não contém stages');
     }
 
-    // Build composition lookup
+    // Ensure project compositions are initialized (idempotent)
+    const projectState = project.enderecoEstado || 'SP';
+    await initializeProjectCompositions(project.id, projectState);
+
+    // Build composition lookup from ProjectComposition (project-scoped prices)
     const compositionByCode: Record<string, string> = {};
+    const projectCompositionByCode: Record<string, string> = {};
     const compositionPrices: Record<string, number> = {};
 
+    const projectCompositions = await prisma.projectComposition.findMany({
+      where: { projectId: project.id },
+      select: { id: true, code: true, unitCost: true, sourceId: true },
+    });
+
+    for (const comp of projectCompositions) {
+      projectCompositionByCode[comp.code] = comp.id;
+      compositionPrices[comp.code] = Number(comp.unitCost);
+      if (comp.sourceId) {
+        compositionByCode[comp.code] = comp.sourceId;
+      }
+    }
+
+    // Fallback: also map from global compositions for codes not in project
     const dbCompositions = await prisma.composition.findMany({
       select: { id: true, code: true, unitCost: true },
     });
 
     for (const comp of dbCompositions) {
-      compositionByCode[comp.code] = comp.id;
-      compositionPrices[comp.code] = Number(comp.unitCost);
+      if (!compositionByCode[comp.code]) {
+        compositionByCode[comp.code] = comp.id;
+      }
+      if (!compositionPrices[comp.code]) {
+        compositionPrices[comp.code] = Number(comp.unitCost);
+      }
     }
 
-    // Also map from static data
+    // Also map from static data as last fallback
     for (const comp of SINAPI_COMPOSITIONS) {
       if (!compositionPrices[comp.code]) {
         compositionPrices[comp.code] = comp.baseCost;
@@ -209,6 +233,7 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
         const unitPrice = Number(svc.unitPrice) || (svc.code ? compositionPrices[svc.code] || 0 : 0);
         const totalPrice = Math.round(quantity * unitPrice * 100) / 100;
         const compositionId = svc.code ? compositionByCode[svc.code] || null : null;
+        const projectCompId = svc.code ? projectCompositionByCode[svc.code] || null : null;
 
         await prisma.budgetAIService.create({
           data: {
@@ -220,6 +245,7 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
             unitPrice,
             totalPrice,
             compositionId,
+            projectCompositionId: projectCompId,
             aiConfidence: Math.min(1, Math.max(0, Number(svc.aiConfidence) || 0.5)),
             aiReasoning: svc.aiReasoning || null,
           },

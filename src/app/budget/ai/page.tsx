@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
 import { AIMetadataBanner } from '@/components/orcamento-ai/AIMetadataBanner';
 import { ConfidenceBadge } from '@/components/orcamento-ai/ConfidenceBadge';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, TableProperties, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 interface BudgetAIData {
@@ -15,6 +15,7 @@ interface BudgetAIData {
   state: string | null;
   status: string;
   totalDirectCost: number;
+  manuallyEdited: boolean;
   aiModel: string | null;
   aiPromptTokens: number | null;
   aiOutputTokens: number | null;
@@ -160,6 +161,18 @@ function BudgetAIContent() {
                 <p className="text-sm text-gray-500">{activeProject.codigo} - {activeProject.name}</p>
               </div>
             </div>
+
+            <div className="flex items-center gap-2">
+              {budget && (
+                <Link
+                  href={`/budget/real/prices?state=${budget.state || budget.project?.enderecoEstado || 'SP'}`}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                >
+                  <TableProperties className="h-4 w-4" />
+                  Tabela de Precos
+                </Link>
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -172,6 +185,16 @@ function BudgetAIContent() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Manually Edited Banner */}
+              {budget.manuallyEdited && (
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0" />
+                  <p className="text-sm text-amber-800">
+                    Precos ajustados manualmente via tabela de precos do projeto.
+                  </p>
+                </div>
+              )}
+
               {/* AI Metadata Banner */}
               <AIMetadataBanner
                 totalDirectCost={budget.totalDirectCost}

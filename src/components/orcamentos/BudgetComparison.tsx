@@ -49,7 +49,7 @@ export default function BudgetComparison({ estimatedTotal, realTotal }: Props) {
           <h2 className="text-base font-semibold text-gray-900">
             Comparação de Orçamentos
           </h2>
-          <p className="text-xs text-gray-500">Estimado vs Real</p>
+          <p className="text-xs text-gray-500">Estimado vs Completo</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ export default function BudgetComparison({ estimatedTotal, realTotal }: Props) {
 
         {/* Real */}
         <div className="text-center">
-          <div className="text-xs text-gray-500 mb-2">Real (Detalhado)</div>
+          <div className="text-xs text-gray-500 mb-2">Completo (Detalhado)</div>
           <div className="text-2xl font-bold text-gray-900 mb-1">
             {formatCurrency(realTotal)}
           </div>
@@ -170,7 +170,7 @@ export default function BudgetComparison({ estimatedTotal, realTotal }: Props) {
             <p className="text-sm text-gray-700">
               {isOverBudget && (
                 <>
-                  O orçamento real está{' '}
+                  O orçamento completo está{' '}
                   <strong>{variancePercent.toFixed(1)}% acima</strong> do
                   estimado. Isso pode indicar custos adicionais não previstos ou
                   ajustes de escopo.
@@ -178,7 +178,7 @@ export default function BudgetComparison({ estimatedTotal, realTotal }: Props) {
               )}
               {isUnderBudget && (
                 <>
-                  O orçamento real está{' '}
+                  O orçamento completo está{' '}
                   <strong>
                     {Math.abs(variancePercent).toFixed(1)}% abaixo
                   </strong>{' '}
@@ -188,7 +188,7 @@ export default function BudgetComparison({ estimatedTotal, realTotal }: Props) {
               )}
               {isOnBudget && (
                 <>
-                  O orçamento real está{' '}
+                  O orçamento completo está{' '}
                   <strong>dentro da margem esperada</strong> (±1%). O
                   planejamento foi preciso.
                 </>
@@ -207,7 +207,7 @@ export default function BudgetComparison({ estimatedTotal, realTotal }: Props) {
           </div>
 
           <div>
-            <div className="text-xs text-gray-500 mb-1">Orçamento Real</div>
+            <div className="text-xs text-gray-500 mb-1">Orçamento Completo</div>
             <div className="text-sm font-semibold text-gray-900">
               {formatCurrency(realTotal)}
             </div>

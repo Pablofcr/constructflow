@@ -139,6 +139,92 @@ export async function PUT(
       });
     }
 
+    // 6. Propagate to BudgetAIServices that use these project compositions
+    const affectedAIServices = await prisma.budgetAIService.findMany({
+      where: { projectCompositionId: { in: Array.from(affectedCompositionIds) } },
+      include: {
+        projectComposition: { select: { unitCost: true } },
+        stage: { select: { id: true, budgetAIId: true } },
+      },
+    });
+
+    const affectedAIStageIds = new Set<string>();
+    const affectedAIBudgetIds = new Set<string>();
+
+    for (const aiService of affectedAIServices) {
+      const newAIServiceUnitPrice = Number(aiService.projectComposition!.unitCost);
+      const newAITotal = Math.round(Number(aiService.quantity) * newAIServiceUnitPrice * 100) / 100;
+
+      await prisma.budgetAIService.update({
+        where: { id: aiService.id },
+        data: {
+          unitPrice: Math.round(newAIServiceUnitPrice * 100) / 100,
+          totalPrice: newAITotal,
+          updatedAt: new Date(),
+        },
+      });
+
+      affectedAIStageIds.add(aiService.stage.id);
+      affectedAIBudgetIds.add(aiService.stage.budgetAIId);
+    }
+
+    // 7. Recalculate BudgetAIStage totals
+    for (const aiStageId of affectedAIStageIds) {
+      const aiStageServices = await prisma.budgetAIService.findMany({
+        where: { stageId: aiStageId },
+        select: { totalPrice: true },
+      });
+      const aiStageTotal = aiStageServices.reduce((sum, s) => sum + Number(s.totalPrice), 0);
+
+      // Get grand total for percentage
+      const aiStage = await prisma.budgetAIStage.findUnique({
+        where: { id: aiStageId },
+        select: { budgetAIId: true },
+      });
+      if (aiStage) {
+        await prisma.budgetAIStage.update({
+          where: { id: aiStageId },
+          data: {
+            totalCost: Math.round(aiStageTotal * 100) / 100,
+            updatedAt: new Date(),
+          },
+        });
+      }
+    }
+
+    // 8. Recalculate BudgetAI totals + set manuallyEdited
+    for (const aiBudgetId of affectedAIBudgetIds) {
+      const aiStages = await prisma.budgetAIStage.findMany({
+        where: { budgetAIId: aiBudgetId },
+        select: { totalCost: true },
+      });
+      const aiTotalDirect = aiStages.reduce((sum, s) => sum + Number(s.totalCost), 0);
+
+      await prisma.budgetAI.update({
+        where: { id: aiBudgetId },
+        data: {
+          totalDirectCost: Math.round(aiTotalDirect * 100) / 100,
+          manuallyEdited: true,
+          updatedAt: new Date(),
+        },
+      });
+
+      // Recalculate stage percentages
+      for (const aiStageId of affectedAIStageIds) {
+        const stage = await prisma.budgetAIStage.findUnique({
+          where: { id: aiStageId },
+          select: { totalCost: true, budgetAIId: true },
+        });
+        if (stage && stage.budgetAIId === aiBudgetId) {
+          const pct = aiTotalDirect > 0 ? (Number(stage.totalCost) / aiTotalDirect) * 100 : 0;
+          await prisma.budgetAIStage.update({
+            where: { id: aiStageId },
+            data: { percentage: Math.round(pct * 100) / 100 },
+          });
+        }
+      }
+    }
+
     // Return updated item with cascade summary
     const updatedItem = await prisma.projectCompositionItem.findUnique({
       where: { id: itemId },
@@ -152,6 +238,9 @@ export async function PUT(
         servicesUpdated: affectedServices.length,
         stagesRecalculated: affectedStageIds.size,
         budgetsRecalculated: affectedBudgetIds.size,
+        aiServicesUpdated: affectedAIServices.length,
+        aiStagesRecalculated: affectedAIStageIds.size,
+        aiBudgetsRecalculated: affectedAIBudgetIds.size,
       },
     });
   } catch (error) {

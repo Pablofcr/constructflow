@@ -30,6 +30,11 @@ export async function GET(
                     items: true,
                   },
                 },
+                projectComposition: {
+                  include: {
+                    items: true,
+                  },
+                },
               },
             },
           },

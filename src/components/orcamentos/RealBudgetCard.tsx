@@ -63,7 +63,7 @@ export default function RealBudgetCard({ budget, projectId }: Props) {
           </div>
           <div>
             <h2 className="text-base font-semibold text-gray-900">
-              Orçamento Real
+              Orçamento Completo
             </h2>
             <p className="text-sm text-gray-500">Não cadastrado</p>
           </div>
@@ -79,7 +79,7 @@ export default function RealBudgetCard({ budget, projectId }: Props) {
             className="block w-full px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors text-center"
             onClick={() => alert('API de criação será implementada')}
           >
-            Criar Orçamento Real
+            Criar Orçamento Completo
           </button>
         </div>
       </div>

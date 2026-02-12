@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: budgetId,
         projectId,
-        name: name || 'Orçamento Real',
+        name: name || 'Orçamento Completo',
         state: project.enderecoEstado || 'SP',
         bdiPercentage: bdiPercentage || 25,
         bdiAdministration: 5,

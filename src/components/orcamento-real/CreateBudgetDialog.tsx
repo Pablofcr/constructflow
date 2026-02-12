@@ -11,7 +11,7 @@ interface CreateBudgetDialogProps {
 }
 
 export function CreateBudgetDialog({ open, projectId, onClose, onCreated }: CreateBudgetDialogProps) {
-  const [name, setName] = useState('Orcamento Real');
+  const [name, setName] = useState('Orcamento Completo');
   const [bdiPercentage, setBdiPercentage] = useState('25');
   const [durationMonths, setDurationMonths] = useState('12');
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ export function CreateBudgetDialog({ open, projectId, onClose, onCreated }: Crea
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900">Criar Orcamento Real</h2>
+          <h2 className="text-lg font-bold text-gray-900">Criar Orcamento Completo</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="h-5 w-5" />
           </button>

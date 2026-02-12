@@ -229,7 +229,7 @@ function BudgetRealContent() {
               </Link>
               <div>
                 <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                  Orcamento Real
+                  Orcamento Completo
                 </h1>
                 <p className="text-sm text-gray-500">{activeProject.codigo} - {activeProject.name}</p>
               </div>

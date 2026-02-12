@@ -53,7 +53,7 @@ export default async function OrcamentosPage({ params }: PageProps) {
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Orçamento Real</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Orçamento Completo</h2>
                 <p className="text-sm text-gray-600">Detalhado • Execução</p>
               </div>
             </div>
