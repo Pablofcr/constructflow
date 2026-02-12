@@ -38,24 +38,18 @@ interface StageAccordionProps {
       } | null;
     }>;
   };
-  itemOverrides?: Record<string, number>;
   onAddService?: (stageId: string) => void;
   onEditService?: (serviceId: string) => void;
   onDeleteService?: (serviceId: string) => void;
-  onItemPriceChange?: (itemId: string, newPrice: number) => void;
-  onItemPriceReset?: (itemId: string) => void;
   defaultExpanded?: boolean;
   readOnly?: boolean;
 }
 
 export function StageAccordion({
   stage,
-  itemOverrides = {},
   onAddService,
   onEditService,
   onDeleteService,
-  onItemPriceChange,
-  onItemPriceReset,
   defaultExpanded = false,
   readOnly = false,
 }: StageAccordionProps) {
@@ -99,11 +93,8 @@ export function StageAccordion({
         <div className="border-t border-gray-200">
           <ServiceTable
             services={stage.services}
-            itemOverrides={itemOverrides}
             onEditService={onEditService || (() => {})}
             onDeleteService={onDeleteService || (() => {})}
-            onItemPriceChange={onItemPriceChange}
-            onItemPriceReset={onItemPriceReset}
           />
 
           {!readOnly && (

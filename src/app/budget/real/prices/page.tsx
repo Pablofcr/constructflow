@@ -42,7 +42,7 @@ function PriceTableContent() {
             </div>
           </div>
 
-          <PriceTable state={state} />
+          <PriceTable state={state} projectId={activeProject?.id || ''} />
         </div>
       </div>
     </div>

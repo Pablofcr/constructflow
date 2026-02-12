@@ -159,6 +159,7 @@ model Project {
   budgetAI              BudgetAI[]
   files                 ProjectFile[]
   teamMembers           TeamMember[]
+  projectCompositions   ProjectComposition[]
 
   @@map("projects")
 }
@@ -344,8 +345,6 @@ model BudgetReal {
   project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   estimatedBudget     BudgetEstimated?  @relation("BudgetRealEstimatedBudget", fields: [estimatedBudgetId], references: [id], onDelete: SetNull)
   stages              BudgetStage[]
-  compositionOverrides ProjectCompositionOverride[]
-  itemOverrides       ProjectItemOverride[]
 
   @@index([projectId])
   @@index([status])
@@ -401,7 +400,8 @@ model BudgetService {
   totalPrice          Decimal             @db.Decimal(15, 2)
 
   // Composição
-  compositionId       String?
+  compositionId           String?
+  projectCompositionId    String?
 
   // Status
   status              ServiceStatus       @default(PENDING)
@@ -416,10 +416,12 @@ model BudgetService {
   // Relações
   stage               BudgetStage         @relation(fields: [stageId], references: [id], onDelete: Cascade)
   composition         Composition?        @relation(fields: [compositionId], references: [id])
+  projectComposition  ProjectComposition? @relation(fields: [projectCompositionId], references: [id])
   measurements        ServiceMeasurement[]
 
   @@index([stageId])
   @@index([compositionId])
+  @@index([projectCompositionId])
   @@map("budget_services")
 }
 
@@ -479,7 +481,7 @@ model Composition {
   services        BudgetService[]
   aiServices      BudgetAIService[]
   statePrices     SinapiStatePrice[]
-  compositionOverrides ProjectCompositionOverride[]
+  projectCopies   ProjectComposition[]
 
   @@index([code])
   @@index([source])
@@ -506,7 +508,6 @@ model CompositionItem {
 
   // Relações
   composition     Composition  @relation(fields: [compositionId], references: [id], onDelete: Cascade)
-  itemOverrides   ProjectItemOverride[]
 
   @@index([compositionId])
   @@index([type])
@@ -535,38 +536,52 @@ model SinapiStatePrice {
   @@map("sinapi_state_prices")
 }
 
-model ProjectCompositionOverride {
-  id              String       @id @default(uuid())
-  budgetRealId    String
-  compositionId   String
-  overriddenCost  Decimal      @db.Decimal(15, 4)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPOSIÇÕES POR PROJETO (cópia isolada da tabela global)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @default(now())
+model ProjectComposition {
+  id              String                    @id @default(uuid())
+  projectId       String
+  sourceId        String?
+  code            String
+  source          CompositionSource
+  description     String
+  unit            String
+  unitCost        Decimal                   @db.Decimal(15, 4)
+  category        String?
+  subcategory     String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @default(now())
 
-  // Relações
-  budgetReal      BudgetReal   @relation(fields: [budgetRealId], references: [id], onDelete: Cascade)
-  composition     Composition  @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+  project           Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceComposition Composition?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  items             ProjectCompositionItem[]
+  services          BudgetService[]
 
-  @@unique([budgetRealId, compositionId])
-  @@map("project_composition_overrides")
+  @@unique([projectId, code])
+  @@index([projectId])
+  @@map("project_compositions")
 }
 
-model ProjectItemOverride {
-  id                String          @id @default(uuid())
-  budgetRealId      String
-  compositionItemId String
-  overriddenPrice   Decimal         @db.Decimal(15, 4)
+model ProjectCompositionItem {
+  id                    String               @id @default(uuid())
+  projectCompositionId  String
+  type                  InsumoType
+  description           String
+  code                  String?
+  unit                  String
+  coefficient           Decimal              @db.Decimal(15, 6)
+  unitPrice             Decimal              @db.Decimal(15, 4)
+  totalPrice            Decimal              @db.Decimal(15, 4)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @default(now())
 
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @default(now())
+  projectComposition    ProjectComposition   @relation(fields: [projectCompositionId], references: [id], onDelete: Cascade)
 
-  // Relações
-  budgetReal        BudgetReal      @relation(fields: [budgetRealId], references: [id], onDelete: Cascade)
-  compositionItem   CompositionItem @relation(fields: [compositionItemId], references: [id], onDelete: Cascade)
-
-  @@unique([budgetRealId, compositionItemId])
-  @@map("project_item_overrides")
+  @@index([projectCompositionId])
+  @@index([code])
+  @@map("project_composition_items")
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

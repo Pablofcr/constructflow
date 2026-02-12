@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Trash2, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { CompositionDetail } from './CompositionDetail';
 
 interface CompositionItem {
@@ -32,20 +32,14 @@ interface ServiceRowProps {
       items: CompositionItem[];
     } | null;
   };
-  itemOverrides?: Record<string, number>;
   onEdit: (serviceId: string) => void;
   onDelete: (serviceId: string) => void;
-  onItemPriceChange?: (itemId: string, newPrice: number) => void;
-  onItemPriceReset?: (itemId: string) => void;
 }
 
 export function ServiceRow({
   service,
-  itemOverrides = {},
   onEdit,
   onDelete,
-  onItemPriceChange,
-  onItemPriceReset,
 }: ServiceRowProps) {
   const [expanded, setExpanded] = useState(false);
   const hasComposition = !!service.composition;
@@ -114,9 +108,7 @@ export function ServiceRow({
               unitPrice: Number(i.unitPrice),
               totalPrice: Number(i.totalPrice),
             }))}
-            itemOverrides={itemOverrides}
-            onItemPriceChange={onItemPriceChange}
-            onItemPriceReset={onItemPriceReset}
+            readOnly
           />
         </div>
       )}

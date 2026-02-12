@@ -8,6 +8,7 @@ interface ServiceFormDialogProps {
   open: boolean;
   stageId: string;
   state: string;
+  projectId: string;
   onClose: () => void;
   onSave: (data: {
     stageId: string;
@@ -16,6 +17,7 @@ interface ServiceFormDialogProps {
     quantity: number;
     unitPrice: number;
     compositionId: string | null;
+    projectCompositionId: string | null;
     code: string | null;
   }) => void;
   editingService?: {
@@ -25,6 +27,7 @@ interface ServiceFormDialogProps {
     quantity: number;
     unitPrice: number;
     compositionId: string | null;
+    projectCompositionId: string | null;
     code: string | null;
   } | null;
 }
@@ -33,6 +36,7 @@ export function ServiceFormDialog({
   open,
   stageId,
   state,
+  projectId,
   onClose,
   onSave,
   editingService,
@@ -44,6 +48,7 @@ export function ServiceFormDialog({
   const [quantity, setQuantity] = useState(editingService?.quantity?.toString() || '');
   const [unitPrice, setUnitPrice] = useState(editingService?.unitPrice?.toString() || '');
   const [compositionId, setCompositionId] = useState<string | null>(editingService?.compositionId || null);
+  const [projectCompositionId, setProjectCompositionId] = useState<string | null>(editingService?.projectCompositionId || null);
   const [code, setCode] = useState<string | null>(editingService?.code || null);
 
   if (!open) return null;
@@ -62,6 +67,7 @@ export function ServiceFormDialog({
       quantity: parseFloat(quantity),
       unitPrice: parseFloat(unitPrice),
       compositionId,
+      projectCompositionId,
       code,
     });
   };
@@ -204,9 +210,11 @@ export function ServiceFormDialog({
       <CompositionBrowser
         open={showBrowser}
         state={state}
+        projectId={projectId}
         onClose={() => setShowBrowser(false)}
         onSelect={(comp) => {
-          setCompositionId(comp.id);
+          setProjectCompositionId(comp.id);
+          setCompositionId(null);
           setCode(comp.code);
           setDescription(comp.description);
           setUnit(comp.unit);

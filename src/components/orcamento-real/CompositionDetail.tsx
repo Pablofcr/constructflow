@@ -1,7 +1,5 @@
 'use client';
 
-import { PriceEditor } from './PriceEditor';
-
 interface CompositionItem {
   id: string;
   type: 'MATERIAL' | 'LABOR' | 'EQUIPMENT';
@@ -15,10 +13,7 @@ interface CompositionItem {
 
 interface CompositionDetailProps {
   items: CompositionItem[];
-  onItemPriceChange?: (itemId: string, newPrice: number) => void;
-  onItemPriceReset?: (itemId: string) => void;
-  itemOverrides?: Record<string, number>;
-  readOnly?: boolean;
+  readOnly?: boolean; // kept for API compatibility
 }
 
 const typeLabels: Record<string, string> = {
@@ -35,9 +30,6 @@ const typeColors: Record<string, string> = {
 
 export function CompositionDetail({
   items,
-  onItemPriceChange,
-  onItemPriceReset,
-  itemOverrides = {},
   readOnly = false,
 }: CompositionDetailProps) {
   const grouped = items.reduce((acc, item) => {
@@ -50,9 +42,7 @@ export function CompositionDetail({
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
   const totalCost = items.reduce((sum, item) => {
-    const overriddenPrice = itemOverrides[item.id];
-    const price = overriddenPrice !== undefined ? overriddenPrice : item.unitPrice;
-    return sum + item.coefficient * price;
+    return sum + item.coefficient * item.unitPrice;
   }, 0);
 
   return (
@@ -78,9 +68,7 @@ export function CompositionDetail({
               </thead>
               <tbody>
                 {typeItems.map((item) => {
-                  const overriddenPrice = itemOverrides[item.id];
-                  const currentPrice = overriddenPrice !== undefined ? overriddenPrice : item.unitPrice;
-                  const itemTotal = item.coefficient * currentPrice;
+                  const itemTotal = item.coefficient * item.unitPrice;
 
                   return (
                     <tr key={item.id} className="border-b border-gray-100 hover:bg-white/60">
@@ -91,22 +79,7 @@ export function CompositionDetail({
                       <td className="text-center text-gray-500">{item.unit}</td>
                       <td className="text-right text-gray-600">{item.coefficient.toFixed(4)}</td>
                       <td className="text-right">
-                        {readOnly ? (
-                          <span className="text-gray-900">{fmt(currentPrice)}</span>
-                        ) : onItemPriceChange ? (
-                          <PriceEditor
-                            currentPrice={currentPrice}
-                            sinapiPrice={item.unitPrice}
-                            onSave={(newPrice) => onItemPriceChange(item.id, newPrice)}
-                            onReset={
-                              overriddenPrice !== undefined && onItemPriceReset
-                                ? () => onItemPriceReset(item.id)
-                                : undefined
-                            }
-                          />
-                        ) : (
-                          <span className="text-gray-900">{fmt(currentPrice)}</span>
-                        )}
+                        <span className="text-gray-900">{fmt(item.unitPrice)}</span>
                       </td>
                       <td className="text-right font-medium text-gray-900">{fmt(itemTotal)}</td>
                     </tr>

@@ -22,6 +22,7 @@ interface PriceItem {
 
 interface PriceTableProps {
   state: string;
+  projectId: string;
 }
 
 const TYPE_TABS = [
@@ -31,7 +32,7 @@ const TYPE_TABS = [
   { value: 'EQUIPMENT', label: 'Equipamentos' },
 ];
 
-export function PriceTable({ state }: PriceTableProps) {
+export function PriceTable({ state, projectId }: PriceTableProps) {
   const [type, setType] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,17 +40,16 @@ export function PriceTable({ state }: PriceTableProps) {
 
   useEffect(() => {
     fetchItems();
-  }, [type, search, state]);
+  }, [type, search, state, projectId]);
 
   const fetchItems = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('state', state);
       if (type) params.set('type', type);
       if (search) params.set('search', search);
 
-      const res = await fetch(`/api/price-tables?${params}`);
+      const res = await fetch(`/api/projects/${projectId}/price-table?${params}`);
       if (res.ok) {
         const data = await res.json();
         setItems(
@@ -70,7 +70,7 @@ export function PriceTable({ state }: PriceTableProps) {
 
   const handlePriceUpdate = async (itemId: string, newPrice: number) => {
     try {
-      const res = await fetch(`/api/price-tables/${itemId}`, {
+      const res = await fetch(`/api/projects/${projectId}/compositions/items/${itemId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ unitPrice: newPrice }),

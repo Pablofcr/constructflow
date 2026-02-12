@@ -28,6 +28,7 @@ interface CompositionResult {
 interface CompositionBrowserProps {
   open: boolean;
   state: string;
+  projectId: string;
   onClose: () => void;
   onSelect: (composition: CompositionResult) => void;
 }
@@ -56,7 +57,7 @@ const CATEGORIES = [
   { value: '19', label: '19 - Administracao' },
 ];
 
-export function CompositionBrowser({ open, state, onClose, onSelect }: CompositionBrowserProps) {
+export function CompositionBrowser({ open, state, projectId, onClose, onSelect }: CompositionBrowserProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,7 @@ export function CompositionBrowser({ open, state, onClose, onSelect }: Compositi
     if (open) {
       fetchCompositions();
     }
-  }, [open, search, category, state]);
+  }, [open, search, category, state, projectId]);
 
   const fetchCompositions = async () => {
     setLoading(true);
@@ -75,9 +76,8 @@ export function CompositionBrowser({ open, state, onClose, onSelect }: Compositi
       const params = new URLSearchParams();
       if (search) params.set('search', search);
       if (category) params.set('category', category);
-      params.set('state', state);
 
-      const res = await fetch(`/api/compositions?${params}`);
+      const res = await fetch(`/api/projects/${projectId}/compositions?${params}`);
       if (res.ok) {
         const data = await res.json();
         setCompositions(data.map((c: CompositionResult) => ({

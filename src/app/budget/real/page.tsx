@@ -7,7 +7,7 @@ import { useProject } from '@/contexts/project-context';
 import { SummaryBanner } from '@/components/orcamento-real/SummaryBanner';
 import { StageAccordion } from '@/components/orcamento-real/StageAccordion';
 import { ServiceFormDialog } from '@/components/orcamento-real/ServiceFormDialog';
-import { ArrowLeft, Loader2, Save, TableProperties } from 'lucide-react';
+import { ArrowLeft, Loader2, TableProperties } from 'lucide-react';
 import Link from 'next/link';
 
 interface BudgetRealData {
@@ -25,8 +25,6 @@ interface BudgetRealData {
   bdiOthers: number;
   project: { id: string; codigo: string; name: string; enderecoEstado: string };
   stages: StageData[];
-  itemOverrides: Array<{ id: string; compositionItemId: string; overriddenPrice: number }>;
-  compositionOverrides: Array<{ id: string; compositionId: string; overriddenCost: number }>;
 }
 
 interface StageData {
@@ -48,6 +46,7 @@ interface ServiceData {
   unitPrice: number;
   totalPrice: number;
   compositionId: string | null;
+  projectCompositionId: string | null;
   composition: {
     id: string;
     code: string;
@@ -101,31 +100,32 @@ function BudgetRealContent() {
             ...s,
             totalCost: Number(s.totalCost),
             percentage: Number(s.percentage),
-            services: s.services.map((svc: ServiceData) => ({
-              ...svc,
-              quantity: Number(svc.quantity),
-              unitPrice: Number(svc.unitPrice),
-              totalPrice: Number(svc.totalPrice),
-              composition: svc.composition
-                ? {
-                    ...svc.composition,
-                    items: svc.composition.items.map((i) => ({
-                      ...i,
-                      coefficient: Number(i.coefficient),
-                      unitPrice: Number(i.unitPrice),
-                      totalPrice: Number(i.totalPrice),
-                    })),
-                  }
-                : null,
-            })),
-          })),
-          itemOverrides: (data.itemOverrides || []).map((o: { id: string; compositionItemId: string; overriddenPrice: number }) => ({
-            ...o,
-            overriddenPrice: Number(o.overriddenPrice),
-          })),
-          compositionOverrides: (data.compositionOverrides || []).map((o: { id: string; compositionId: string; overriddenCost: number }) => ({
-            ...o,
-            overriddenCost: Number(o.overriddenCost),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            services: s.services.map((svc: any) => {
+              // Map projectComposition to composition for UI compatibility
+              const comp = svc.projectComposition || svc.composition;
+              return {
+                ...svc,
+                quantity: Number(svc.quantity),
+                unitPrice: Number(svc.unitPrice),
+                totalPrice: Number(svc.totalPrice),
+                projectCompositionId: svc.projectCompositionId || null,
+                compositionId: svc.compositionId || null,
+                composition: comp
+                  ? {
+                      id: comp.id,
+                      code: comp.code,
+                      description: comp.description,
+                      items: (comp.items || []).map((i: { id: string; type: string; description: string; code: string | null; unit: string; coefficient: number; unitPrice: number; totalPrice: number }) => ({
+                        ...i,
+                        coefficient: Number(i.coefficient),
+                        unitPrice: Number(i.unitPrice),
+                        totalPrice: Number(i.totalPrice),
+                      })),
+                    }
+                  : null,
+              };
+            }),
           })),
         });
       }
@@ -139,12 +139,6 @@ function BudgetRealContent() {
   useEffect(() => {
     fetchBudget();
   }, [fetchBudget]);
-
-  // Build itemOverrides map
-  const itemOverridesMap: Record<string, number> = {};
-  budget?.itemOverrides.forEach((o) => {
-    itemOverridesMap[o.compositionItemId] = o.overriddenPrice;
-  });
 
   const state = budget?.state || budget?.project?.enderecoEstado || 'SP';
 
@@ -186,6 +180,7 @@ function BudgetRealContent() {
     quantity: number;
     unitPrice: number;
     compositionId: string | null;
+    projectCompositionId: string | null;
     code: string | null;
   }) => {
     if (!budget) return;
@@ -207,34 +202,6 @@ function BudgetRealContent() {
       await fetchBudget();
     } catch (err) {
       console.error('Erro ao salvar servico:', err);
-    }
-  };
-
-  const handleItemPriceChange = async (itemId: string, newPrice: number) => {
-    if (!budget) return;
-    try {
-      await fetch(`/api/budget-real/${budget.id}/overrides`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'item', compositionItemId: itemId, price: newPrice }),
-      });
-      await fetchBudget();
-    } catch (err) {
-      console.error('Erro ao salvar override:', err);
-    }
-  };
-
-  const handleItemPriceReset = async (itemId: string) => {
-    if (!budget) return;
-    const override = budget.itemOverrides.find((o) => o.compositionItemId === itemId);
-    if (!override) return;
-    try {
-      await fetch(`/api/budget-real/${budget.id}/overrides/${override.id}?type=item`, {
-        method: 'DELETE',
-      });
-      await fetchBudget();
-    } catch (err) {
-      console.error('Erro ao resetar override:', err);
     }
   };
 
@@ -304,12 +271,9 @@ function BudgetRealContent() {
                   <StageAccordion
                     key={stage.id}
                     stage={stage}
-                    itemOverrides={itemOverridesMap}
                     onAddService={handleAddService}
                     onEditService={handleEditService}
                     onDeleteService={handleDeleteService}
-                    onItemPriceChange={handleItemPriceChange}
-                    onItemPriceReset={handleItemPriceReset}
                   />
                 ))}
               </div>
@@ -323,6 +287,7 @@ function BudgetRealContent() {
         open={showServiceForm}
         stageId={activeStageId}
         state={state}
+        projectId={activeProject.id}
         onClose={() => setShowServiceForm(false)}
         onSave={handleSaveService}
         editingService={editingService ? {
@@ -332,6 +297,7 @@ function BudgetRealContent() {
           quantity: editingService.quantity,
           unitPrice: editingService.unitPrice,
           compositionId: editingService.compositionId,
+          projectCompositionId: editingService.projectCompositionId,
           code: editingService.code,
         } : null}
       />

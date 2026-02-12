@@ -28,20 +28,14 @@ interface ServiceTableProps {
       }>;
     } | null;
   }>;
-  itemOverrides?: Record<string, number>;
   onEditService: (serviceId: string) => void;
   onDeleteService: (serviceId: string) => void;
-  onItemPriceChange?: (itemId: string, newPrice: number) => void;
-  onItemPriceReset?: (itemId: string) => void;
 }
 
 export function ServiceTable({
   services,
-  itemOverrides = {},
   onEditService,
   onDeleteService,
-  onItemPriceChange,
-  onItemPriceReset,
 }: ServiceTableProps) {
   if (!services.length) {
     return (
@@ -69,11 +63,8 @@ export function ServiceTable({
         <ServiceRow
           key={service.id}
           service={service}
-          itemOverrides={itemOverrides}
           onEdit={onEditService}
           onDelete={onDeleteService}
-          onItemPriceChange={onItemPriceChange}
-          onItemPriceReset={onItemPriceReset}
         />
       ))}
     </div>

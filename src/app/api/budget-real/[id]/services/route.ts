@@ -24,6 +24,9 @@ export async function GET(
         composition: {
           include: { items: true },
         },
+        projectComposition: {
+          include: { items: true },
+        },
         measurements: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -44,7 +47,7 @@ export async function POST(
   try {
     const { id: budgetRealId } = await params;
     const body = await request.json();
-    const { stageId, description, unit, quantity, unitPrice, compositionId, code, notes } = body;
+    const { stageId, description, unit, quantity, unitPrice, compositionId, projectCompositionId, code, notes } = body;
 
     if (!stageId || !description || !unit || quantity === undefined || unitPrice === undefined) {
       return NextResponse.json(
@@ -66,11 +69,13 @@ export async function POST(
         unitPrice,
         totalPrice: Math.round(totalPrice * 100) / 100,
         compositionId: compositionId || null,
+        projectCompositionId: projectCompositionId || null,
         notes: notes || null,
         status: 'PENDING',
       },
       include: {
         composition: { include: { items: true } },
+        projectComposition: { include: { items: true } },
       },
     });
 

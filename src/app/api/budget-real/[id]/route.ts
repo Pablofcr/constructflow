@@ -20,15 +20,13 @@ export async function GET(
           include: {
             services: {
               include: {
-                composition: {
-                  include: { items: true, statePrices: true },
+                projectComposition: {
+                  include: { items: true },
                 },
               },
             },
           },
         },
-        compositionOverrides: true,
-        itemOverrides: true,
       },
     });
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_STAGES } from '@/lib/seed-etapas';
+import { initializeProjectCompositions } from '@/lib/project-compositions';
 
 // GET /api/budget-real?projectId=xxx
 export async function GET(request: NextRequest) {
@@ -93,6 +94,10 @@ export async function POST(request: NextRequest) {
         },
       });
     }
+
+    // Inicializar composições do projeto (copia globais com preços do estado)
+    const budgetState = project.enderecoEstado || 'SP';
+    await initializeProjectCompositions(projectId, budgetState);
 
     // Retornar com stages
     const result = await prisma.budgetReal.findUnique({

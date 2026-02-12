@@ -16,15 +16,13 @@ export async function POST(
           include: {
             services: {
               include: {
-                composition: {
+                projectComposition: {
                   include: { items: true },
                 },
               },
             },
           },
         },
-        itemOverrides: true,
-        compositionOverrides: true,
       },
     });
 
@@ -32,37 +30,20 @@ export async function POST(
       return NextResponse.json({ error: 'Orçamento não encontrado' }, { status: 404 });
     }
 
-    const overrideMap = new Map(
-      budget.compositionOverrides.map((o) => [o.compositionId, Number(o.overriddenCost)])
-    );
-    const itemOverrideMap = new Map(
-      budget.itemOverrides.map((o) => [o.compositionItemId, Number(o.overriddenPrice)])
-    );
-
-    // Recalcular cada etapa
+    // Recalculate each stage
     for (const stage of budget.stages) {
       let stageTotal = 0;
 
       for (const service of stage.services) {
         let newUnitPrice: number;
 
-        if (service.compositionId) {
-          // Verificar override de composição
-          const compOverride = overrideMap.get(service.compositionId);
-
-          if (compOverride !== undefined) {
-            newUnitPrice = compOverride;
-          } else if (service.composition) {
-            // Recalcular a partir dos itens (respeitando overrides de itens)
-            newUnitPrice = service.composition.items.reduce((sum, item) => {
-              const price = itemOverrideMap.get(item.id) ?? Number(item.unitPrice);
-              return sum + Number(item.coefficient) * price;
-            }, 0);
-          } else {
-            newUnitPrice = Number(service.unitPrice);
-          }
+        if (service.projectCompositionId && service.projectComposition) {
+          // Price comes directly from project composition items
+          newUnitPrice = service.projectComposition.items.reduce((sum, item) => {
+            return sum + Number(item.coefficient) * Number(item.unitPrice);
+          }, 0);
         } else {
-          // Serviço manual (sem composição) - manter preço atual
+          // Manual service — keep current price
           newUnitPrice = Number(service.unitPrice);
         }
 
@@ -87,7 +68,7 @@ export async function POST(
       });
     }
 
-    // Recalcular total do orçamento
+    // Recalculate budget total
     const updatedStages = await prisma.budgetStage.findMany({
       where: { budgetRealId: id },
       select: { totalCost: true },

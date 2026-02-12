@@ -12,7 +12,7 @@ export async function GET(
     const service = await prisma.budgetService.findUnique({
       where: { id: serviceId },
       include: {
-        composition: { include: { items: true, statePrices: true } },
+        projectComposition: { include: { items: true } },
         measurements: true,
       },
     });
@@ -74,7 +74,7 @@ export async function PUT(
         updatedAt: new Date(),
       },
       include: {
-        composition: { include: { items: true } },
+        projectComposition: { include: { items: true } },
       },
     });
 
