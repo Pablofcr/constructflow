@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useProject } from '@/contexts/project-context'
 import { Sidebar } from '@/components/sidebar'
 import { Button } from "@/components/ui/button"
-import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2, Sparkles } from 'lucide-react'
+import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2, Sparkles, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { CreateBudgetDialog } from '@/components/orcamento-real/CreateBudgetDialog'
 import { GenerateAIBudgetDialog } from '@/components/orcamento-ai/GenerateAIBudgetDialog'
@@ -53,6 +53,7 @@ export default function BudgetPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showAIDialog, setShowAIDialog] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [deletingAI, setDeletingAI] = useState(false)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
   const fetchBudgetData = useCallback(async () => {
@@ -219,6 +220,26 @@ export default function BudgetPage() {
     const res = await fetch(`/api/projects/${activeProject.id}/files`)
     if (res.ok) {
       setProjectFiles(await res.json())
+    }
+  }
+
+  const handleDeleteAI = async () => {
+    if (!budgetAI) return
+    if (!confirm('Tem certeza que deseja apagar o orcamento por IA? Voce podera gerar um novo depois.')) return
+
+    try {
+      setDeletingAI(true)
+      const res = await fetch(`/api/budget-ai/${budgetAI.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setBudgetAI(null)
+      } else {
+        alert('Erro ao apagar orcamento IA')
+      }
+    } catch (err) {
+      console.error('Erro ao apagar orcamento IA:', err)
+      alert('Erro ao apagar orcamento IA')
+    } finally {
+      setDeletingAI(false)
     }
   }
 
@@ -545,12 +566,22 @@ export default function BudgetPage() {
                         </div>
                       )}
 
-                      <Link href={`/budget/ai?budgetId=${budgetAI.id}`}>
-                        <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                          Ver Detalhes
-                          <ArrowRight className="h-4 w-4 ml-2" />
+                      <div className="flex gap-2">
+                        <Link href={`/budget/ai?budgetId=${budgetAI.id}`} className="flex-1">
+                          <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                            Ver Detalhes
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={handleDeleteAI}
+                          disabled={deletingAI}
+                        >
+                          {deletingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                         </Button>
-                      </Link>
+                      </div>
                     </div>
                   ) : budgetAI && budgetAI.status === 'FAILED' ? (
                     <div className="text-center py-8">

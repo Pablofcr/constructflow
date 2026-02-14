@@ -1,12 +1,12 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
 import { AIMetadataBanner } from '@/components/orcamento-ai/AIMetadataBanner';
 import { ConfidenceBadge } from '@/components/orcamento-ai/ConfidenceBadge';
-import { ArrowLeft, Loader2, Sparkles, TableProperties, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, TableProperties, AlertTriangle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface BudgetAIData {
@@ -66,12 +66,14 @@ interface AIServiceData {
 
 function BudgetAIContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { activeProject } = useProject();
   const budgetId = searchParams?.get('budgetId') ?? null;
 
   const [loading, setLoading] = useState(true);
   const [budget, setBudget] = useState<BudgetAIData | null>(null);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const fetchBudget = useCallback(async () => {
     if (!budgetId) return;
@@ -131,6 +133,26 @@ function BudgetAIContent() {
     });
   };
 
+  const handleDelete = async () => {
+    if (!budgetId) return;
+    if (!confirm('Tem certeza que deseja apagar o orcamento por IA? Voce podera gerar um novo depois.')) return;
+
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/budget-ai/${budgetId}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/budget');
+      } else {
+        alert('Erro ao apagar orcamento IA');
+      }
+    } catch (err) {
+      console.error('Erro ao apagar orcamento IA:', err);
+      alert('Erro ao apagar orcamento IA');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (!activeProject) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -164,13 +186,23 @@ function BudgetAIContent() {
 
             <div className="flex items-center gap-2">
               {budget && (
-                <Link
-                  href={`/budget/real/prices?state=${budget.state || budget.project?.enderecoEstado || 'SP'}`}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-                >
-                  <TableProperties className="h-4 w-4" />
-                  Tabela de Precos
-                </Link>
+                <>
+                  <Link
+                    href={`/budget/real/prices?state=${budget.state || budget.project?.enderecoEstado || 'SP'}`}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                  >
+                    <TableProperties className="h-4 w-4" />
+                    Tabela de Precos
+                  </Link>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200 disabled:opacity-50"
+                  >
+                    {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    Apagar
+                  </button>
+                </>
               )}
             </div>
           </div>

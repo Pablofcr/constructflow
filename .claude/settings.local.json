@@ -43,7 +43,11 @@
       "Bash(dir:*)",
       "Bash(powershell:*)",
       "Bash(git diff:*)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "Bash(del:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npx tsc:*)",
+      "Bash(start:*)"
     ]
   }
 }
