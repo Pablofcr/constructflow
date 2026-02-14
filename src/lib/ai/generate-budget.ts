@@ -26,6 +26,123 @@ interface AIBudgetResult {
   stages: AIStageResult[];
 }
 
+interface ValidationWarning {
+  type: 'EMPTY_STAGE' | 'LOW_QUANTITY' | 'FORBIDDEN_COMPOSITION' | 'MISSING_COMPOSITION' | 'COST_RANGE';
+  message: string;
+  stageCode?: string;
+}
+
+function validateAIBudget(
+  result: AIBudgetResult,
+  padraoEmpreendimento: string,
+  constructedArea?: number
+): ValidationWarning[] {
+  const warnings: ValidationWarning[] = [];
+  const isPopular = padraoEmpreendimento === 'POPULAR';
+
+  // Build sets of codes used
+  const allCodes = new Set<string>();
+  const stageServices: Record<string, AIServiceResult[]> = {};
+  let totalCost = 0;
+
+  for (const stage of result.stages) {
+    stageServices[stage.code] = stage.services || [];
+    for (const svc of stage.services || []) {
+      if (svc.code) allCodes.add(svc.code);
+      totalCost += (Number(svc.quantity) || 0) * (Number(svc.unitPrice) || 0);
+    }
+  }
+
+  // Check mandatory stages are not empty
+  const mandatoryStages = ['02', '04', '05', '08', '10', '11'];
+  if (isPopular) {
+    mandatoryStages.push('03', '09');
+  }
+
+  for (const code of mandatoryStages) {
+    const services = stageServices[code] || [];
+    if (services.length === 0) {
+      const stageName = DEFAULT_STAGES.find(s => s.code === code)?.name || code;
+      warnings.push({
+        type: 'EMPTY_STAGE',
+        message: `Etapa ${code} (${stageName}) está vazia — deveria ter serviços`,
+        stageCode: code,
+      });
+    }
+  }
+
+  // Check revestimento quantities vs constructed area
+  if (constructedArea) {
+    const chapiscoCodes = ['SINAPI-87878', 'SINAPI-87879'];
+    for (const stage of result.stages) {
+      if (stage.code !== '08') continue;
+      for (const svc of stage.services || []) {
+        if (svc.code && chapiscoCodes.includes(svc.code)) {
+          if (Number(svc.quantity) < constructedArea) {
+            warnings.push({
+              type: 'LOW_QUANTITY',
+              message: `${svc.description} (${svc.code}): quantidade ${svc.quantity}m² é menor que área construída ${constructedArea}m² — deveria ser área de paredes (perímetro × pé-direito)`,
+              stageCode: '08',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Popular-specific checks
+  if (isPopular) {
+    // Forbidden compositions for popular
+    const forbidden = ['SINAPI-94970', 'SINAPI-88491'];
+    for (const code of forbidden) {
+      if (allCodes.has(code)) {
+        warnings.push({
+          type: 'FORBIDDEN_COMPOSITION',
+          message: `Composição ${code} NÃO deve ser usada em padrão POPULAR`,
+        });
+      }
+    }
+
+    // Required compositions for popular
+    const required = ['CF-02003', 'CF-02004', 'CF-03002', 'CF-09001'];
+    for (const code of required) {
+      if (!allCodes.has(code)) {
+        warnings.push({
+          type: 'MISSING_COMPOSITION',
+          message: `Composição obrigatória ${code} não foi incluída no orçamento POPULAR`,
+        });
+      }
+    }
+  }
+
+  // Cost per m² sanity check (excluding terreno stage 00)
+  if (constructedArea && totalCost > 0) {
+    const costPerM2 = totalCost / constructedArea;
+    const minCost = isPopular ? 1200 : 1500;
+    const maxCost = isPopular ? 3000 : 5000;
+
+    if (costPerM2 < minCost || costPerM2 > maxCost) {
+      warnings.push({
+        type: 'COST_RANGE',
+        message: `Custo/m² = R$${costPerM2.toFixed(0)} — fora da faixa esperada (R$${minCost}-${maxCost}/m²) para padrão ${padraoEmpreendimento}`,
+      });
+    }
+  }
+
+  return warnings;
+}
+
+function parseAiConfidence(raw: unknown): number {
+  let confidence = Number(raw);
+  if (isNaN(confidence) || confidence <= 0) {
+    confidence = 0.5;
+  } else if (confidence > 1) {
+    // AI might return 85 instead of 0.85
+    confidence = confidence / 100;
+  }
+  return Math.min(1, Math.max(0, confidence));
+}
+
 export async function generateAIBudget(budgetAIId: string): Promise<void> {
   const startTime = Date.now();
 
@@ -115,15 +232,16 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
       throw new Error('Não foi possível baixar nenhum arquivo');
     }
 
-    // Build prompt
-    const prompt = buildBudgetPrompt(
+    // Build prompt (now returns { systemPrompt, userPrompt })
+    const constructedArea = project.budgetEstimated?.constructedArea || undefined;
+    const { systemPrompt, userPrompt } = buildBudgetPrompt(
       {
         name: project.name,
         tipoObra: project.tipoObra,
         padraoEmpreendimento: project.padraoEmpreendimento,
         enderecoEstado: project.enderecoEstado,
         enderecoCidade: project.enderecoCidade,
-        constructedArea: project.budgetEstimated?.constructedArea || undefined,
+        constructedArea,
       },
       filesToUse.map((f) => ({
         fileName: f.fileName,
@@ -131,22 +249,27 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
       }))
     );
 
-    // Call Claude API
+    // Call Claude API with extended thinking
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20250929',
       max_tokens: 16000,
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 10000,
+      },
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
           content: [
             ...fileContents,
-            { type: 'text', text: prompt },
+            { type: 'text', text: userPrompt },
           ],
         },
       ],
     });
 
-    // Extract text response
+    // Extract text response (skip thinking blocks)
     const textBlock = response.content.find((b) => b.type === 'text');
     if (!textBlock || textBlock.type !== 'text') {
       throw new Error('Claude não retornou texto');
@@ -167,6 +290,21 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
 
     if (!result.stages || !Array.isArray(result.stages)) {
       throw new Error('Resposta da IA não contém stages');
+    }
+
+    // Post-generation validation (log warnings, don't block)
+    const validationWarnings = validateAIBudget(
+      result,
+      project.padraoEmpreendimento,
+      constructedArea
+    );
+    if (validationWarnings.length > 0) {
+      console.warn('=== VALIDAÇÃO DO ORÇAMENTO IA ===');
+      for (const w of validationWarnings) {
+        console.warn(`[${w.type}]${w.stageCode ? ` Etapa ${w.stageCode}:` : ''} ${w.message}`);
+      }
+      console.warn(`Total: ${validationWarnings.length} warning(s)`);
+      console.warn('=================================');
     }
 
     // Ensure project compositions are initialized (idempotent)
@@ -247,7 +385,7 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
             totalPrice,
             compositionId,
             projectCompositionId: projectCompId,
-            aiConfidence: Math.min(1, Math.max(0, Number(svc.aiConfidence) || 0.5)),
+            aiConfidence: parseAiConfidence(svc.aiConfidence),
             aiReasoning: svc.aiReasoning || null,
           },
         });
@@ -289,7 +427,7 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
       data: {
         status: 'GENERATED',
         totalDirectCost: grandTotal,
-        aiModel: 'claude-sonnet-4-20250514',
+        aiModel: 'claude-sonnet-4-5-20250929',
         aiPromptTokens: response.usage?.input_tokens || null,
         aiOutputTokens: response.usage?.output_tokens || null,
         aiDurationMs: durationMs,
