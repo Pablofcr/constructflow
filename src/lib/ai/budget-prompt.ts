@@ -66,7 +66,8 @@ Analise cada arquivo e extraia:
 
 **Alturas (ATENÇÃO: diferenciar interno/externo/muro):**
 - H_interno = 2,85m — altura para alvenaria, revestimentos internos
-- H_externo = 3,47m — altura fachada completa (2,85m + 0,12m laje + 0,50m platibanda)
+- H_externo = 2,97m — altura fachada (2,85m + 0,12m laje) — usar 2,97m quando não especificado no projeto
+- H_platibanda = 0,50m — altura adicional da platibanda (somar ao H_externo para fachada completa)
 - H_muro = 2,50m (quando não especificado no projeto)
 
 **Vãos:**
@@ -84,9 +85,9 @@ Analise cada arquivo e extraia:
 - A_banheiros_paredes = área de paredes dos banheiros para cerâmica (m²)
 
 ### STEP 2: Calcular variáveis derivadas
-- A_paredes_internas = P_interno × H_interno − A_vaos_portas_internas (m²)
-- A_paredes_externas = P_externo × H_externo − A_vaos_janelas − A_vaos_portas_externas (m²)
-- A_paredes_muros = P_muro × H_muro − A_vaos_portoes (m²)
+- A_paredes_internas = P_interno × H_interno(2,85m) − A_vaos_portas_internas (m²)
+- A_paredes_externas = P_externo × (H_externo(2,97m) + H_platibanda(0,50m)) − A_vaos_janelas − A_vaos_portas_externas (m²)
+- A_paredes_muros = P_muro × H_muro(2,50m) − A_vaos_portoes (m²)
 - A_paredes_total = A_paredes_internas + A_paredes_externas + A_paredes_muros (m²)
 - A_cobertura = A_construida × 1,15 (m²) — acréscimo de 15% para beirais
 - V_escavacao = P_total × 0,40 × 0,50 (m³) — para fundação popular
@@ -111,18 +112,18 @@ Use as variáveis calculadas para preencher as quantidades de cada serviço:
 | Laje treliçada (popular) | A_construida |
 | Alvenaria paredes | (P_interno + P_externo) × H_interno − A_vaos_total |
 | Vergas | N_portas + N_janelas, comprimento = (largura + 0,60m) cada |
-| Chapisco interno | P_interno × H_interno − A_vaos_portas_internas |
-| Emboço interno | P_interno × H_interno − A_vaos_portas_internas |
-| Chapisco externo | (P_externo × H_externo) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
-| Reboco externo | (P_externo × H_externo) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Chapisco interno | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
+| Emboço interno | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
+| Chapisco externo | (P_externo × (H_externo(2,97m) + H_platibanda(0,50m))) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Reboco externo | (P_externo × (H_externo(2,97m) + H_platibanda(0,50m))) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
 | Cerâmico parede | A_cozinha_paredes + A_banheiros_paredes |
 | Forro/reboco teto | A_construida |
 | Contrapiso | A_construida |
 | Piso cerâmico | A_construida |
-| Pintura interna (massa+PVA) | P_interno × H_interno − A_vaos_portas_internas |
-| Pintura externa (selador+textura) | (P_externo × H_externo) + (P_muro × H_muro − A_vaos_portoes) |
+| Pintura interna (massa+PVA) | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
+| Pintura externa (selador+textura) | A_paredes_externas + (A_paredes_muros − A_vaos_portoes) |
 | Cobertura | A_cobertura |
-| Aço vigas | P_total × 4 barras φ10,0mm + estribos φ4,3mm @ 15cm |
+| Aço vigas | P_total × 4 barras ferro φ10,0mm + estribos aço φ4,3mm @ 15cm |
 `;
 }
 
@@ -163,11 +164,14 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 - **CONCRETO SUPERESTRUTURA**: usar FCK 30MPa (NÃO usar FCK 20MPa)
 
 ### ALTURAS (ATENÇÃO — diferenciar):
+- **Pé-direito padrão**: 2,97m (quando não especificado no projeto) — usar 2,85m para cálculos internos
 - **H_interno** = 2,85m (alvenaria, revestimentos internos)
-- **H_externo** = 3,47m (fachada: 2,85m + 0,12m laje + 0,50m platibanda)
-- **H_muro** = 2,50m (quando não especificado)
+- **H_externo** = 2,97m (2,85m + 0,12m laje)
+- **H_platibanda** = 0,50m (adicional para fachada externa)
+- **H_muro** = 2,50m (quando não especificado no projeto)
 
 ### PERÍMETROS:
+- **Perímetro paredes** = soma de TODOS os comprimentos das paredes (internas + externas + muros)
 - **P_total** = P_externo + P_interno + P_muro
 - Sempre MEDIR TODOS os comprimentos (não estimar)
 
@@ -187,25 +191,25 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 - Concreto laje FCK 30MPa (CF-03004): Volume = Área construída × 0,08m
 - Tela Q138 (CF-03003): Área = área construída × 1,15
 - Vigas concreto FCK 30MPa (CF-03004): Volume = P_total × 0,15 × 0,15
-- Aço vigas (CF-03005): P_total × 4 barras φ10,0mm + estribos φ4,3mm @ 15cm
+- Aço vigas (CF-03005): P_total × 4 barras de ferro φ10,0mm + estribos aço φ4,3mm a cada 15cm
 
 ### 04 - Alvenaria
-- Alvenaria (SINAPI-87522): (P_interno + P_externo) × H_interno(2,85m) − A_vaos_total
-- Vergas (SINAPI-87529): para CADA porta E janela, comprimento = largura + 0,60m
+- Alvenaria (SINAPI-87522): (P_interno + P_externo) × 2,85m − A_vaos_total (portas, janelas e portões)
+- Vergas (SINAPI-87529): para CADA porta E janela, comprimento = largura da porta/janela + 0,60m
 - Contravergas (SINAPI-87530): para cada janela, 2 unidades de 60cm
 
 ### 05 - Cobertura
 - Estrutura + telhas: Área = Área construída × 1,15 (acréscimo de 15% para beirais)
 
 ### 06 - Impermeabilização
-- Fundação (SINAPI-98557): Área = P_total × 0,9m
-- Banheiro (SINAPI-98556): Área piso + paredes até 50cm de altura
+- Fundação (SINAPI-98557): Área = P_total × 0,90m
+- Banheiro (SINAPI-98556): Área do piso + área das paredes do banheiro até altura de 50cm
 
 ### 08 - Revestimentos (ATENÇÃO: quantidades são MAIORES que a área construída!)
-- Chapisco INTERNO (SINAPI-87878): P_interno × H_interno(2,85m) − A_vaos_portas_internas
+- Chapisco INTERNO (SINAPI-87878): P_interno × 2,85m − A_vaos_portas_internas
   → Referência casa 60m²: ~222m²
 - Emboço INTERNO (SINAPI-87879): mesma área do chapisco interno
-- Chapisco EXTERNO (SINAPI-87884): (P_externo × H_externo(3,47m)) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes
+- Chapisco EXTERNO (SINAPI-87884): P_externo × (2,97m + 0,50m platibanda) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes
   → Referência casa 60m²: ~235m²
 - Reboco EXTERNO (SINAPI-87881): mesma área do chapisco externo
 - Cerâmico parede (SINAPI-87882): cozinha + banheiros (referência: ~59m² para casa 60m²)
@@ -217,7 +221,7 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### 11 - Pintura
 - Interna: Emassamento (SINAPI-88495) + PVA (SINAPI-88489) = mesma área do chapisco interno
 - EXTERNA popular: Selador (CF-11001) + Textura (CF-11003) — NÃO usar pintura acrílica (SINAPI-88491)
-- Área externa = (P_externo × H_externo) + (P_muro × H_muro − A_vaos_portoes)
+- Área externa = A_paredes_externas + (A_paredes_muros − A_vaos_portoes)
 
 ### 12 - Louças e Metais
 - Por banheiro: 1 bacia + 1 lavatório + 1 chuveiro COMUM (não elétrico — apenas infraestrutura)
