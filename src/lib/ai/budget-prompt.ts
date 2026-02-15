@@ -60,15 +60,19 @@ Analise cada arquivo e extraia:
 - A_construida = área construída total (m²) ${constructedArea ? `[informado: ${areaRef}m²]` : '[extrair do projeto]'}
 - A_terreno = área do terreno (m²)
 - P_externo = perímetro externo da edificação (m)
-- P_interno = perímetro total de TODAS as paredes internas (m) — some TODOS os comprimentos
-- P_muro = perímetro dos muros (m)
+- P_interno = perímetro total de TODAS as paredes internas (m)
+  → OBRIGATÓRIO: liste CADA parede interna individualmente e some:
+  → Exemplo: P_interno = parede_A(5,40m) + parede_B(3,20m) + parede_C(4,50m) + parede_D(2,80m) = 15,90m
+  → NÃO apresente apenas o total — mostre o cálculo completo
+- P_muro = perímetro dos muros (m) — se não houver muros, informar P_muro = 0m
 - P_total = P_externo + P_interno + P_muro (m)
 
-**Alturas (ATENÇÃO: diferenciar interno/externo/muro):**
-- H_interno = 2,85m — altura para alvenaria, revestimentos internos
-- H_externo = 2,97m — altura fachada (2,85m + 0,12m laje) — usar 2,97m quando não especificado no projeto
-- H_platibanda = 0,50m — altura adicional da platibanda (somar ao H_externo para fachada completa)
+**Alturas (ATENÇÃO — CORRIGIDAS):**
+- H_interno = 2,85m — altura para alvenaria e revestimentos INTERNOS
+- H_externo = 3,47m — altura COMPLETA da fachada externa (2,85m + 0,12m laje + 0,50m platibanda)
 - H_muro = 2,50m (quando não especificado no projeto)
+
+IMPORTANTE: NÃO confunda H_interno com H_externo! Use 2,85m para cálculos internos e 3,47m para fachada externa.
 
 **Vãos:**
 - N_portas = número total de portas (un)
@@ -86,11 +90,16 @@ Analise cada arquivo e extraia:
 
 ### STEP 2: Calcular variáveis derivadas
 - A_paredes_internas = P_interno × H_interno(2,85m) − A_vaos_portas_internas (m²)
-- A_paredes_externas = P_externo × (H_externo(2,97m) + H_platibanda(0,50m)) − A_vaos_janelas − A_vaos_portas_externas (m²)
+- A_paredes_externas = P_externo × H_externo(3,47m) − A_vaos_janelas − A_vaos_portas_externas (m²)
 - A_paredes_muros = P_muro × H_muro(2,50m) − A_vaos_portoes (m²)
+  → Se não houver muros: A_paredes_muros = 0m²
 - A_paredes_total = A_paredes_internas + A_paredes_externas + A_paredes_muros (m²)
 - A_cobertura = A_construida × 1,15 (m²) — acréscimo de 15% para beirais
 - V_escavacao = P_total × 0,40 × 0,50 (m³) — para fundação popular
+
+VALIDAÇÃO OBRIGATÓRIA após calcular P_total:
+✓ P_total = P_externo + P_interno + P_muro — mostre a soma explícita
+✓ Se P_muro = 0, deixe explícito no cálculo
 
 ### STEP 3: Verificação de sanidade
 ANTES de prosseguir, verifique:
@@ -99,6 +108,9 @@ ANTES de prosseguir, verifique:
   → Se A_paredes_total < 2,5 × A_construida, REVISE o perímetro — provavelmente está faltando paredes internas ou muros
 - Chapisco/emboço interno NUNCA pode ser menor que A_construida × 2
 - Chapisco/reboco externo NUNCA pode ser menor que A_construida × 1,5
+- P_total = P_externo + P_interno + P_muro — verifique que todos os 3 valores foram informados (mesmo que P_muro = 0)
+- Para POPULAR: verifique que TODO concreto de superestrutura é FCK 30MPa (não 20MPa nem 25MPa)
+- H_externo = 3,47m (não 2,97m) — verifique que usou o valor correto para fachada externa
 
 ### STEP 4: Mapeamento variável → serviço
 Use as variáveis calculadas para preencher as quantidades de cada serviço:
@@ -106,22 +118,22 @@ Use as variáveis calculadas para preencher as quantidades de cada serviço:
 |---------|--------------|
 | Limpeza terreno | A_terreno |
 | Locação obra | P_externo + 8m |
-| Escavação valas | V_escavacao |
+| Escavação valas | V_escavacao = P_total × 0,40 × 0,50 |
 | Alvenaria de pedra (popular) | P_total × 0,40 × 0,30 |
 | Baldrame tijolo (popular) | P_total (metros lineares) |
 | Laje treliçada (popular) | A_construida |
-| Alvenaria paredes | (P_interno + P_externo) × H_interno − A_vaos_total |
+| Alvenaria paredes | (P_interno + P_externo) × H_interno(2,85m) − A_vaos_total |
 | Vergas | N_portas + N_janelas, comprimento = (largura + 0,60m) cada |
 | Chapisco interno | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
 | Emboço interno | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
-| Chapisco externo | (P_externo × (H_externo(2,97m) + H_platibanda(0,50m))) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
-| Reboco externo | (P_externo × (H_externo(2,97m) + H_platibanda(0,50m))) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Chapisco externo | P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Reboco externo | P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
 | Cerâmico parede | A_cozinha_paredes + A_banheiros_paredes |
 | Forro/reboco teto | A_construida |
 | Contrapiso | A_construida |
 | Piso cerâmico | A_construida |
 | Pintura interna (massa+PVA) | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
-| Pintura externa (selador+textura) | A_paredes_externas + (A_paredes_muros − A_vaos_portoes) |
+| Pintura externa (selador+textura) | P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
 | Cobertura | A_cobertura |
 | Aço vigas | P_total × 4 barras ferro φ10,0mm + estribos aço φ4,3mm @ 15cm |
 `;
@@ -161,19 +173,24 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 
 ### MATERIAIS OBRIGATÓRIOS:
 - **CIMENTO**: usar CPIII em TODAS as composições e traços (chapisco, reboco, concreto, argamassas)
-- **CONCRETO SUPERESTRUTURA**: usar FCK 30MPa (NÃO usar FCK 20MPa)
+- **CONCRETO SUPERESTRUTURA**: usar EXCLUSIVAMENTE FCK 30MPa para laje e vigas
+  ⚠️ VALIDAÇÃO: se você gerar "FCK 20MPa" ou "FCK 25MPa", PARE e corrija para FCK 30MPa
+  ⚠️ Use código CF-03004 que especifica FCK 30MPa (não FCK 20MPa)
 
-### ALTURAS (ATENÇÃO — diferenciar):
-- **Pé-direito padrão**: 2,97m (quando não especificado no projeto) — usar 2,85m para cálculos internos
-- **H_interno** = 2,85m (alvenaria, revestimentos internos)
-- **H_externo** = 2,97m (2,85m + 0,12m laje)
-- **H_platibanda** = 0,50m (adicional para fachada externa)
+### ALTURAS (ATENÇÃO — VALORES CORRIGIDOS):
+- **H_interno** = 2,85m — usar para alvenaria, revestimentos internos, pinturas internas
+- **H_externo** = 3,47m — usar para fachada externa (2,85m + 0,12m laje + 0,50m platibanda)
 - **H_muro** = 2,50m (quando não especificado no projeto)
 
-### PERÍMETROS:
-- **Perímetro paredes** = soma de TODOS os comprimentos das paredes (internas + externas + muros)
-- **P_total** = P_externo + P_interno + P_muro
-- Sempre MEDIR TODOS os comprimentos (não estimar)
+⚠️ NUNCA use H_externo = 2,97m — esse valor está ERRADO!
+⚠️ Fachada externa = P_externo × 3,47m (não 2,97m)
+
+### PERÍMETROS (DETALHAMENTO OBRIGATÓRIO):
+- **P_interno**: liste CADA parede interna individualmente antes de somar
+  Exemplo: P_interno = parede_1(5,40m) + parede_2(3,20m) + parede_3(4,50m) = 13,10m
+- **P_muro**: se não houver muros, informe explicitamente "P_muro = 0m"
+- **P_total** = P_externo + P_interno + P_muro — mostre o cálculo completo
+- NUNCA apresente apenas totais sem mostrar as somas
 
 ### 01 - Serviços Preliminares
 - Limpeza terreno (SINAPI-73847): Área = área total do TERRENO (não da edificação)
@@ -189,12 +206,14 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### 03 - Supraestrutura (OBRIGATÓRIA — esta etapa NUNCA deve ficar vazia)
 - Laje treliçada (CF-03002): Área = área construída
 - Concreto laje FCK 30MPa (CF-03004): Volume = Área construída × 0,08m
+  ⚠️ ATENÇÃO: OBRIGATORIAMENTE FCK 30MPa (não 20MPa, não 25MPa)
 - Tela Q138 (CF-03003): Área = área construída × 1,15
 - Vigas concreto FCK 30MPa (CF-03004): Volume = P_total × 0,15 × 0,15
+  ⚠️ ATENÇÃO: OBRIGATORIAMENTE FCK 30MPa (não 20MPa, não 25MPa)
 - Aço vigas (CF-03005): P_total × 4 barras de ferro φ10,0mm + estribos aço φ4,3mm a cada 15cm
 
 ### 04 - Alvenaria
-- Alvenaria (SINAPI-87522): (P_interno + P_externo) × 2,85m − A_vaos_total (portas, janelas e portões)
+- Alvenaria (SINAPI-87522): (P_interno + P_externo) × H_interno(2,85m) − A_vaos_total
 - Vergas (SINAPI-87529): para CADA porta E janela, comprimento = largura da porta/janela + 0,60m
 - Contravergas (SINAPI-87530): para cada janela, 2 unidades de 60cm
 
@@ -206,11 +225,11 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 - Banheiro (SINAPI-98556): Área do piso + área das paredes do banheiro até altura de 50cm
 
 ### 08 - Revestimentos (ATENÇÃO: quantidades são MAIORES que a área construída!)
-- Chapisco INTERNO (SINAPI-87878): P_interno × 2,85m − A_vaos_portas_internas
+- Chapisco INTERNO (SINAPI-87878): P_interno × H_interno(2,85m) − A_vaos_portas_internas
   → Referência casa 60m²: ~222m²
 - Emboço INTERNO (SINAPI-87879): mesma área do chapisco interno
-- Chapisco EXTERNO (SINAPI-87884): P_externo × (2,97m + 0,50m platibanda) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes
-  → Referência casa 60m²: ~235m²
+- Chapisco EXTERNO (SINAPI-87884): P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes
+  → Referência casa 60m²: ~235m² (usando H_externo = 3,47m)
 - Reboco EXTERNO (SINAPI-87881): mesma área do chapisco externo
 - Cerâmico parede (SINAPI-87882): cozinha + banheiros (referência: ~59m² para casa 60m²)
 
@@ -219,9 +238,9 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 - Área = área construída
 
 ### 11 - Pintura
-- Interna: Emassamento (SINAPI-88495) + PVA (SINAPI-88489) = mesma área do chapisco interno
+- Interna: Emassamento (SINAPI-88495) + PVA (SINAPI-88489) = P_interno × H_interno(2,85m) − A_vaos_portas_internas
 - EXTERNA popular: Selador (CF-11001) + Textura (CF-11003) — NÃO usar pintura acrílica (SINAPI-88491)
-- Área externa = A_paredes_externas + (A_paredes_muros − A_vaos_portoes)
+- Área externa = P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes
 
 ### 12 - Louças e Metais
 - Por banheiro: 1 bacia + 1 lavatório + 1 chuveiro COMUM (não elétrico — apenas infraestrutura)
@@ -311,7 +330,14 @@ ${files.map((f) => `- ${f.fileName} (${f.category})`).join('\n')}`);
    - Quantidades devem ser baseadas nos projetos, não estimativas genéricas.
    - Arredonde quantidades para 2 casas decimais.
    - A etapa 00 (Terreno) geralmente fica vazia pois depende de informações financeiras.
-${isPopular ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR do system prompt.' : ''}`);
+${isPopular ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR do system prompt.' : ''}
+
+5. **VALIDAÇÃO FINAL antes de retornar o JSON**:
+   ${isPopular ? '✓ Verifique que TODO concreto de superestrutura é FCK 30MPa (não 20MPa nem 25MPa)\n   ' : ''}✓ Verifique que mostrou P_interno = parede_1 + parede_2 + ... = total (soma explícita)
+   ✓ Verifique que informou P_muro (mesmo que seja 0m)
+   ✓ Verifique que usou H_interno = 2,85m para cálculos internos
+   ${isPopular ? '✓ Verifique que usou H_externo = 3,47m para fachada externa (NÃO 2,97m)\n   ' : ''}✓ Verifique que chapisco interno ≥ A_construida × 2
+   ✓ Verifique que chapisco externo ≥ A_construida × 1,5`);
 
   userParts.push(`## FORMATO DE SAÍDA
 Responda APENAS com o JSON abaixo, sem markdown, sem explicações antes ou depois:
