@@ -49,6 +49,31 @@ function buildStageList(): string {
 function buildCalculationFramework(constructedArea?: number): string {
   const areaRef = constructedArea ? `${constructedArea}` : '??';
   return `
+## ⚠️ ERROS COMUNS QUE VOCÊ DEVE EVITAR
+
+NUNCA faça isso (exemplos de erros frequentes):
+
+❌ ERRADO: H = 2,97m para paredes internas
+✅ CORRETO: H_interno = 2,85m para paredes internas
+
+❌ ERRADO: H = 2,97m para fachada externa
+✅ CORRETO: H_externo = 3,47m para fachada externa
+
+❌ ERRADO: "P_interno = 45,00m"
+✅ CORRETO: "P_interno = parede_1(5,40m) + parede_2(3,20m) + parede_3(6,80m) + ... = 45,00m"
+
+❌ ERRADO: Concreto FCK 20MPa para laje/vigas (padrão popular)
+✅ CORRETO: Concreto FCK 30MPa OBRIGATÓRIO para laje/vigas (padrão popular)
+
+❌ ERRADO: P_total = 78,10m (sem mostrar a soma)
+✅ CORRETO: P_total = P_externo(33,10m) + P_interno(45,00m) + P_muro(0m) = 78,10m
+
+❌ ERRADO: Chapisco interno = P_interno(45m) × 2,97m = 133,65m²
+✅ CORRETO: Chapisco interno = P_interno(45m) × 2,85m = 128,25m²
+
+❌ ERRADO: Chapisco externo = P_externo(33,10m) × 2,97m = 98,31m²
+✅ CORRETO: Chapisco externo = P_externo(33,10m) × 3,47m = 114,86m²
+
 ## FRAMEWORK DE CÁLCULO OBRIGATÓRIO
 
 Antes de gerar os serviços, você DEVE seguir estes passos na ordem:
@@ -100,6 +125,26 @@ IMPORTANTE: NÃO confunda H_interno com H_externo! Use 2,85m para cálculos inte
 VALIDAÇÃO OBRIGATÓRIA após calcular P_total:
 ✓ P_total = P_externo + P_interno + P_muro — mostre a soma explícita
 ✓ Se P_muro = 0, deixe explícito no cálculo
+
+### EXEMPLO COMPLETO DE EXTRAÇÃO (use como modelo):
+
+CORRETO ✅:
+```
+P_interno = parede_cozinha_sala(5,40m) + parede_quarto_banheiro(3,20m) + parede_divisoria_quartos(4,50m) + parede_area_servico(2,80m) = 15,90m
+P_externo = 33,10m
+P_muro = 0m (não há muros neste projeto)
+P_total = P_externo(33,10m) + P_interno(15,90m) + P_muro(0m) = 49,00m
+
+A_paredes_internas = P_interno(15,90m) × H_interno(2,85m) - A_vaos_portas_internas(8,40m²) = 37,02m²
+A_paredes_externas = P_externo(33,10m) × H_externo(3,47m) - A_vaos_janelas(4,80m²) = 109,96m²
+```
+
+ERRADO ❌:
+```
+P_interno = 15,90m
+P_total = 49,00m
+A_paredes_internas = 37,02m²
+```
 
 ### STEP 3: Verificação de sanidade
 ANTES de prosseguir, verifique:
@@ -174,8 +219,15 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### MATERIAIS OBRIGATÓRIOS:
 - **CIMENTO**: usar CPIII em TODAS as composições e traços (chapisco, reboco, concreto, argamassas)
 - **CONCRETO SUPERESTRUTURA**: usar EXCLUSIVAMENTE FCK 30MPa para laje e vigas
-  ⚠️ VALIDAÇÃO: se você gerar "FCK 20MPa" ou "FCK 25MPa", PARE e corrija para FCK 30MPa
-  ⚠️ Use código CF-03004 que especifica FCK 30MPa (não FCK 20MPa)
+  
+  ⚠️ ATENÇÃO MÁXIMA: O CONCRETO PARA POPULAR É FCK 30MPa!
+  
+  ❌ NUNCA USE: "Concreto FCK 20MPa"
+  ❌ NUNCA USE: "Concreto FCK 25MPa"
+  ✅ SEMPRE USE: "Concreto usinado FCK 30MPa" (código CF-03004)
+  
+  Se você escreveu "FCK 20MPa" ou "FCK 25MPa" no aiReasoning, APAGUE e corrija para FCK 30MPa
+  Se você está usando código diferente de CF-03004, CORRIJA para CF-03004
 
 ### ALTURAS (ATENÇÃO — VALORES CORRIGIDOS):
 - **H_interno** = 2,85m — usar para alvenaria, revestimentos internos, pinturas internas
@@ -337,9 +389,63 @@ ${isPopular ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO 
    ✓ Verifique que informou P_muro (mesmo que seja 0m)
    ✓ Verifique que usou H_interno = 2,85m para cálculos internos
    ${isPopular ? '✓ Verifique que usou H_externo = 3,47m para fachada externa (NÃO 2,97m)\n   ' : ''}✓ Verifique que chapisco interno ≥ A_construida × 2
-   ✓ Verifique que chapisco externo ≥ A_construida × 1,5`);
+   ✓ Verifique que chapisco externo ≥ A_construida × 1,5
 
-  userParts.push(`## FORMATO DE SAÍDA
+## EXEMPLOS DE aiReasoning CORRETO vs INCORRETO
+
+### Exemplo 1: P_interno
+❌ ERRADO: "P_interno = 45,00m"
+✅ CORRETO: "P_interno = parede_cozinha_sala(5,40m) + parede_quarto_banheiro(3,20m) + parede_divisoria(6,80m) + parede_area_servico(2,60m) + outras(27,00m) = 45,00m"
+
+### Exemplo 2: P_total
+❌ ERRADO: "P_total = 78,10m"
+✅ CORRETO: "P_total = P_externo(33,10m) + P_interno(45,00m) + P_muro(0m) = 78,10m"
+
+### Exemplo 3: Chapisco interno
+❌ ERRADO: "P_interno(45m) × H(2,97m) - vaos(8,40m²) = 125,25m²"
+✅ CORRETO: "P_interno(45m) × H_interno(2,85m) - A_vaos_portas_internas(8,40m²) = 120,15m²"
+
+### Exemplo 4: Chapisco externo (POPULAR)
+❌ ERRADO: "P_externo(33,10m) × H(2,97m) - vaos(4,80m²) = 93,51m²"
+✅ CORRETO: "P_externo(33,10m) × H_externo(3,47m) - A_vaos_janelas(4,80m²) = 109,96m²"
+
+### Exemplo 5: Concreto (POPULAR)
+❌ ERRADO: "Volume laje = A_construida(60m²) × 0,08m = 4,80m³" + descrição "Concreto FCK 20MPa"
+✅ CORRETO: "Volume laje = A_construida(60m²) × 0,08m = 4,80m³" + descrição "Concreto usinado FCK 30MPa" + código "CF-03004"`);
+
+  userParts.push(`## CHECKLIST FINAL OBRIGATÓRIO
+
+ANTES de retornar o JSON, você DEVE revisar TODO o orçamento e corrigir os seguintes erros se encontrá-los:
+
+${isPopular ? `
+🔍 VERIFICAR: Busque no JSON inteiro por "FCK 20" ou "FCK 25"
+   → Se encontrar: APAGUE e reescreva como "FCK 30MPa"
+   → Código obrigatório: CF-03004
+
+` : ''}🔍 VERIFICAR: Busque por "P_interno = " sem detalhamento de paredes
+   → Se encontrar apenas número (ex: "P_interno = 45,00m"):
+   → REESCREVA mostrando a soma: "P_interno = parede_1(...m) + parede_2(...m) + ... = 45,00m"
+
+🔍 VERIFICAR: Busque por "P_total = " sem mostrar a soma completa
+   → Se encontrar apenas número (ex: "P_total = 78,10m"):
+   → REESCREVA: "P_total = P_externo(...m) + P_interno(...m) + P_muro(0m) = 78,10m"
+
+${isPopular ? `
+🔍 VERIFICAR: Busque por "× H" ou "× 2,97" em cálculos de parede
+   → Se for parede INTERNA e usar 2,97m ou 3,47m: CORRIJA para H_interno(2,85m)
+   → Se for parede EXTERNA e usar 2,85m ou 2,97m: CORRIJA para H_externo(3,47m)
+
+` : ''}🔍 VERIFICAR: Confira que chapisco interno ≥ A_construida × 2
+   → Para casa 60m²: chapisco interno deve ser ≥ 120m²
+   → Se for menor: REVISE o cálculo (provavelmente usou altura errada)
+
+🔍 VERIFICAR: Confira que chapisco externo ≥ A_construida × 1,5
+   → Para casa 60m²: chapisco externo deve ser ≥ 90m²
+   → Se for menor: REVISE o cálculo (provavelmente faltou muros ou usou altura errada)
+
+⚠️ SE VOCÊ ENCONTROU E CORRIGIU ALGUM ERRO ACIMA, REFAÇA TODO O JSON COM OS VALORES CORRIGIDOS.
+
+## FORMATO DE SAÍDA
 Responda APENAS com o JSON abaixo, sem markdown, sem explicações antes ou depois:
 
 {
