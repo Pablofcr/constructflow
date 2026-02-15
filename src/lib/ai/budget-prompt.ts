@@ -59,14 +59,17 @@ NUNCA faça isso (exemplos de erros frequentes):
 ❌ ERRADO: H = 2,97m para fachada externa
 ✅ CORRETO: H_externo = 3,47m para fachada externa
 
-❌ ERRADO: "P_interno = 45,00m"
-✅ CORRETO: "P_interno = parede_1(5,40m) + parede_2(3,20m) + parede_3(6,80m) + ... = 45,00m"
+❌ ERRADO: "P_interno = 45,00m" (sem usar método H/V)
+✅ CORRETO: Usar MÉTODO H/V obrigatório:
+   "HORIZONTAIS: H0=5,40m + H1=5,40m + H2=5,40m = 16,20m
+    VERTICAIS: V0=11,10m + V1=2,50m + V2=3,20m = 16,80m
+    P_total = 16,20 + 16,80 = 33,00m"
+
+❌ ERRADO: Pular números na sequência (H0, H1, H3... cadê H2?)
+✅ CORRETO: Sequência completa sem pulos (H0, H1, H2, H3...)
 
 ❌ ERRADO: Concreto FCK 20MPa para laje/vigas (padrão popular)
 ✅ CORRETO: Concreto FCK 30MPa OBRIGATÓRIO para laje/vigas (padrão popular)
-
-❌ ERRADO: P_total = 78,10m (sem mostrar a soma)
-✅ CORRETO: P_total = P_externo(33,10m) + P_interno(45,00m) + P_muro(0m) = 78,10m
 
 ❌ ERRADO: Chapisco interno = P_interno(45m) × 2,97m = 133,65m²
 ✅ CORRETO: Chapisco interno = P_interno(45m) × 2,85m = 128,25m²
@@ -81,16 +84,36 @@ Antes de gerar os serviços, você DEVE seguir estes passos na ordem:
 ### STEP 1: Extrair variáveis dos projetos (PDFs/imagens)
 Analise cada arquivo e extraia:
 
-**Áreas e Perímetros:**
+**Áreas:**
 - A_construida = área construída total (m²) ${constructedArea ? `[informado: ${areaRef}m²]` : '[extrair do projeto]'}
 - A_terreno = área do terreno (m²)
-- P_externo = perímetro externo da edificação (m)
-- P_interno = perímetro total de TODAS as paredes internas (m)
-  → OBRIGATÓRIO: liste CADA parede interna individualmente e some:
-  → Exemplo: P_interno = parede_A(5,40m) + parede_B(3,20m) + parede_C(4,50m) + parede_D(2,80m) = 15,90m
-  → NÃO apresente apenas o total — mostre o cálculo completo
-- P_muro = perímetro dos muros (m) — se não houver muros, informar P_muro = 0m
-- P_total = P_externo + P_interno + P_muro (m)
+
+**Perímetros (MÉTODO H/V OBRIGATÓRIO):**
+
+Use o MÉTODO H/V para mapear TODAS as paredes de forma sistemática:
+
+**HORIZONTAIS (H):** Paredes paralelas à frente da obra (frente → fundos)
+- H0 = muro frontal ou primeira parede frontal (m)
+- H1 = próxima parede paralela seguindo em direção ao fundo (m)
+- H2, H3, H4... = paredes seguintes na sequência (m)
+- H_última = muro de fundos ou última parede (m)
+
+**VERTICAIS (V):** Paredes perpendiculares à frente da obra (esquerda → direita)
+- V0 = muro esquerdo ou parede lateral esquerda (m)
+- V1 = próxima parede perpendicular seguindo para a direita (m)
+- V2, V3, V4... = paredes seguintes na sequência (m)
+- V_última = muro direito ou parede lateral direita (m)
+
+**REGRAS:**
+1. SEMPRE começar de H0 (nunca pular números: H0, H1, H3 ← ERRADO!)
+2. SEMPRE começar de V0 (nunca pular números: V0, V1, V3 ← ERRADO!)
+3. Especificar se é muro, parede externa ou parede interna para cada uma
+4. Se muro coincide com parede externa: especificar "H0 = 5,40m (muro/parede externa)"
+
+**CÁLCULO FINAL:**
+- P_horizontal = H0 + H1 + H2 + ... + H_última (m)
+- P_vertical = V0 + V1 + V2 + ... + V_última (m)
+- P_total = P_horizontal + P_vertical (m)
 
 **Alturas (ATENÇÃO — CORRIGIDAS):**
 - H_interno = 2,85m — altura para alvenaria e revestimentos INTERNOS
@@ -114,36 +137,80 @@ IMPORTANTE: NÃO confunda H_interno com H_externo! Use 2,85m para cálculos inte
 - A_banheiros_paredes = área de paredes dos banheiros para cerâmica (m²)
 
 ### STEP 2: Calcular variáveis derivadas
+
+**PRIMEIRO: Classificar paredes do MÉTODO H/V**
+- P_interno = soma das paredes H/V marcadas como (int)
+- P_externo = soma das paredes H/V marcadas como (ext)
+- P_muro = soma das paredes H/V marcadas como (muro)
+
+Exemplo:
+```
+H0=5,40m(muro) + H1=5,40m(ext) + H2=5,40m(int) + V0=11,10m(ext/muro) + V1=2,50m(int)
+→ P_muro = H0 = 5,40m
+→ P_externo = H1 + V0 = 5,40 + 11,10 = 16,50m
+→ P_interno = H2 + V1 = 5,40 + 2,50 = 7,90m
+```
+
+**DEPOIS: Calcular áreas de paredes**
 - A_paredes_internas = P_interno × H_interno(2,85m) − A_vaos_portas_internas (m²)
 - A_paredes_externas = P_externo × H_externo(3,47m) − A_vaos_janelas − A_vaos_portas_externas (m²)
 - A_paredes_muros = P_muro × H_muro(2,50m) − A_vaos_portoes (m²)
-  → Se não houver muros: A_paredes_muros = 0m²
+  → Se não houver muros: P_muro = 0m, A_paredes_muros = 0m²
 - A_paredes_total = A_paredes_internas + A_paredes_externas + A_paredes_muros (m²)
 - A_cobertura = A_construida × 1,15 (m²) — acréscimo de 15% para beirais
 - V_escavacao = P_total × 0,40 × 0,50 (m³) — para fundação popular
 
-VALIDAÇÃO OBRIGATÓRIA após calcular P_total:
-✓ P_total = P_externo + P_interno + P_muro — mostre a soma explícita
-✓ Se P_muro = 0, deixe explícito no cálculo
+VALIDAÇÃO OBRIGATÓRIA do MÉTODO H/V:
+✓ Listou TODAS as horizontais sequencialmente: H0, H1, H2, ... (sem pular números!)
+✓ Listou TODAS as verticais sequencialmente: V0, V1, V2, ... (sem pular números!)
+✓ Especificou tipo de cada parede (muro/externa/interna)
+✓ Calculou P_horizontal = H0 + H1 + ... = X m (soma explícita)
+✓ Calculou P_vertical = V0 + V1 + ... = Y m (soma explícita)
+✓ Calculou P_total = P_horizontal + P_vertical = Z m
+✓ Classificou P_externo, P_interno e P_muro a partir das paredes H/V
 
-### EXEMPLO COMPLETO DE EXTRAÇÃO (use como modelo):
+### EXEMPLO COMPLETO DE EXTRAÇÃO USANDO MÉTODO H/V (use como modelo):
 
 CORRETO ✅:
 ```
-P_interno = parede_cozinha_sala(5,40m) + parede_quarto_banheiro(3,20m) + parede_divisoria_quartos(4,50m) + parede_area_servico(2,80m) = 15,90m
-P_externo = 33,10m
-P_muro = 0m (não há muros neste projeto)
-P_total = P_externo(33,10m) + P_interno(15,90m) + P_muro(0m) = 49,00m
+=== MÉTODO H/V ===
 
-A_paredes_internas = P_interno(15,90m) × H_interno(2,85m) - A_vaos_portas_internas(8,40m²) = 37,02m²
-A_paredes_externas = P_externo(33,10m) × H_externo(3,47m) - A_vaos_janelas(4,80m²) = 109,96m²
+HORIZONTAIS (frente → fundos):
+H0 = 5,40m (muro frontal)
+H1 = 5,40m (parede externa frontal da casa)
+H2 = 5,40m (parede interna entre sala e quartos)
+H3 = 5,40m (parede interna divisória banheiro)
+H4 = 5,40m (parede externa fundos)
+H5 = 5,40m (muro fundos)
+P_horizontal = H0 + H1 + H2 + H3 + H4 + H5 = 32,40m
+
+VERTICAIS (esquerda → direita):
+V0 = 11,10m (muro esquerdo / parede lateral esquerda)
+V1 = 2,50m (parede interna divisória quarto 1)
+V2 = 3,20m (parede interna divisória sala/cozinha)
+V3 = 2,80m (parede interna divisória banheiro/lavanderia)
+V4 = 11,10m (parede lateral direita / muro direito)
+P_vertical = V0 + V1 + V2 + V3 + V4 = 30,70m
+
+P_total = P_horizontal + P_vertical = 32,40m + 30,70m = 63,10m
+
+=== CLASSIFICAÇÃO ===
+P_externo = H1 + H4 + V0 + V4 = 5,40 + 5,40 + 11,10 + 11,10 = 33,00m
+P_interno = H2 + H3 + V1 + V2 + V3 = 5,40 + 5,40 + 2,50 + 3,20 + 2,80 = 19,30m
+P_muro = H0 + H5 = 5,40 + 5,40 = 10,80m
+
+=== ÁREAS DERIVADAS ===
+A_paredes_internas = P_interno(19,30m) × H_interno(2,85m) - A_vaos_portas_internas(8,40m²) = 46,61m²
+A_paredes_externas = P_externo(33,00m) × H_externo(3,47m) - A_vaos_janelas_portas_externas(6,20m²) = 108,31m²
+A_paredes_muros = P_muro(10,80m) × H_muro(2,50m) - A_vaos_portoes(0m²) = 27,00m²
+A_paredes_total = 46,61 + 108,31 + 27,00 = 181,92m²
 ```
 
 ERRADO ❌:
 ```
-P_interno = 15,90m
-P_total = 49,00m
-A_paredes_internas = 37,02m²
+P_interno = 19,30m (sem mostrar H2, H3, V1, V2, V3)
+P_externo = 33,00m (sem mostrar H1, H4, V0, V4)
+P_total = 63,10m (sem mostrar P_horizontal + P_vertical)
 ```
 
 ### STEP 3: Verificação de sanidade
@@ -158,29 +225,32 @@ ANTES de prosseguir, verifique:
 - H_externo = 3,47m (não 2,97m) — verifique que usou o valor correto para fachada externa
 
 ### STEP 4: Mapeamento variável → serviço
-Use as variáveis calculadas para preencher as quantidades de cada serviço:
+Use as variáveis calculadas (MÉTODO H/V) para preencher as quantidades de cada serviço:
+
 | Serviço | Quantidade = |
 |---------|--------------|
 | Limpeza terreno | A_terreno |
-| Locação obra | P_externo + 8m |
+| Locação obra | perímetro externo + 8m |
 | Escavação valas | V_escavacao = P_total × 0,40 × 0,50 |
 | Alvenaria de pedra (popular) | P_total × 0,40 × 0,30 |
 | Baldrame tijolo (popular) | P_total (metros lineares) |
 | Laje treliçada (popular) | A_construida |
-| Alvenaria paredes | (P_interno + P_externo) × H_interno(2,85m) − A_vaos_total |
+| Alvenaria paredes | A_paredes_total − A_vaos_total |
 | Vergas | N_portas + N_janelas, comprimento = (largura + 0,60m) cada |
-| Chapisco interno | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
-| Emboço interno | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
-| Chapisco externo | P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
-| Reboco externo | P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Chapisco interno | A_paredes_internas (usar P_interno classificado do H/V) |
+| Emboço interno | A_paredes_internas |
+| Chapisco externo | A_paredes_externas + A_paredes_muros (usar P_externo e P_muro do H/V) |
+| Reboco externo | A_paredes_externas + A_paredes_muros |
 | Cerâmico parede | A_cozinha_paredes + A_banheiros_paredes |
 | Forro/reboco teto | A_construida |
 | Contrapiso | A_construida |
 | Piso cerâmico | A_construida |
-| Pintura interna (massa+PVA) | P_interno × H_interno(2,85m) − A_vaos_portas_internas |
-| Pintura externa (selador+textura) | P_externo × H_externo(3,47m) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Pintura interna (massa+PVA) | A_paredes_internas |
+| Pintura externa (selador+textura) | A_paredes_externas + A_paredes_muros |
 | Cobertura | A_cobertura |
 | Aço vigas | P_total × 4 barras ferro φ10,0mm + estribos aço φ4,3mm @ 15cm |
+
+**IMPORTANTE:** Use SEMPRE a classificação do MÉTODO H/V para separar P_interno, P_externo e P_muro
 `;
 }
 
@@ -237,12 +307,20 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ⚠️ NUNCA use H_externo = 2,97m — esse valor está ERRADO!
 ⚠️ Fachada externa = P_externo × 3,47m (não 2,97m)
 
-### PERÍMETROS (DETALHAMENTO OBRIGATÓRIO):
-- **P_interno**: liste CADA parede interna individualmente antes de somar
-  Exemplo: P_interno = parede_1(5,40m) + parede_2(3,20m) + parede_3(4,50m) = 13,10m
-- **P_muro**: se não houver muros, informe explicitamente "P_muro = 0m"
-- **P_total** = P_externo + P_interno + P_muro — mostre o cálculo completo
-- NUNCA apresente apenas totais sem mostrar as somas
+### PERÍMETROS (MÉTODO H/V OBRIGATÓRIO):
+- Use EXCLUSIVAMENTE o MÉTODO H/V para mapear paredes
+- **HORIZONTAIS**: Liste todas de H0 a H_última (frente → fundos)
+  → H0 = primeira parede/muro frontal
+  → H1, H2, H3... = paredes seguintes
+  → H_última = última parede/muro fundos
+- **VERTICAIS**: Liste todas de V0 a V_última (esquerda → direita)
+  → V0 = primeira parede/muro lateral esquerdo
+  → V1, V2, V3... = paredes seguintes
+  → V_última = última parede/muro lateral direito
+- **NUNCA pule números** na sequência (H0, H1, H3 ← ERRO!)
+- **SEMPRE mostre somas**: P_horizontal = H0 + H1 + ... = X m
+- **SEMPRE classifique**: qual parede é muro, externa ou interna
+- **P_total = P_horizontal + P_vertical** (não mais P_ext + P_int + P_muro)
 
 ### 01 - Serviços Preliminares
 - Limpeza terreno (SINAPI-73847): Área = área total do TERRENO (não da edificação)
@@ -393,13 +471,16 @@ ${isPopular ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO 
 
 ## EXEMPLOS DE aiReasoning CORRETO vs INCORRETO
 
-### Exemplo 1: P_interno
-❌ ERRADO: "P_interno = 45,00m"
-✅ CORRETO: "P_interno = parede_cozinha_sala(5,40m) + parede_quarto_banheiro(3,20m) + parede_divisoria(6,80m) + parede_area_servico(2,60m) + outras(27,00m) = 45,00m"
+### Exemplo 1: Perímetros (MÉTODO H/V)
+❌ ERRADO: "P_interno = 45,00m" ou "P_total = 78,10m"
+✅ CORRETO: "HORIZONTAIS: H0=5,40m(muro) + H1=5,40m(ext) + H2=5,40m(int) + H3=5,40m(int) + H4=5,40m(ext) + H5=5,40m(muro) = 32,40m
+VERTICAIS: V0=11,10m(ext/muro) + V1=2,50m(int) + V2=3,20m(int) + V3=2,80m(int) + V4=11,10m(ext/muro) = 30,70m
+P_total = P_horizontal(32,40m) + P_vertical(30,70m) = 63,10m
+P_interno = H2 + H3 + V1 + V2 + V3 = 5,40 + 5,40 + 2,50 + 3,20 + 2,80 = 19,30m"
 
-### Exemplo 2: P_total
-❌ ERRADO: "P_total = 78,10m"
-✅ CORRETO: "P_total = P_externo(33,10m) + P_interno(45,00m) + P_muro(0m) = 78,10m"
+### Exemplo 2: Sequência Incompleta
+❌ ERRADO: "H0, H1, H3, H4" (pulou H2!)
+✅ CORRETO: "H0, H1, H2, H3, H4" (sequência completa sem pulos)
 
 ### Exemplo 3: Chapisco interno
 ❌ ERRADO: "P_interno(45m) × H(2,97m) - vaos(8,40m²) = 125,25m²"
@@ -422,13 +503,19 @@ ${isPopular ? `
    → Se encontrar: APAGUE e reescreva como "FCK 30MPa"
    → Código obrigatório: CF-03004
 
-` : ''}🔍 VERIFICAR: Busque por "P_interno = " sem detalhamento de paredes
-   → Se encontrar apenas número (ex: "P_interno = 45,00m"):
-   → REESCREVA mostrando a soma: "P_interno = parede_1(...m) + parede_2(...m) + ... = 45,00m"
+` : ''}🔍 VERIFICAR: Busque por perímetros SEM usar MÉTODO H/V
+   → Se encontrar "P_interno = 45,00m" ou "P_externo = 33,00m" sem H0, H1, V0, V1:
+   → REESCREVA usando MÉTODO H/V completo:
+     • Liste TODAS as horizontais: H0, H1, H2, ... (sem pular números!)
+     • Liste TODAS as verticais: V0, V1, V2, ... (sem pular números!)
+     • Especifique tipo: (muro), (ext), (int) para cada parede
+     • Calcule P_horizontal = H0 + H1 + ... = X m
+     • Calcule P_vertical = V0 + V1 + ... = Y m
+     • Calcule P_total = P_horizontal + P_vertical = Z m
 
-🔍 VERIFICAR: Busque por "P_total = " sem mostrar a soma completa
-   → Se encontrar apenas número (ex: "P_total = 78,10m"):
-   → REESCREVA: "P_total = P_externo(...m) + P_interno(...m) + P_muro(0m) = 78,10m"
+🔍 VERIFICAR: Busque por sequências incompletas (H0, H1, H3... falta H2!)
+   → Se encontrar pulo na numeração:
+   → CORRIJA listando TODAS as paredes sequencialmente
 
 ${isPopular ? `
 🔍 VERIFICAR: Busque por "× H" ou "× 2,97" em cálculos de parede
