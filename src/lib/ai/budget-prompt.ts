@@ -55,25 +55,39 @@ Antes de gerar os serviços, você DEVE seguir estes passos na ordem:
 
 ### STEP 1: Extrair variáveis dos projetos (PDFs/imagens)
 Analise cada arquivo e extraia:
+
+**Áreas e Perímetros:**
 - A_construida = área construída total (m²) ${constructedArea ? `[informado: ${areaRef}m²]` : '[extrair do projeto]'}
 - A_terreno = área do terreno (m²)
 - P_externo = perímetro externo da edificação (m)
-- P_interno = perímetro total de TODAS as paredes internas (m) — some TODOS os comprimentos de paredes internas
-- P_total = P_externo + P_interno (m)
-- H_pe_direito = pé-direito (m) — usar 2,97m se não especificado
+- P_interno = perímetro total de TODAS as paredes internas (m) — some TODOS os comprimentos
+- P_muro = perímetro dos muros (m)
+- P_total = P_externo + P_interno + P_muro (m)
+
+**Alturas (ATENÇÃO: diferenciar interno/externo/muro):**
+- H_interno = 2,85m — altura para alvenaria, revestimentos internos
+- H_externo = 3,47m — altura fachada completa (2,85m + 0,12m laje + 0,50m platibanda)
+- H_muro = 2,50m (quando não especificado no projeto)
+
+**Vãos:**
 - N_portas = número total de portas (un)
 - N_janelas = número total de janelas (un)
+- N_portoes = número total de portões em muros (un)
 - A_vaos_portas = N_portas × 0,80 × 2,10 (m²) — área total dos vãos de portas
 - A_vaos_janelas = somatório(largura × altura de cada janela) (m²)
-- A_vaos_total = A_vaos_portas + A_vaos_janelas (m²)
+- A_vaos_portoes = somatório(largura × altura de cada portão) (m²)
+- A_vaos_total = A_vaos_portas + A_vaos_janelas + A_vaos_portoes (m²)
+
+**Ambientes:**
 - N_banheiros = número de banheiros
 - A_cozinha_paredes = área de paredes da cozinha para cerâmica (m²)
 - A_banheiros_paredes = área de paredes dos banheiros para cerâmica (m²)
 
 ### STEP 2: Calcular variáveis derivadas
-- A_paredes_internas = P_interno × H_pe_direito − A_vaos_portas_internos (m²)
-- A_paredes_externas = P_externo × H_pe_direito − A_vaos_janelas − A_vaos_portas_externos (m²)
-- A_paredes_total = A_paredes_internas + A_paredes_externas (m²)
+- A_paredes_internas = P_interno × H_interno − A_vaos_portas_internas (m²)
+- A_paredes_externas = P_externo × H_externo − A_vaos_janelas − A_vaos_portas_externas (m²)
+- A_paredes_muros = P_muro × H_muro − A_vaos_portoes (m²)
+- A_paredes_total = A_paredes_internas + A_paredes_externas + A_paredes_muros (m²)
 - A_cobertura = A_construida × 1,15 (m²) — acréscimo de 15% para beirais
 - V_escavacao = P_total × 0,40 × 0,50 (m³) — para fundação popular
 
@@ -81,32 +95,34 @@ Analise cada arquivo e extraia:
 ANTES de prosseguir, verifique:
 - A_paredes_total deve ser aproximadamente 3,5 a 4,5 × A_construida
   → Para casa 60m²: paredes totais devem estar entre 210m² e 270m²
-  → Se A_paredes_total < 2,5 × A_construida, REVISE o perímetro — provavelmente está faltando paredes internas
+  → Se A_paredes_total < 2,5 × A_construida, REVISE o perímetro — provavelmente está faltando paredes internas ou muros
 - Chapisco/emboço interno NUNCA pode ser menor que A_construida × 2
 - Chapisco/reboco externo NUNCA pode ser menor que A_construida × 1,5
 
 ### STEP 4: Mapeamento variável → serviço
 Use as variáveis calculadas para preencher as quantidades de cada serviço:
 | Serviço | Quantidade = |
-|---------|-------------|
+|---------|--------------|
 | Limpeza terreno | A_terreno |
 | Locação obra | P_externo + 8m |
 | Escavação valas | V_escavacao |
 | Alvenaria de pedra (popular) | P_total × 0,40 × 0,30 |
 | Baldrame tijolo (popular) | P_total (metros lineares) |
 | Laje treliçada (popular) | A_construida |
-| Alvenaria paredes | A_paredes_total − A_vaos_total |
-| Chapisco interno | A_paredes_internas |
-| Emboço interno | A_paredes_internas |
-| Chapisco externo | A_paredes_externas + muros |
-| Reboco externo | A_paredes_externas + muros |
+| Alvenaria paredes | (P_interno + P_externo) × H_interno − A_vaos_total |
+| Vergas | N_portas + N_janelas, comprimento = (largura + 0,60m) cada |
+| Chapisco interno | P_interno × H_interno − A_vaos_portas_internas |
+| Emboço interno | P_interno × H_interno − A_vaos_portas_internas |
+| Chapisco externo | (P_externo × H_externo) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
+| Reboco externo | (P_externo × H_externo) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes |
 | Cerâmico parede | A_cozinha_paredes + A_banheiros_paredes |
 | Forro/reboco teto | A_construida |
 | Contrapiso | A_construida |
 | Piso cerâmico | A_construida |
-| Pintura interna (massa+PVA) | A_paredes_internas |
-| Pintura externa (selador+textura ou acrílica) | A_paredes_externas |
+| Pintura interna (massa+PVA) | P_interno × H_interno − A_vaos_portas_internas |
+| Pintura externa (selador+textura) | (P_externo × H_externo) + (P_muro × H_muro − A_vaos_portoes) |
 | Cobertura | A_cobertura |
+| Aço vigas | P_total × 4 barras φ10,0mm + estribos φ4,3mm @ 15cm |
 `;
 }
 
@@ -129,7 +145,7 @@ function buildCompositionGuide(padraoEmpreendimento: string): string {
 | Etapa | USAR (composição correta) | NÃO USAR (errado para popular) |
 |-------|--------------------------|-------------------------------|
 | 02 Infraestrutura | CF-02003 Alvenaria de pedra + CF-02004 Baldrame tijolo | SINAPI-94970 Viga baldrame concreto |
-| 03 Supraestrutura | CF-03002 Laje treliçada + CF-03003 Tela Q138 + CF-03004 Concreto FCK20 + CF-03005 Aço CA-50 | (nunca deixar etapa vazia) |
+| 03 Supraestrutura | CF-03002 Laje treliçada + CF-03003 Tela Q138 + CF-03004 Concreto FCK30 + CF-03005 Aço CA-50 | (nunca deixar etapa vazia) |
 | 09 Fôrros | CF-09001 Reboco de teto | Gesso ou PVC |
 | 11 Pintura ext. | CF-11001 Selador + CF-11003 Textura | SINAPI-88491 Acrílica |
 | 12 Chuveiro | Chuveiro COMUM (infraestrutura apenas) | Chuveiro elétrico |
@@ -142,44 +158,55 @@ function buildPopularRules(): string {
 
 ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosamente cada item.
 
-### Variáveis base
-- Pé-direito padrão: 2,97m (quando não especificado no projeto)
-- Perímetro paredes = soma de TODOS os comprimentos das paredes (internas + externas, sem muro)
+### MATERIAIS OBRIGATÓRIOS:
+- **CIMENTO**: usar CPIII em TODAS as composições e traços (chapisco, reboco, concreto, argamassas)
+- **CONCRETO SUPERESTRUTURA**: usar FCK 30MPa (NÃO usar FCK 20MPa)
+
+### ALTURAS (ATENÇÃO — diferenciar):
+- **H_interno** = 2,85m (alvenaria, revestimentos internos)
+- **H_externo** = 3,47m (fachada: 2,85m + 0,12m laje + 0,50m platibanda)
+- **H_muro** = 2,50m (quando não especificado)
+
+### PERÍMETROS:
+- **P_total** = P_externo + P_interno + P_muro
+- Sempre MEDIR TODOS os comprimentos (não estimar)
 
 ### 01 - Serviços Preliminares
 - Limpeza terreno (SINAPI-73847): Área = área total do TERRENO (não da edificação)
 - Locação de obra (SINAPI-84275): Perímetro da edificação + 1m cada lado
 
 ### 02 - Infraestrutura
-- Escavação valas (SINAPI-79479): Volume = Perímetro paredes × 0,40m × 0,50m
+- Escavação valas (SINAPI-79479): Volume = P_total × 0,40m × 0,50m
 - Fundação popular: NÃO usar viga baldrame de concreto (SINAPI-94970)
-  → Usar: Alvenaria de pedra (CF-02003) — Volume = Perímetro × 0,40 × 0,30
-  → Usar: Baldrame tijolo (CF-02004) — Comprimento = Perímetro total em metros lineares
+  → Usar: Alvenaria de pedra (CF-02003) — Volume = P_total × 0,40 × 0,30
+  → Usar: Baldrame tijolo (CF-02004) — Comprimento = P_total (metros lineares)
 - Reaterro (SINAPI-79480): Volume = Volume escavação − (Volume alvenaria de pedra + Volume baldrame tijolo)
 
 ### 03 - Supraestrutura (OBRIGATÓRIA — esta etapa NUNCA deve ficar vazia)
 - Laje treliçada (CF-03002): Área = área construída
-- Concreto laje (CF-03004): Volume = Área construída × 0,08m
+- Concreto laje FCK 30MPa (CF-03004): Volume = Área construída × 0,08m
 - Tela Q138 (CF-03003): Área = área construída × 1,15
-- Vigas concreto (CF-03004): Volume = Perímetro paredes × 0,15 × 0,15
-- Aço vigas (CF-03005): Comprimento = Perímetro paredes × 4 barras
+- Vigas concreto FCK 30MPa (CF-03004): Volume = P_total × 0,15 × 0,15
+- Aço vigas (CF-03005): P_total × 4 barras φ10,0mm + estribos φ4,3mm @ 15cm
 
 ### 04 - Alvenaria
-- Alvenaria (SINAPI-87522): Área = Perímetro paredes × 2,97m − vãos (portas e janelas)
-- Vergas (SINAPI-87529): para cada janela, comprimento = largura janela + 60cm
+- Alvenaria (SINAPI-87522): (P_interno + P_externo) × H_interno(2,85m) − A_vaos_total
+- Vergas (SINAPI-87529): para CADA porta E janela, comprimento = largura + 0,60m
 - Contravergas (SINAPI-87530): para cada janela, 2 unidades de 60cm
 
 ### 05 - Cobertura
 - Estrutura + telhas: Área = Área construída × 1,15 (acréscimo de 15% para beirais)
 
 ### 06 - Impermeabilização
-- Fundação (SINAPI-98557): Área = Perímetro × 0,9m
-- Banheiro (SINAPI-98556): Área piso + paredes do box
+- Fundação (SINAPI-98557): Área = P_total × 0,9m
+- Banheiro (SINAPI-98556): Área piso + paredes até 50cm de altura
 
 ### 08 - Revestimentos (ATENÇÃO: quantidades são MAIORES que a área construída!)
-- Chapisco INTERNO (SINAPI-87878): Perímetro paredes internas × 2,97m − vãos (referência: ~222m² para casa 60m²)
+- Chapisco INTERNO (SINAPI-87878): P_interno × H_interno(2,85m) − A_vaos_portas_internas
+  → Referência casa 60m²: ~222m²
 - Emboço INTERNO (SINAPI-87879): mesma área do chapisco interno
-- Chapisco EXTERNO (SINAPI-87884): Perímetro externo × 2,97m + muros − vãos (referência: ~235m² para casa 60m²)
+- Chapisco EXTERNO (SINAPI-87884): (P_externo × H_externo(3,47m)) + A_paredes_muros − A_vaos_janelas − A_vaos_portoes
+  → Referência casa 60m²: ~235m²
 - Reboco EXTERNO (SINAPI-87881): mesma área do chapisco externo
 - Cerâmico parede (SINAPI-87882): cozinha + banheiros (referência: ~59m² para casa 60m²)
 
@@ -190,7 +217,7 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### 11 - Pintura
 - Interna: Emassamento (SINAPI-88495) + PVA (SINAPI-88489) = mesma área do chapisco interno
 - EXTERNA popular: Selador (CF-11001) + Textura (CF-11003) — NÃO usar pintura acrílica (SINAPI-88491)
-- Área externa = mesma área do chapisco externo
+- Área externa = (P_externo × H_externo) + (P_muro × H_muro − A_vaos_portoes)
 
 ### 12 - Louças e Metais
 - Por banheiro: 1 bacia + 1 lavatório + 1 chuveiro COMUM (não elétrico — apenas infraestrutura)
@@ -251,7 +278,7 @@ ${files.map((f) => `- ${f.fileName} (${f.category})`).join('\n')}`);
 
 1. **Analise cada PDF/imagem cuidadosamente**:
    - Plantas baixas: extraia áreas de cômodos, dimensões de paredes, portas, janelas
-   - MEÇA o perímetro TOTAL de todas as paredes (externas + internas)
+   - MEÇA o perímetro TOTAL de todas as paredes (externas + internas + muros)
    - Projeto estrutural: identifique fundações, pilares, vigas, lajes
    - Projeto elétrico: conte pontos de tomada, interruptores, circuitos
    - Projeto hidráulico: identifique pontos de água, esgoto, louças
@@ -273,7 +300,7 @@ ${files.map((f) => `- ${f.fileName} (${f.category})`).join('\n')}`);
      → 0.7-0.8: dados calculados a partir de medidas parciais do projeto
      → 0.5-0.6: estimativa baseada em referências tipológicas
      → 0.3-0.4: chute educado por falta de dados
-   - aiReasoning: explique QUAL variável usou e como calculou (ex: "P_interno(45m) × H(2,97m) − vaos(18m²) = 115,6m²")
+   - aiReasoning: explique QUAL variável usou e como calculou (ex: "P_interno(45m) × H_interno(2,85m) − vaos(18m²) = 110,25m²")
 
 4. **Regras**:
    - NÃO invente composições com códigos fictícios. Use os códigos do catálogo ou null.
