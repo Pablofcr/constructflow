@@ -335,6 +335,150 @@ function correctAIErrors(
     } // end for services
   } // end for stages
   
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CORREÇÃO 4: Validação do MÉTODO H/V
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  
+  // Consolidar todo o aiReasoning para buscar evidências do método H/V
+  const allReasoning = result.stages
+    .flatMap(st => st.services.map(svc => svc.aiReasoning || ''))
+    .join('\n');
+  
+  // Buscar padrões do método H/V
+  const hasHorizontals = /H\d+\s*=/i.test(allReasoning);
+  const hasVerticals = /V\d+\s*=/i.test(allReasoning);
+  const hasPHorizontal = /P_horizontal/i.test(allReasoning);
+  const hasPVertical = /P_vertical/i.test(allReasoning);
+  
+  // Se o método H/V não foi encontrado de forma alguma
+  if (!hasHorizontals && !hasVerticals) {
+    const warning = '⚠️ MÉTODO H/V NÃO DETECTADO: A IA não usou o método H/V (H0, H1... V0, V1...) para calcular perímetros. Validar manualmente os perímetros.';
+    
+    // Adicionar warning no primeiro serviço que menciona perímetro
+    for (const stage of result.stages) {
+      for (const svc of stage.services) {
+        if (svc.aiReasoning && 
+            (svc.aiReasoning.includes('P_interno') || 
+             svc.aiReasoning.includes('P_externo') || 
+             svc.aiReasoning.includes('P_total'))) {
+          
+          if (!svc.aiReasoning.includes('MÉTODO H/V NÃO DETECTADO')) {
+            svc.aiReasoning += `\n\n${warning}`;
+            corrections.push('VALIDAÇÃO H/V: Método H/V não foi aplicado pela IA');
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Se encontrou parcial (só H ou só V)
+  else if (hasHorizontals && !hasVerticals) {
+    const warning = '⚠️ MÉTODO H/V INCOMPLETO: Detectadas paredes HORIZONTAIS (H0, H1...) mas faltam VERTICAIS (V0, V1...). Validar manualmente.';
+    
+    for (const stage of result.stages) {
+      for (const svc of stage.services) {
+        if (svc.aiReasoning && svc.aiReasoning.includes('H0')) {
+          if (!svc.aiReasoning.includes('MÉTODO H/V INCOMPLETO')) {
+            svc.aiReasoning += `\n\n${warning}`;
+            corrections.push('VALIDAÇÃO H/V: Faltam paredes VERTICAIS (V0, V1...)');
+            break;
+          }
+        }
+      }
+    }
+  }
+  else if (hasVerticals && !hasHorizontals) {
+    const warning = '⚠️ MÉTODO H/V INCOMPLETO: Detectadas paredes VERTICAIS (V0, V1...) mas faltam HORIZONTAIS (H0, H1...). Validar manualmente.';
+    
+    for (const stage of result.stages) {
+      for (const svc of stage.services) {
+        if (svc.aiReasoning && svc.aiReasoning.includes('V0')) {
+          if (!svc.aiReasoning.includes('MÉTODO H/V INCOMPLETO')) {
+            svc.aiReasoning += `\n\n${warning}`;
+            corrections.push('VALIDAÇÃO H/V: Faltam paredes HORIZONTAIS (H0, H1...)');
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Se encontrou H e V mas não as somas P_horizontal e P_vertical
+  else if ((hasHorizontals && hasVerticals) && (!hasPHorizontal || !hasPVertical)) {
+    const warning = '⚠️ MÉTODO H/V PARCIAL: Paredes H/V listadas mas faltam somas P_horizontal e P_vertical. Validar cálculo do P_total.';
+    
+    for (const stage of result.stages) {
+      for (const svc of stage.services) {
+        if (svc.aiReasoning && 
+            (svc.aiReasoning.includes('H0') || svc.aiReasoning.includes('V0'))) {
+          
+          if (!svc.aiReasoning.includes('MÉTODO H/V PARCIAL')) {
+            svc.aiReasoning += `\n\n${warning}`;
+            corrections.push('VALIDAÇÃO H/V: Faltam somas P_horizontal e P_vertical');
+            break;
+          }
+        }
+      }
+    }
+  }
+  // Se encontrou tudo, validar se a sequência está completa (sem pulos)
+  else if (hasHorizontals && hasVerticals && hasPHorizontal && hasPVertical) {
+    // Extrair todos os números H
+    const hNumbers = Array.from(allReasoning.matchAll(/H(\d+)\s*=/gi))
+      .map(m => parseInt(m[1]))
+      .sort((a, b) => a - b);
+    
+    // Extrair todos os números V
+    const vNumbers = Array.from(allReasoning.matchAll(/V(\d+)\s*=/gi))
+      .map(m => parseInt(m[1]))
+      .sort((a, b) => a - b);
+    
+    // Verificar se há pulos na sequência H (ex: H0, H1, H3... falta H2)
+    let hasGapsH = false;
+    for (let i = 1; i < hNumbers.length; i++) {
+      if (hNumbers[i] !== hNumbers[i-1] + 1 && hNumbers[i] !== hNumbers[i-1]) {
+        hasGapsH = true;
+        break;
+      }
+    }
+    
+    // Verificar se há pulos na sequência V
+    let hasGapsV = false;
+    for (let i = 1; i < vNumbers.length; i++) {
+      if (vNumbers[i] !== vNumbers[i-1] + 1 && vNumbers[i] !== vNumbers[i-1]) {
+        hasGapsV = true;
+        break;
+      }
+    }
+    
+    if (hasGapsH || hasGapsV) {
+      const gapMsg = hasGapsH && hasGapsV 
+        ? 'HORIZONTAIS e VERTICAIS têm pulos na sequência' 
+        : hasGapsH 
+        ? 'HORIZONTAIS têm pulos (ex: H0, H1, H3... falta H2)' 
+        : 'VERTICAIS têm pulos (ex: V0, V1, V3... falta V2)';
+      
+      const warning = `⚠️ MÉTODO H/V COM LACUNAS: ${gapMsg}. Pode haver paredes não contabilizadas. Validar no projeto.`;
+      
+      for (const stage of result.stages) {
+        for (const svc of stage.services) {
+          if (svc.aiReasoning && 
+              (svc.aiReasoning.includes('H0') || svc.aiReasoning.includes('V0'))) {
+            
+            if (!svc.aiReasoning.includes('MÉTODO H/V COM LACUNAS')) {
+              svc.aiReasoning += `\n\n${warning}`;
+              corrections.push(`VALIDAÇÃO H/V: ${gapMsg}`);
+              break;
+            }
+          }
+        }
+      }
+    }
+    // Se passou em todas as validações
+    else {
+      corrections.push(`✅ VALIDAÇÃO H/V: Método H/V aplicado corretamente! H[${hNumbers.join(',')}] + V[${vNumbers.join(',')}]`);
+    }
+  }
+  
   // Log resumo das correções
   if (corrections.length > 0) {
     console.log(`\n${'='.repeat(70)}`);
