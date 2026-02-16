@@ -143,6 +143,215 @@ function parseAiConfidence(raw: unknown): number {
   return Math.min(1, Math.max(0, confidence));
 }
 
+/**
+ * Corrige erros sistemáticos da IA após a geração
+ * Garante que valores críticos estejam corretos independentemente do que a IA gerou
+ */
+function correctAIErrors(
+  result: AIBudgetResult,
+  padraoEmpreendimento: string
+): AIBudgetResult {
+  const isPopular = padraoEmpreendimento === 'POPULAR';
+  const corrections: string[] = [];
+  
+  for (const stage of result.stages) {
+    for (const svc of stage.services) {
+      
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // CORREÇÃO 1: FCK 20MPa ou 25MPa → FCK 30MPa (POPULAR)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (isPopular && stage.code === '03') { // Supraestrutura
+        const descLower = svc.description.toLowerCase();
+        
+        // Detectar concreto para laje ou vigas
+        if ((descLower.includes('concreto') || descLower.includes('concret')) &&
+            (descLower.includes('laje') || descLower.includes('viga'))) {
+          
+          // Corrigir FCK se estiver errado
+          if (descLower.includes('fck 20') || descLower.includes('fck 25') || 
+              descLower.includes('fck20') || descLower.includes('fck25')) {
+            
+            svc.description = svc.description
+              .replace(/FCK\s*20\s*MPa/gi, 'FCK 30MPa')
+              .replace(/FCK\s*25\s*MPa/gi, 'FCK 30MPa')
+              .replace(/FCK20/gi, 'FCK30')
+              .replace(/FCK25/gi, 'FCK30');
+            
+            // Forçar código correto
+            svc.code = 'CF-03004';
+            
+            // Marcar correção no reasoning
+            if (svc.aiReasoning) {
+              svc.aiReasoning += ' ⚠️ CORRIGIDO: FCK alterado de 20/25MPa para 30MPa (obrigatório para popular)';
+            }
+            
+            corrections.push(`Etapa ${stage.code}: ${svc.description} - FCK corrigido para 30MPa`);
+          }
+        }
+      }
+      
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // CORREÇÃO 2: Alturas incorretas (2,97m → 2,85m ou 3,47m)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (svc.aiReasoning && stage.code === '08') { // Revestimentos
+        const reasoning = svc.aiReasoning;
+        
+        // Detectar se usou altura errada (2,97m genérico)
+        const usedWrongHeight = reasoning.includes('2,97m') || reasoning.includes('2.97m') || 
+                                reasoning.includes('× 2,97') || reasoning.includes('× 2.97');
+        
+        if (usedWrongHeight) {
+          
+          // ─────────────────────────────────────────────────────
+          // CASO 1: Revestimento INTERNO (deve usar 2,85m)
+          // ─────────────────────────────────────────────────────
+          if (reasoning.includes('P_interno') || 
+              reasoning.includes('paredes_internas') ||
+              svc.description.toLowerCase().includes('interno')) {
+            
+            // Extrair P_interno do reasoning
+            const pInternoMatch = reasoning.match(/P_interno\s*\(\s*(\d+(?:\.\d+)?)\s*m?\s*\)/);
+            const vaosMatch = reasoning.match(/vaos[^\d]*([\d.]+)/);
+            
+            if (pInternoMatch) {
+              const p_interno = parseFloat(pInternoMatch[1]);
+              const vaos = vaosMatch ? parseFloat(vaosMatch[1]) : 0;
+              
+              // Recalcular com altura correta (2,85m)
+              const newQuantity = Math.max(0, p_interno * 2.85 - vaos);
+              const oldQuantity = svc.quantity;
+              
+              svc.quantity = Math.round(newQuantity * 100) / 100;
+              
+              // Recalcular total price
+              if (typeof svc.unitPrice === 'number') {
+                // totalPrice será recalculado no loop principal
+              }
+              
+              // Atualizar reasoning
+              svc.aiReasoning = reasoning
+                .replace(/2,97m/g, '2,85m')
+                .replace(/2\.97m/g, '2.85m')
+                + ` ⚠️ CORRIGIDO: Altura alterada de 2,97m para 2,85m (H_interno); quantidade ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`;
+              
+              corrections.push(`Etapa ${stage.code}: ${svc.description} - Altura corrigida 2,97→2,85m (interno), qtd ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`);
+            }
+          }
+          
+          // ─────────────────────────────────────────────────────
+          // CASO 2: Revestimento EXTERNO (deve usar 3,47m)
+          // ─────────────────────────────────────────────────────
+          else if (reasoning.includes('P_externo') || 
+                   reasoning.includes('paredes_externas') ||
+                   svc.description.toLowerCase().includes('externo')) {
+            
+            // Extrair P_externo do reasoning
+            const pExternoMatch = reasoning.match(/P_externo\s*\(\s*(\d+(?:\.\d+)?)\s*m?\s*\)/);
+            const vaosMatch = reasoning.match(/vaos[^\d]*([\d.]+)/);
+            
+            if (pExternoMatch) {
+              const p_externo = parseFloat(pExternoMatch[1]);
+              const vaos = vaosMatch ? parseFloat(vaosMatch[1]) : 0;
+              
+              // Recalcular com altura correta (3,47m)
+              const newQuantity = Math.max(0, p_externo * 3.47 - vaos);
+              const oldQuantity = svc.quantity;
+              
+              svc.quantity = Math.round(newQuantity * 100) / 100;
+              
+              // Atualizar reasoning
+              svc.aiReasoning = reasoning
+                .replace(/2,97m/g, '3,47m')
+                .replace(/2\.97m/g, '3.47m')
+                + ` ⚠️ CORRIGIDO: Altura alterada de 2,97m para 3,47m (H_externo); quantidade ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`;
+              
+              corrections.push(`Etapa ${stage.code}: ${svc.description} - Altura corrigida 2,97→3,47m (externo), qtd ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`);
+            }
+          }
+        }
+      }
+      
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // CORREÇÃO 3: Pintura (mesmo tratamento de alturas)
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      if (svc.aiReasoning && stage.code === '11') { // Pintura
+        const reasoning = svc.aiReasoning;
+        
+        const usedWrongHeight = reasoning.includes('2,97m') || reasoning.includes('2.97m') || 
+                                reasoning.includes('× 2,97') || reasoning.includes('× 2.97');
+        
+        if (usedWrongHeight) {
+          
+          // Pintura INTERNA → 2,85m
+          if (reasoning.includes('P_interno') || 
+              reasoning.includes('paredes_internas') ||
+              svc.description.toLowerCase().includes('interna')) {
+            
+            const pInternoMatch = reasoning.match(/P_interno\s*\(\s*(\d+(?:\.\d+)?)\s*m?\s*\)/);
+            const vaosMatch = reasoning.match(/vaos[^\d]*([\d.]+)/);
+            
+            if (pInternoMatch) {
+              const p_interno = parseFloat(pInternoMatch[1]);
+              const vaos = vaosMatch ? parseFloat(vaosMatch[1]) : 0;
+              const newQuantity = Math.max(0, p_interno * 2.85 - vaos);
+              const oldQuantity = svc.quantity;
+              
+              svc.quantity = Math.round(newQuantity * 100) / 100;
+              svc.aiReasoning = reasoning
+                .replace(/2,97m/g, '2,85m')
+                .replace(/2\.97m/g, '2.85m')
+                + ` ⚠️ CORRIGIDO: H_interno 2,97→2,85m; qtd ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`;
+              
+              corrections.push(`Etapa ${stage.code}: ${svc.description} - Altura corrigida 2,97→2,85m (pintura interna), qtd ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`);
+            }
+          }
+          
+          // Pintura EXTERNA → 3,47m
+          else if (reasoning.includes('P_externo') || 
+                   reasoning.includes('paredes_externas') ||
+                   svc.description.toLowerCase().includes('externa')) {
+            
+            const pExternoMatch = reasoning.match(/P_externo\s*\(\s*(\d+(?:\.\d+)?)\s*m?\s*\)/);
+            const vaosMatch = reasoning.match(/vaos[^\d]*([\d.]+)/);
+            
+            if (pExternoMatch) {
+              const p_externo = parseFloat(pExternoMatch[1]);
+              const vaos = vaosMatch ? parseFloat(vaosMatch[1]) : 0;
+              const newQuantity = Math.max(0, p_externo * 3.47 - vaos);
+              const oldQuantity = svc.quantity;
+              
+              svc.quantity = Math.round(newQuantity * 100) / 100;
+              svc.aiReasoning = reasoning
+                .replace(/2,97m/g, '3,47m')
+                .replace(/2\.97m/g, '3.47m')
+                + ` ⚠️ CORRIGIDO: H_externo 2,97→3,47m; qtd ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`;
+              
+              corrections.push(`Etapa ${stage.code}: ${svc.description} - Altura corrigida 2,97→3,47m (pintura externa), qtd ${oldQuantity.toFixed(2)}→${svc.quantity.toFixed(2)}m²`);
+            }
+          }
+        }
+      }
+      
+    } // end for services
+  } // end for stages
+  
+  // Log resumo das correções
+  if (corrections.length > 0) {
+    console.log(`\n${'='.repeat(70)}`);
+    console.log('🔧 CORREÇÕES AUTOMÁTICAS APLICADAS:');
+    console.log('='.repeat(70));
+    corrections.forEach((msg, idx) => {
+      console.log(`${idx + 1}. ${msg}`);
+    });
+    console.log('='.repeat(70));
+    console.log(`Total: ${corrections.length} correção(ões) aplicada(s)\n`);
+  } else {
+    console.log('✅ Nenhuma correção automática necessária - IA seguiu o framework corretamente!');
+  }
+  
+  return result;
+}
+
 export async function generateAIBudget(budgetAIId: string): Promise<void> {
   const startTime = Date.now();
 
@@ -291,6 +500,13 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
     if (!result.stages || !Array.isArray(result.stages)) {
       throw new Error('Resposta da IA não contém stages');
     }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // CORREÇÃO AUTOMÁTICA DE ERROS SISTEMÁTICOS
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log('🔧 Aplicando correção automática de erros...');
+    result = correctAIErrors(result, project.padraoEmpreendimento);
+    console.log('✅ Correção automática concluída');
 
     // Post-generation validation (log warnings, don't block)
     const validationWarnings = validateAIBudget(
