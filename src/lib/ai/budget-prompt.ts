@@ -49,40 +49,6 @@ function buildStageList(): string {
 function buildCalculationFramework(constructedArea?: number): string {
   const areaRef = constructedArea ? `${constructedArea}` : '??';
   return `
-## ⚠️ ERROS COMUNS QUE VOCÊ DEVE EVITAR
-
-NUNCA faça isso (exemplos de erros frequentes):
-
-❌ ERRADO: H = 2,97m para paredes internas
-✅ CORRETO: H_interno = 2,85m para paredes internas
-
-❌ ERRADO: H = 2,97m para fachada externa
-✅ CORRETO: H_externo = 3,47m para fachada externa
-
-❌ ERRADO: "P_interno = 45,00m" (sem usar método H/V)
-✅ CORRETO: Usar MÉTODO H/V obrigatório:
-   "HORIZONTAIS: H0=5,40m + H1=5,40m + H2=5,40m = 16,20m
-    VERTICAIS: V0=11,10m + V1=2,50m + V2=3,20m = 16,80m
-    P_total = 16,20 + 16,80 = 33,00m"
-
-❌ ERRADO: Pular números na sequência (H0, H1, H3... cadê H2?)
-✅ CORRETO: Sequência completa sem pulos (H0, H1, H2, H3...)
-
-❌ ERRADO: Concreto FCK 20MPa para laje/vigas (padrão popular)
-✅ CORRETO: Concreto FCK 30MPa OBRIGATÓRIO para laje/vigas (padrão popular)
-
-❌ ERRADO: Engenheiro civil pleno: 6 meses (sem rateio)
-✅ CORRETO: Engenheiro civil pleno POPULAR: 0,40 mês (4 meses ÷ 10 casas)
-
-❌ ERRADO: Mestre de obras: 6 meses (prazo errado)
-✅ CORRETO: Mestre de obras POPULAR: 4 meses (prazo fixo)
-
-❌ ERRADO: Chapisco interno = P_interno(45m) × 2,97m = 133,65m²
-✅ CORRETO: Chapisco interno = P_interno(45m) × 2,85m = 128,25m²
-
-❌ ERRADO: Chapisco externo = P_externo(33,10m) × 2,97m = 98,31m²
-✅ CORRETO: Chapisco externo = P_externo(33,10m) × 3,47m = 114,86m²
-
 ## FRAMEWORK DE CÁLCULO OBRIGATÓRIO
 
 Antes de gerar os serviços, você DEVE seguir estes passos na ordem:
@@ -111,10 +77,10 @@ Use o MÉTODO H/V para mapear TODAS as paredes de forma sistemática:
 - V_última = muro direito ou parede lateral direita (m)
 
 **REGRAS:**
-1. SEMPRE começar de H0 (nunca pular números: H0, H1, H3 ← ERRADO!)
-2. SEMPRE começar de V0 (nunca pular números: V0, V1, V3 ← ERRADO!)
-3. Especificar se é muro, parede externa ou parede interna para cada uma
-4. Se muro coincide com parede externa: especificar "H0 = 5,40m (muro/parede externa)"
+- SEMPRE começar de H0 (nunca pular números: H0, H1, H3 ← ERRADO!)
+- SEMPRE começar de V0 (nunca pular números: V0, V1, V3 ← ERRADO!)
+- Especificar se é muro, parede externa ou parede interna para cada uma
+- Se muro coincide com parede externa: especificar "H0 = 5,40m (muro/parede externa)"
 
 **CÁLCULO FINAL:**
 - P_horizontal = H0 + H1 + H2 + ... + H_última (m)
@@ -125,8 +91,7 @@ Use o MÉTODO H/V para mapear TODAS as paredes de forma sistemática:
 - H_interno = 2,85m — altura para alvenaria e revestimentos INTERNOS
 - H_externo = 3,47m — altura COMPLETA da fachada externa (2,85m + 0,12m laje + 0,50m platibanda)
 - H_muro = 2,50m (quando não especificado no projeto)
-
-IMPORTANTE: NÃO confunda H_interno com H_externo! Use 2,85m para cálculos internos e 3,47m para fachada externa.
+- IMPORTANTE: NÃO confunda H_interno com H_externo! Use 2,85m para cálculos internos e 3,47m para fachada externa.
 
 **Vãos:**
 - N_portas = número total de portas (un)
@@ -150,12 +115,10 @@ IMPORTANTE: NÃO confunda H_interno com H_externo! Use 2,85m para cálculos inte
 - P_muro = soma das paredes H/V marcadas como (muro)
 
 Exemplo:
-```
 H0=5,40m(muro) + H1=5,40m(ext) + H2=5,40m(int) + V0=11,10m(ext/muro) + V1=2,50m(int)
 → P_muro = H0 = 5,40m
 → P_externo = H1 + V0 = 5,40 + 11,10 = 16,50m
 → P_interno = H2 + V1 = 5,40 + 2,50 = 7,90m
-```
 
 **DEPOIS: Calcular áreas de paredes**
 - A_paredes_internas = P_interno × H_interno(2,85m) − A_vaos_portas_internas (m²)
@@ -166,7 +129,7 @@ H0=5,40m(muro) + H1=5,40m(ext) + H2=5,40m(int) + V0=11,10m(ext/muro) + V1=2,50m(
 - A_cobertura = A_construida × 1,15 (m²) — acréscimo de 15% para beirais
 - V_escavacao = P_total × 0,40 × 0,50 (m³) — para fundação popular
 
-VALIDAÇÃO OBRIGATÓRIA do MÉTODO H/V:
+**VALIDAÇÃO OBRIGATÓRIA do MÉTODO H/V:**
 ✓ Listou TODAS as horizontais sequencialmente: H0, H1, H2, ... (sem pular números!)
 ✓ Listou TODAS as verticais sequencialmente: V0, V1, V2, ... (sem pular números!)
 ✓ Especificou tipo de cada parede (muro/externa/interna)
@@ -175,12 +138,10 @@ VALIDAÇÃO OBRIGATÓRIA do MÉTODO H/V:
 ✓ Calculou P_total = P_horizontal + P_vertical = Z m
 ✓ Classificou P_externo, P_interno e P_muro a partir das paredes H/V
 
-### EXEMPLO COMPLETO DE EXTRAÇÃO USANDO MÉTODO H/V (use como modelo):
+**EXEMPLO COMPLETO DE EXTRAÇÃO USANDO MÉTODO H/V (use como modelo):**
 
 CORRETO ✅:
-```
 === MÉTODO H/V ===
-
 HORIZONTAIS (frente → fundos):
 H0 = 5,40m (muro frontal)
 H1 = 5,40m (parede externa frontal da casa)
@@ -210,14 +171,11 @@ A_paredes_internas = P_interno(19,30m) × H_interno(2,85m) - A_vaos_portas_inter
 A_paredes_externas = P_externo(33,00m) × H_externo(3,47m) - A_vaos_janelas_portas_externas(6,20m²) = 108,31m²
 A_paredes_muros = P_muro(10,80m) × H_muro(2,50m) - A_vaos_portoes(0m²) = 27,00m²
 A_paredes_total = 46,61 + 108,31 + 27,00 = 181,92m²
-```
 
 ERRADO ❌:
-```
 P_interno = 19,30m (sem mostrar H2, H3, V1, V2, V3)
 P_externo = 33,00m (sem mostrar H1, H4, V0, V4)
 P_total = 63,10m (sem mostrar P_horizontal + P_vertical)
-```
 
 ### STEP 3: Verificação de sanidade
 ANTES de prosseguir, verifique:
@@ -232,9 +190,8 @@ ANTES de prosseguir, verifique:
 
 ### STEP 4: Mapeamento variável → serviço
 Use as variáveis calculadas (MÉTODO H/V) para preencher as quantidades de cada serviço:
-
 | Serviço | Quantidade = |
-|---------|--------------|
+|---------|-------------|
 | Limpeza terreno | A_terreno |
 | Locação obra | perímetro externo + 8m |
 | Escavação valas | V_escavacao = P_total × 0,40 × 0,50 |
@@ -255,11 +212,7 @@ Use as variáveis calculadas (MÉTODO H/V) para preencher as quantidades de cada
 | Pintura externa (selador+textura) | A_paredes_externas + A_paredes_muros |
 | Cobertura | A_cobertura |
 | Aço vigas | P_total × 4 barras ferro φ10,0mm + estribos aço φ4,3mm @ 15cm |
-| Engenheiro civil (POPULAR) | 0,40 mês (4 meses ÷ 10 casas) |
-| Mestre de obras (POPULAR) | 4 meses (prazo fixo POPULAR) |
-| EPI (POPULAR) | 6 unidades |
-
-**IMPORTANTE:** Use SEMPRE a classificação do MÉTODO H/V para separar P_interno, P_externo e P_muro
+IMPORTANTE: Use SEMPRE a classificação do MÉTODO H/V para separar P_interno, P_externo e P_muro
 `;
 }
 
@@ -298,38 +251,35 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### MATERIAIS OBRIGATÓRIOS:
 - **CIMENTO**: usar CPIII em TODAS as composições e traços (chapisco, reboco, concreto, argamassas)
 - **CONCRETO SUPERESTRUTURA**: usar EXCLUSIVAMENTE FCK 30MPa para laje e vigas
-  
-  ⚠️ ATENÇÃO MÁXIMA: O CONCRETO PARA POPULAR É FCK 30MPa!
-  
-  ❌ NUNCA USE: "Concreto FCK 20MPa"
-  ❌ NUNCA USE: "Concreto FCK 25MPa"
-  ✅ SEMPRE USE: "Concreto usinado FCK 30MPa" (código CF-03004)
-  
-  Se você escreveu "FCK 20MPa" ou "FCK 25MPa" no aiReasoning, APAGUE e corrija para FCK 30MPa
-  Se você está usando código diferente de CF-03004, CORRIJA para CF-03004
+
+⚠️ ATENÇÃO MÁXIMA: O CONCRETO PARA POPULAR É FCK 30MPa!
+❌ NUNCA USE: "Concreto FCK 20MPa"
+❌ NUNCA USE: "Concreto FCK 25MPa"
+✅ SEMPRE USE: "Concreto usinado FCK 30MPa" (código CF-03004)
+Se você escreveu "FCK 20MPa" ou "FCK 25MPa" no aiReasoning, APAGUE e corrija para FCK 30MPa
+Se você está usando código diferente de CF-03004, CORRIJA para CF-03004
 
 ### ALTURAS (ATENÇÃO — VALORES CORRIGIDOS):
-- **H_interno** = 2,85m — usar para alvenaria, revestimentos internos, pinturas internas
-- **H_externo** = 3,47m — usar para fachada externa (2,85m + 0,12m laje + 0,50m platibanda)
-- **H_muro** = 2,50m (quando não especificado no projeto)
-
+- H_interno = 2,85m — usar para alvenaria, revestimentos internos, pinturas internas
+- H_externo = 3,47m — usar para fachada externa (2,85m + 0,12m laje + 0,50m platibanda)
+- H_muro = 2,50m (quando não especificado no projeto)
 ⚠️ NUNCA use H_externo = 2,97m — esse valor está ERRADO!
 ⚠️ Fachada externa = P_externo × 3,47m (não 2,97m)
 
 ### PERÍMETROS (MÉTODO H/V OBRIGATÓRIO):
 - Use EXCLUSIVAMENTE o MÉTODO H/V para mapear paredes
-- **HORIZONTAIS**: Liste todas de H0 a H_última (frente → fundos)
+- HORIZONTAIS: Liste todas de H0 a H_última (frente → fundos)
   → H0 = primeira parede/muro frontal
   → H1, H2, H3... = paredes seguintes
   → H_última = última parede/muro fundos
-- **VERTICAIS**: Liste todas de V0 a V_última (esquerda → direita)
+- VERTICAIS: Liste todas de V0 a V_última (esquerda → direita)
   → V0 = primeira parede/muro lateral esquerdo
   → V1, V2, V3... = paredes seguintes
   → V_última = última parede/muro lateral direito
-- **NUNCA pule números** na sequência (H0, H1, H3 ← ERRO!)
-- **SEMPRE mostre somas**: P_horizontal = H0 + H1 + ... = X m
-- **SEMPRE classifique**: qual parede é muro, externa ou interna
-- **P_total = P_horizontal + P_vertical** (não mais P_ext + P_int + P_muro)
+- NUNCA pule números na sequência (H0, H1, H3 ← ERRO!)
+- SEMPRE mostre somas: P_horizontal = H0 + H1 + ... = X m
+- SEMPRE classifique: qual parede é muro, externa ou interna
+- P_total = P_horizontal + P_vertical (não mais P_ext + P_int + P_muro)
 
 ### 01 - Serviços Preliminares
 - Limpeza terreno (SINAPI-73847): Área = área total do TERRENO (não da edificação)
@@ -384,46 +334,6 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### 12 - Louças e Metais
 - Por banheiro: 1 bacia + 1 lavatório + 1 chuveiro COMUM (não elétrico — apenas infraestrutura)
 - 1 tanque por área de serviço
-
-### 19 - Administração da Obra (POPULAR — REGRAS RÍGIDAS OBRIGATÓRIAS)
-
-⚠️ ATENÇÃO MÁXIMA: Estas regras são FIXAS e INEGOCIÁVEIS para padrão POPULAR.
-
-**PRAZO: OBRIGATORIAMENTE 4 MESES** (NÃO 5, NÃO 6 meses)
-
-**ENGENHEIRO CIVIL (SINAPI-90778):**
-- 1 engenheiro administra até 10 casas populares simultâneas
-- Por isso, o custo por obra = custo mensal ÷ 10
-- → Quantidade = 4 meses × (1/10) = **0,40 mês** (nunca mais que 0,40)
-- aiReasoning OBRIGATÓRIO: "Prazo popular = 4 meses; rateio 1 engenheiro / 10 casas = 4 × (1/10) = 0,40 mês"
-
-❌ NUNCA USE: quantidade 5, 6 ou qualquer valor > 0,40 para engenheiro em POPULAR
-✅ SEMPRE USE: quantidade = **0,40** para engenheiro em POPULAR
-
-**MESTRE DE OBRAS (SINAPI-90780):**
-- 1 mestre por obra, prazo fixo
-- → Quantidade = **4 meses** (nunca 5 ou 6)
-- aiReasoning OBRIGATÓRIO: "Prazo popular = 4 meses; 1 mestre por obra = 4 meses"
-
-❌ NUNCA USE: quantidade 5, 6 para mestre em POPULAR
-✅ SEMPRE USE: quantidade = **4** para mestre em POPULAR
-
-**EPI (SINAPI-90786):**
-- Estimativa: 6 trabalhadores para obra popular 60m²
-- → Quantidade = **6 unidades**
-
-Exemplo CORRETO ✅ para orçamento POPULAR:
-| Serviço | Qtd | Un | Razão |
-|---------|-----|-----|-------|
-| Engenheiro civil pleno | 0,40 | mês | 4 meses / 10 casas |
-| Mestre de obras | 4,00 | mês | 4 meses / 1 obra |
-| EPI kit por trabalhador | 6,00 | un | 6 trabalhadores |
-
-Exemplo ERRADO ❌ (NUNCA FAÇA):
-| Serviço | Qtd | Erro |
-|---------|-----|------|
-| Engenheiro civil pleno | 6 meses | Prazo errado + sem rateio |
-| Mestre de obras | 6 meses | Prazo errado |
 `;
 }
 
@@ -511,35 +421,35 @@ ${files.map((f) => `- ${f.fileName} (${f.category})`).join('\n')}`);
    - A etapa 00 (Terreno) geralmente fica vazia pois depende de informações financeiras.
 ${isPopular ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR do system prompt.' : ''}
 
-5. **VALIDAÇÃO FINAL antes de retornar o JSON**:
-   ${isPopular ? '✓ Verifique que TODO concreto de superestrutura é FCK 30MPa (não 20MPa nem 25MPa)\n   ' : ''}✓ Verifique que mostrou P_interno = parede_1 + parede_2 + ... = total (soma explícita)
-   ✓ Verifique que informou P_muro (mesmo que seja 0m)
-   ✓ Verifique que usou H_interno = 2,85m para cálculos internos
-   ${isPopular ? '✓ Verifique que usou H_externo = 3,47m para fachada externa (NÃO 2,97m)\n   ' : ''}✓ Verifique que chapisco interno ≥ A_construida × 2
-   ✓ Verifique que chapisco externo ≥ A_construida × 1,5
+### VALIDAÇÃO FINAL antes de retornar o JSON:
+${isPopular ? '✓ Verifique que TODO concreto de superestrutura é FCK 30MPa (não 20MPa nem 25MPa)\n' : ''}✓ Verifique que mostrou P_interno = parede_1 + parede_2 + ... = total (soma explícita)
+✓ Verifique que informou P_muro (mesmo que seja 0m)
+✓ Verifique que usou H_interno = 2,85m para cálculos internos
+${isPopular ? '✓ Verifique que usou H_externo = 3,47m para fachada externa (NÃO 2,97m)\n' : ''}✓ Verifique que chapisco interno ≥ A_construida × 2
+✓ Verifique que chapisco externo ≥ A_construida × 1,5
 
-## EXEMPLOS DE aiReasoning CORRETO vs INCORRETO
+### EXEMPLOS DE aiReasoning CORRETO vs INCORRETO
 
-### Exemplo 1: Perímetros (MÉTODO H/V)
+**Exemplo 1: Perímetros (MÉTODO H/V)**
 ❌ ERRADO: "P_interno = 45,00m" ou "P_total = 78,10m"
 ✅ CORRETO: "HORIZONTAIS: H0=5,40m(muro) + H1=5,40m(ext) + H2=5,40m(int) + H3=5,40m(int) + H4=5,40m(ext) + H5=5,40m(muro) = 32,40m
 VERTICAIS: V0=11,10m(ext/muro) + V1=2,50m(int) + V2=3,20m(int) + V3=2,80m(int) + V4=11,10m(ext/muro) = 30,70m
 P_total = P_horizontal(32,40m) + P_vertical(30,70m) = 63,10m
 P_interno = H2 + H3 + V1 + V2 + V3 = 5,40 + 5,40 + 2,50 + 3,20 + 2,80 = 19,30m"
 
-### Exemplo 2: Sequência Incompleta
+**Exemplo 2: Sequência Incompleta**
 ❌ ERRADO: "H0, H1, H3, H4" (pulou H2!)
 ✅ CORRETO: "H0, H1, H2, H3, H4" (sequência completa sem pulos)
 
-### Exemplo 3: Chapisco interno
+**Exemplo 3: Chapisco interno**
 ❌ ERRADO: "P_interno(45m) × H(2,97m) - vaos(8,40m²) = 125,25m²"
 ✅ CORRETO: "P_interno(45m) × H_interno(2,85m) - A_vaos_portas_internas(8,40m²) = 120,15m²"
 
-### Exemplo 4: Chapisco externo (POPULAR)
+**Exemplo 4: Chapisco externo (POPULAR)**
 ❌ ERRADO: "P_externo(33,10m) × H(2,97m) - vaos(4,80m²) = 93,51m²"
 ✅ CORRETO: "P_externo(33,10m) × H_externo(3,47m) - A_vaos_janelas(4,80m²) = 109,96m²"
 
-### Exemplo 5: Concreto (POPULAR)
+**Exemplo 5: Concreto (POPULAR)**
 ❌ ERRADO: "Volume laje = A_construida(60m²) × 0,08m = 4,80m³" + descrição "Concreto FCK 20MPa"
 ✅ CORRETO: "Volume laje = A_construida(60m²) × 0,08m = 4,80m³" + descrição "Concreto usinado FCK 30MPa" + código "CF-03004"`);
 
@@ -547,50 +457,39 @@ P_interno = H2 + H3 + V1 + V2 + V3 = 5,40 + 5,40 + 2,50 + 3,20 + 2,80 = 19,30m"
 
 ANTES de retornar o JSON, você DEVE revisar TODO o orçamento e corrigir os seguintes erros se encontrá-los:
 
-${isPopular ? `
-🔍 VERIFICAR: Busque no JSON inteiro por "FCK 20" ou "FCK 25"
-   → Se encontrar: APAGUE e reescreva como "FCK 30MPa"
-   → Código obrigatório: CF-03004
+${isPopular ? `🔍 VERIFICAR: Busque no JSON inteiro por "FCK 20" ou "FCK 25"
+→ Se encontrar: APAGUE e reescreva como "FCK 30MPa"
+→ Código obrigatório: CF-03004
 
 ` : ''}🔍 VERIFICAR: Busque por perímetros SEM usar MÉTODO H/V
-   → Se encontrar "P_interno = 45,00m" ou "P_externo = 33,00m" sem H0, H1, V0, V1:
-   → REESCREVA usando MÉTODO H/V completo:
-     • Liste TODAS as horizontais: H0, H1, H2, ... (sem pular números!)
-     • Liste TODAS as verticais: V0, V1, V2, ... (sem pular números!)
-     • Especifique tipo: (muro), (ext), (int) para cada parede
-     • Calcule P_horizontal = H0 + H1 + ... = X m
-     • Calcule P_vertical = V0 + V1 + ... = Y m
-     • Calcule P_total = P_horizontal + P_vertical = Z m
+→ Se encontrar "P_interno = 45,00m" ou "P_externo = 33,00m" sem H0, H1, V0, V1:
+→ REESCREVA usando MÉTODO H/V completo:
+  • Liste TODAS as horizontais: H0, H1, H2, ... (sem pular números!)
+  • Liste TODAS as verticais: V0, V1, V2, ... (sem pular números!)
+  • Especifique tipo: (muro), (ext), (int) para cada parede
+  • Calcule P_horizontal = H0 + H1 + ... = X m
+  • Calcule P_vertical = V0 + V1 + ... = Y m
+  • Calcule P_total = P_horizontal + P_vertical = Z m
 
 🔍 VERIFICAR: Busque por sequências incompletas (H0, H1, H3... falta H2!)
-   → Se encontrar pulo na numeração:
-   → CORRIJA listando TODAS as paredes sequencialmente
+→ Se encontrar pulo na numeração:
+→ CORRIJA listando TODAS as paredes sequencialmente
 
-${isPopular ? `
-🔍 VERIFICAR: Busque por "× H" ou "× 2,97" em cálculos de parede
-   → Se for parede INTERNA e usar 2,97m ou 3,47m: CORRIJA para H_interno(2,85m)
-   → Se for parede EXTERNA e usar 2,85m ou 2,97m: CORRIJA para H_externo(3,47m)
+${isPopular ? `🔍 VERIFICAR: Busque por "× H" ou "× 2,97" em cálculos de parede
+→ Se for parede INTERNA e usar 2,97m ou 3,47m: CORRIJA para H_interno(2,85m)
+→ Se for parede EXTERNA e usar 2,85m ou 2,97m: CORRIJA para H_externo(3,47m)
 
 ` : ''}🔍 VERIFICAR: Confira que chapisco interno ≥ A_construida × 2
-   → Para casa 60m²: chapisco interno deve ser ≥ 120m²
-   → Se for menor: REVISE o cálculo (provavelmente usou altura errada)
+→ Para casa 60m²: chapisco interno deve ser ≥ 120m²
+→ Se for menor: REVISE o cálculo (provavelmente usou altura errada)
 
 🔍 VERIFICAR: Confira que chapisco externo ≥ A_construida × 1,5
-   → Para casa 60m²: chapisco externo deve ser ≥ 90m²
-   → Se for menor: REVISE o cálculo (provavelmente faltou muros ou usou altura errada)
+→ Para casa 60m²: chapisco externo deve ser ≥ 90m²
+→ Se for menor: REVISE o cálculo (provavelmente faltou muros ou usou altura errada)
 
-${isPopular ? `
-🔍 VERIFICAR ETAPA 19 — ADMINISTRAÇÃO (POPULAR):
-   → Engenheiro civil (SINAPI-90778): quantity DEVE SER 0,40 (= 4 meses ÷ 10 casas)
-     Se encontrar quantity > 0,40: CORRIJA para 0,40
-   → Mestre de obras (SINAPI-90780): quantity DEVE SER 4 (= 4 meses)
-     Se encontrar quantity > 4: CORRIJA para 4
-   → aiReasoning do engenheiro DEVE conter: "4 meses / 10 casas = 0,40 mês"
-   → aiReasoning do mestre DEVE conter: "prazo popular = 4 meses"
+⚠️ SE VOCÊ ENCONTROU E CORRIGIU ALGUM ERRO ACIMA, REFAÇA TODO O JSON COM OS VALORES CORRIGIDOS.`);
 
-` : ''}⚠️ SE VOCÊ ENCONTROU E CORRIGIU ALGUM ERRO ACIMA, REFAÇA TODO O JSON COM OS VALORES CORRIGIDOS.
-
-## FORMATO DE SAÍDA
+  userParts.push(`## FORMATO DE SAÍDA
 Responda APENAS com o JSON abaixo, sem markdown, sem explicações antes ou depois:
 
 {
