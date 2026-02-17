@@ -158,34 +158,40 @@ function correctAIErrors(
     for (const svc of stage.services) {
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // CORREÇÃO 1: FCK 20MPa ou 25MPa → FCK 30MPa (POPULAR)
+      // CORREÇÃO 1: FCK → 30MPa OBRIGATÓRIO (POPULAR)
+      // Baseado no CÓDIGO CF-03004 (confiável) + descrição como fallback
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       if (isPopular && stage.code === '03') { // Supraestrutura
+        const isCF03004ByCode = svc.code === 'CF-03004';
         const descLower = svc.description.toLowerCase();
-        
-        // Detectar concreto para laje ou vigas
-        if ((descLower.includes('concreto') || descLower.includes('concret')) &&
-            (descLower.includes('laje') || descLower.includes('viga'))) {
-          
-          // Corrigir FCK se estiver errado
-          if (descLower.includes('fck 20') || descLower.includes('fck 25') || 
-              descLower.includes('fck20') || descLower.includes('fck25')) {
-            
+        const isConcreteByDesc = (descLower.includes('concreto')) &&
+            (descLower.includes('laje') || descLower.includes('viga') || descLower.includes('fck'));
+
+        if (isCF03004ByCode || isConcreteByDesc) {
+          // Forçar código correto
+          svc.code = 'CF-03004';
+
+          // Corrigir FCK na descrição (qualquer valor que não seja 30MPa)
+          const hasWrongFCK = /FCK\s*(20|25)\s*MPa/gi.test(svc.description) ||
+                              /FCK(20|25)/gi.test(svc.description);
+          const hasNoFCK = !/FCK\s*30/gi.test(svc.description);
+
+          if (hasWrongFCK || (isConcreteByDesc && hasNoFCK)) {
+            const oldDesc = svc.description;
             svc.description = svc.description
               .replace(/FCK\s*20\s*MPa/gi, 'FCK 30MPa')
               .replace(/FCK\s*25\s*MPa/gi, 'FCK 30MPa')
               .replace(/FCK20/gi, 'FCK30')
               .replace(/FCK25/gi, 'FCK30');
-            
-            // Forçar código correto
-            svc.code = 'CF-03004';
-            
-            // Marcar correção no reasoning
-            if (svc.aiReasoning) {
-              svc.aiReasoning += ' ⚠️ CORRIGIDO: FCK alterado de 20/25MPa para 30MPa (obrigatório para popular)';
+
+            // Se ainda não tem FCK 30MPa na descrição, substituir a descrição inteira
+            if (!/FCK\s*30/gi.test(svc.description)) {
+              svc.description = 'Concreto usinado FCK 30MPa para laje e vigas — lançamento e adensamento (popular)';
             }
-            
-            corrections.push(`Etapa ${stage.code}: ${svc.description} - FCK corrigido para 30MPa`);
+
+            svc.aiReasoning = (svc.aiReasoning || '') +
+              ` ⚠️ AUTO-CORRIGIDO: FCK alterado para 30MPa (obrigatório POPULAR). Desc anterior: "${oldDesc.substring(0, 60)}"`;
+            corrections.push(`Etapa 03: FCK corrigido para 30MPa (código CF-03004) — desc corrigida`);
           }
         }
       }
@@ -334,9 +340,54 @@ function correctAIErrors(
       
     } // end for services
   } // end for stages
-  
+
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // CORREÇÃO 4: Validação do MÉTODO H/V
+  // CORREÇÃO 4: Administração da Obra (POPULAR) — etapa 19
+  // REGRAS FIXAS: engenheiro = 0,40 mês | mestre = 4 meses
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (isPopular) {
+    for (const stage of result.stages) {
+      if (stage.code !== '19') continue;
+
+      for (const svc of stage.services) {
+        // ENGENHEIRO CIVIL: 1 engenheiro / 10 casas × 4 meses = 0,40 mês
+        if (svc.code === 'SINAPI-90778' || svc.description.toLowerCase().includes('engenheiro')) {
+          const oldQty = svc.quantity;
+          if (Number(svc.quantity) !== 0.40) {
+            svc.quantity = 0.40;
+            svc.aiReasoning = `Prazo popular = 4 meses; rateio 1 engenheiro / 10 casas = 4 × (1/10) = 0,40 mês` +
+              ` ⚠️ AUTO-CORRIGIDO: qtd ${oldQty} → 0,40 (regra fixa POPULAR)`;
+            corrections.push(`Etapa 19: Engenheiro corrigido ${oldQty} → 0,40 mês (4 meses ÷ 10 casas)`);
+          }
+        }
+
+        // MESTRE DE OBRAS: prazo fixo 4 meses
+        if (svc.code === 'SINAPI-90780' || svc.description.toLowerCase().includes('mestre de obras')) {
+          const oldQty = svc.quantity;
+          if (Number(svc.quantity) !== 4) {
+            svc.quantity = 4;
+            svc.aiReasoning = `Prazo popular = 4 meses; 1 mestre por obra = 4 meses` +
+              ` ⚠️ AUTO-CORRIGIDO: qtd ${oldQty} → 4 (regra fixa POPULAR)`;
+            corrections.push(`Etapa 19: Mestre de obras corrigido ${oldQty} → 4 meses (prazo fixo POPULAR)`);
+          }
+        }
+
+        // EPI: máximo 6 trabalhadores para obra popular
+        if (svc.code === 'SINAPI-90786' || svc.description.toLowerCase().includes('epi')) {
+          const oldQty = svc.quantity;
+          if (Number(svc.quantity) > 6) {
+            svc.quantity = 6;
+            svc.aiReasoning = `Estimativa: 6 trabalhadores para obra popular 60m²` +
+              ` ⚠️ AUTO-CORRIGIDO: qtd ${oldQty} → 6 (máximo para POPULAR)`;
+            corrections.push(`Etapa 19: EPI corrigido ${oldQty} → 6 un (máximo POPULAR)`);
+          }
+        }
+      }
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CORREÇÃO 5: Validação do MÉTODO H/V
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   
   // Consolidar todo o aiReasoning para buscar evidências do método H/V
