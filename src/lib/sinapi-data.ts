@@ -550,13 +550,13 @@ export const SINAPI_COMPOSITIONS: SinapiCompositionData[] = [
   },
   {
     code: 'CF-03004',
-    description: 'Concreto usinado FCK 20MPa para laje e vigas — lançamento e adensamento (popular)',
+    description: 'Concreto usinado FCK 30MPa para laje e vigas — lançamento e adensamento (popular)',
     unit: 'm³',
     category: '03',
     subcategory: 'Supraestrutura',
     baseCost: 420.00,
     items: [
-      { code: 'INS-00266', description: 'Concreto usinado FCK 20MPa', unit: 'm³', type: 'MATERIAL', coefficient: 1.05, unitPrice: 340.00 },
+      { code: 'INS-00266', description: 'Concreto usinado FCK 30MPa', unit: 'm³', type: 'MATERIAL', coefficient: 1.05, unitPrice: 340.00 },
       { code: 'INS-00005', description: 'Pedreiro', unit: 'h', type: 'LABOR', coefficient: 1.0, unitPrice: 23.10 },
       { code: 'INS-00001', description: 'Servente', unit: 'h', type: 'LABOR', coefficient: 2.5, unitPrice: 18.55 },
     ],

@@ -71,6 +71,12 @@ NUNCA faça isso (exemplos de erros frequentes):
 ❌ ERRADO: Concreto FCK 20MPa para laje/vigas (padrão popular)
 ✅ CORRETO: Concreto FCK 30MPa OBRIGATÓRIO para laje/vigas (padrão popular)
 
+❌ ERRADO: Engenheiro civil pleno: 6 meses (sem rateio)
+✅ CORRETO: Engenheiro civil pleno POPULAR: 0,40 mês (4 meses ÷ 10 casas)
+
+❌ ERRADO: Mestre de obras: 6 meses (prazo errado)
+✅ CORRETO: Mestre de obras POPULAR: 4 meses (prazo fixo)
+
 ❌ ERRADO: Chapisco interno = P_interno(45m) × 2,97m = 133,65m²
 ✅ CORRETO: Chapisco interno = P_interno(45m) × 2,85m = 128,25m²
 
@@ -249,6 +255,9 @@ Use as variáveis calculadas (MÉTODO H/V) para preencher as quantidades de cada
 | Pintura externa (selador+textura) | A_paredes_externas + A_paredes_muros |
 | Cobertura | A_cobertura |
 | Aço vigas | P_total × 4 barras ferro φ10,0mm + estribos aço φ4,3mm @ 15cm |
+| Engenheiro civil (POPULAR) | 0,40 mês (4 meses ÷ 10 casas) |
+| Mestre de obras (POPULAR) | 4 meses (prazo fixo POPULAR) |
+| EPI (POPULAR) | 6 unidades |
 
 **IMPORTANTE:** Use SEMPRE a classificação do MÉTODO H/V para separar P_interno, P_externo e P_muro
 `;
@@ -375,6 +384,46 @@ ATENÇÃO: Estas regras são OBRIGATÓRIAS para padrão POPULAR. Siga rigorosame
 ### 12 - Louças e Metais
 - Por banheiro: 1 bacia + 1 lavatório + 1 chuveiro COMUM (não elétrico — apenas infraestrutura)
 - 1 tanque por área de serviço
+
+### 19 - Administração da Obra (POPULAR — REGRAS RÍGIDAS OBRIGATÓRIAS)
+
+⚠️ ATENÇÃO MÁXIMA: Estas regras são FIXAS e INEGOCIÁVEIS para padrão POPULAR.
+
+**PRAZO: OBRIGATORIAMENTE 4 MESES** (NÃO 5, NÃO 6 meses)
+
+**ENGENHEIRO CIVIL (SINAPI-90778):**
+- 1 engenheiro administra até 10 casas populares simultâneas
+- Por isso, o custo por obra = custo mensal ÷ 10
+- → Quantidade = 4 meses × (1/10) = **0,40 mês** (nunca mais que 0,40)
+- aiReasoning OBRIGATÓRIO: "Prazo popular = 4 meses; rateio 1 engenheiro / 10 casas = 4 × (1/10) = 0,40 mês"
+
+❌ NUNCA USE: quantidade 5, 6 ou qualquer valor > 0,40 para engenheiro em POPULAR
+✅ SEMPRE USE: quantidade = **0,40** para engenheiro em POPULAR
+
+**MESTRE DE OBRAS (SINAPI-90780):**
+- 1 mestre por obra, prazo fixo
+- → Quantidade = **4 meses** (nunca 5 ou 6)
+- aiReasoning OBRIGATÓRIO: "Prazo popular = 4 meses; 1 mestre por obra = 4 meses"
+
+❌ NUNCA USE: quantidade 5, 6 para mestre em POPULAR
+✅ SEMPRE USE: quantidade = **4** para mestre em POPULAR
+
+**EPI (SINAPI-90786):**
+- Estimativa: 6 trabalhadores para obra popular 60m²
+- → Quantidade = **6 unidades**
+
+Exemplo CORRETO ✅ para orçamento POPULAR:
+| Serviço | Qtd | Un | Razão |
+|---------|-----|-----|-------|
+| Engenheiro civil pleno | 0,40 | mês | 4 meses / 10 casas |
+| Mestre de obras | 4,00 | mês | 4 meses / 1 obra |
+| EPI kit por trabalhador | 6,00 | un | 6 trabalhadores |
+
+Exemplo ERRADO ❌ (NUNCA FAÇA):
+| Serviço | Qtd | Erro |
+|---------|-----|------|
+| Engenheiro civil pleno | 6 meses | Prazo errado + sem rateio |
+| Mestre de obras | 6 meses | Prazo errado |
 `;
 }
 
@@ -530,7 +579,16 @@ ${isPopular ? `
    → Para casa 60m²: chapisco externo deve ser ≥ 90m²
    → Se for menor: REVISE o cálculo (provavelmente faltou muros ou usou altura errada)
 
-⚠️ SE VOCÊ ENCONTROU E CORRIGIU ALGUM ERRO ACIMA, REFAÇA TODO O JSON COM OS VALORES CORRIGIDOS.
+${isPopular ? `
+🔍 VERIFICAR ETAPA 19 — ADMINISTRAÇÃO (POPULAR):
+   → Engenheiro civil (SINAPI-90778): quantity DEVE SER 0,40 (= 4 meses ÷ 10 casas)
+     Se encontrar quantity > 0,40: CORRIJA para 0,40
+   → Mestre de obras (SINAPI-90780): quantity DEVE SER 4 (= 4 meses)
+     Se encontrar quantity > 4: CORRIJA para 4
+   → aiReasoning do engenheiro DEVE conter: "4 meses / 10 casas = 0,40 mês"
+   → aiReasoning do mestre DEVE conter: "prazo popular = 4 meses"
+
+` : ''}⚠️ SE VOCÊ ENCONTROU E CORRIGIU ALGUM ERRO ACIMA, REFAÇA TODO O JSON COM OS VALORES CORRIGIDOS.
 
 ## FORMATO DE SAÍDA
 Responda APENAS com o JSON abaixo, sem markdown, sem explicações antes ou depois:
