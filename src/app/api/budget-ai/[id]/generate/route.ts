@@ -26,6 +26,14 @@ export async function POST(
       );
     }
 
+    // Accept PENDING (legacy flow) or EXTRACTED (2-phase flow)
+    if (budget.status !== 'PENDING' && budget.status !== 'EXTRACTED') {
+      return NextResponse.json(
+        { error: `Status inválido para geração: ${budget.status}` },
+        { status: 400 }
+      );
+    }
+
     // Fire and forget - don't await
     generateAIBudget(id).catch((err) => {
       console.error('Erro na geração async:', err);

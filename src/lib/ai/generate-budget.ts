@@ -1,11 +1,12 @@
 import { prisma } from '@/lib/prisma';
-import { supabase, BUCKET_NAME } from '@/lib/supabase';
 import { anthropic } from './claude-client';
-import { buildBudgetPrompt } from './budget-prompt';
+import { buildBudgetPrompt, buildBudgetPromptWithVariables } from './budget-prompt';
+import { downloadFilesAsBase64 } from './file-utils';
+import { computeDerivedValues } from './types';
+import type { ExtractedVariables } from './types';
 import { SINAPI_COMPOSITIONS } from '@/lib/sinapi-data';
 import { DEFAULT_STAGES } from '@/lib/seed-etapas';
 import { initializeProjectCompositions } from '@/lib/project-compositions';
-import type Anthropic from '@anthropic-ai/sdk';
 
 interface AIServiceResult {
   description: string;
@@ -583,75 +584,62 @@ export async function generateAIBudget(budgetAIId: string): Promise<void> {
     // Limit: max 8 files
     const filesToUse = files.slice(0, 8);
 
-    // Detect file type from storage path extension
-    const getMediaType = (path: string): string => {
-      const ext = path.split('.').pop()?.toLowerCase();
-      switch (ext) {
-        case 'jpg': case 'jpeg': return 'image/jpeg';
-        case 'png': return 'image/png';
-        case 'webp': return 'image/webp';
-        default: return 'application/pdf';
-      }
-    };
-
     // Download files from Supabase Storage as base64
-    const fileContents: Anthropic.Messages.ContentBlockParam[] = [];
-
-    for (const file of filesToUse) {
-      const { data, error } = await supabase.storage
-        .from(BUCKET_NAME)
-        .download(file.storagePath);
-
-      if (error || !data) {
-        console.error(`Erro ao baixar ${file.fileName}:`, error);
-        continue;
-      }
-
-      const buffer = Buffer.from(await data.arrayBuffer());
-      const base64 = buffer.toString('base64');
-      const mediaType = getMediaType(file.storagePath);
-
-      if (mediaType === 'application/pdf') {
-        fileContents.push({
-          type: 'document',
-          source: {
-            type: 'base64',
-            media_type: 'application/pdf',
-            data: base64,
-          },
-        });
-      } else {
-        fileContents.push({
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
-            data: base64,
-          },
-        });
-      }
-    }
+    const fileContents = await downloadFilesAsBase64(filesToUse);
 
     if (fileContents.length === 0) {
       throw new Error('Não foi possível baixar nenhum arquivo');
     }
 
-    // Build prompt (now returns { systemPrompt, userPrompt })
+    // Check if we have confirmed variables (Phase 2)
+    const hasConfirmedVars = budgetAI.extractedVariables != null;
+    let confirmedVars: ExtractedVariables | null = null;
+
+    if (hasConfirmedVars) {
+      confirmedVars = budgetAI.extractedVariables as unknown as ExtractedVariables;
+      // Ensure derived values are computed
+      if (!confirmedVars.derived) {
+        confirmedVars.derived = computeDerivedValues(confirmedVars);
+      }
+      console.log('🔄 Fase 2: Usando variáveis confirmadas pelo engenheiro');
+    } else {
+      console.log('🔄 Fase única: Geração sem variáveis pré-extraídas (fluxo legado)');
+    }
+
+    // Build prompt
     const constructedArea = project.budgetEstimated?.constructedArea || undefined;
-    const { systemPrompt, userPrompt } = buildBudgetPrompt(
-      {
-        name: project.name,
-        tipoObra: project.tipoObra,
-        padraoEmpreendimento: project.padraoEmpreendimento,
-        enderecoEstado: project.enderecoEstado,
-        enderecoCidade: project.enderecoCidade,
-        constructedArea,
-      },
-      filesToUse.map((f) => ({
-        fileName: f.fileName,
-        category: f.category,
-      }))
-    );
+    const projectInfo = {
+      name: project.name,
+      tipoObra: project.tipoObra,
+      padraoEmpreendimento: project.padraoEmpreendimento,
+      enderecoEstado: project.enderecoEstado,
+      enderecoCidade: project.enderecoCidade,
+      constructedArea: confirmedVars?.areaConstruida || constructedArea,
+    };
+    const fileInfo = filesToUse.map((f) => ({
+      fileName: f.fileName,
+      category: f.category,
+    }));
+
+    const { systemPrompt, userPrompt } = confirmedVars
+      ? buildBudgetPromptWithVariables(projectInfo, fileInfo, confirmedVars)
+      : buildBudgetPrompt(projectInfo, fileInfo);
+
+    // Delete existing services if re-generating (Phase 2 after review)
+    if (hasConfirmedVars && budgetAI.stages.length > 0) {
+      for (const stage of budgetAI.stages) {
+        await prisma.budgetAIService.deleteMany({
+          where: { stageId: stage.id },
+        });
+      }
+      // Reset stage totals
+      for (const stage of budgetAI.stages) {
+        await prisma.budgetAIStage.update({
+          where: { id: stage.id },
+          data: { totalCost: 0, percentage: 0 },
+        });
+      }
+    }
 
     // Call Claude API with extended thinking
     const response = await anthropic.messages.create({

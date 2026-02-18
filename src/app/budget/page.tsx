@@ -112,8 +112,8 @@ export default function BudgetPage() {
             })),
           })
 
-          // Start polling if GENERATING
-          if (ai.status === 'GENERATING' || ai.status === 'PENDING') {
+          // Start polling if GENERATING or EXTRACTING
+          if (ai.status === 'GENERATING' || ai.status === 'PENDING' || ai.status === 'EXTRACTING') {
             setGenerating(true)
             startPolling(ai.id)
           }
@@ -154,7 +154,7 @@ export default function BudgetPage() {
         const res = await fetch(`/api/budget-ai/${budgetAIId}/status`)
         if (res.ok) {
           const data = await res.json()
-          if (data.status === 'GENERATED' || data.status === 'FAILED') {
+          if (data.status === 'GENERATED' || data.status === 'FAILED' || data.status === 'EXTRACTED') {
             setGenerating(false)
             if (pollingRef.current) clearInterval(pollingRef.current)
             fetchBudgetData()
@@ -190,7 +190,7 @@ export default function BudgetPage() {
       setBudgetAI({
         id: budgetAIData.id,
         name: budgetAIData.name,
-        status: 'GENERATING',
+        status: 'EXTRACTING',
         totalDirectCost: 0,
         generatedAt: null,
         stages: budgetAIData.stages.map((s: { id: string; code: string | null; totalCost: number }) => ({
@@ -202,8 +202,8 @@ export default function BudgetPage() {
 
       setShowAIDialog(false)
 
-      // Trigger generation
-      await fetch(`/api/budget-ai/${budgetAIData.id}/generate`, {
+      // Trigger extraction (Phase 1)
+      await fetch(`/api/budget-ai/${budgetAIData.id}/extract`, {
         method: 'POST',
       })
 
@@ -519,11 +519,41 @@ export default function BudgetPage() {
                     <div className="text-center py-8">
                       <Loader2 className="h-10 w-10 text-purple-600 animate-spin mx-auto mb-4" />
                       <h3 className="text-base font-semibold text-gray-900 mb-2">
-                        Analisando Projetos...
+                        {budgetAI?.status === 'GENERATING' ? 'Gerando Orcamento...' : 'Extraindo Variaveis...'}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        A IA esta lendo os PDFs e gerando o orcamento. Isso pode levar alguns minutos.
+                        {budgetAI?.status === 'GENERATING'
+                          ? 'A IA esta gerando o orcamento com as variaveis confirmadas.'
+                          : 'A IA esta lendo as medidas dos PDFs. Isso pode levar alguns minutos.'}
                       </p>
+                    </div>
+                  ) : budgetAI && budgetAI.status === 'EXTRACTED' ? (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Sparkles className="h-8 w-8 text-purple-500" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">
+                        Variaveis Extraidas
+                      </h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                        Revise as medidas antes de gerar o orcamento
+                      </p>
+                      <div className="flex gap-2 justify-center">
+                        <Link href={`/budget/ai?budgetId=${budgetAI.id}`}>
+                          <Button className="bg-purple-600 hover:bg-purple-700">
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Revisar Variaveis
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={handleDeleteAI}
+                          disabled={deletingAI}
+                        >
+                          {deletingAI ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                   ) : budgetAI && budgetAI.status === 'GENERATED' ? (
                     <div className="space-y-4">

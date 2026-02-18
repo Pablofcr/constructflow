@@ -1,5 +1,6 @@
 import { SINAPI_COMPOSITIONS, SinapiCompositionData } from '@/lib/sinapi-data';
 import { DEFAULT_STAGES } from '@/lib/seed-etapas';
+import type { ExtractedVariables, DerivedValues } from './types';
 
 interface ProjectInfo {
   name: string;
@@ -505,6 +506,171 @@ Responda APENAS com o JSON abaixo, sem markdown, sem explicações antes ou depo
           "unitPrice": 6.50,
           "aiConfidence": 0.85,
           "aiReasoning": "A_terreno = 10m × 25m = 250m² conforme planta de situação"
+        }
+      ]
+    }
+  ]
+}`);
+
+  const userPrompt = userParts.join('\n\n');
+
+  return { systemPrompt, userPrompt };
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FASE 2: Prompt com variáveis confirmadas pelo engenheiro
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function formatConfirmedVariables(vars: ExtractedVariables): string {
+  const d = vars.derived as DerivedValues;
+  const lines: string[] = [];
+
+  lines.push(`## ⚠️ VARIÁVEIS CONFIRMADAS PELO ENGENHEIRO — USE ESTES VALORES`);
+  lines.push(`**NÃO re-leia os PDFs para obter medidas. Use EXCLUSIVAMENTE os valores abaixo.**\n`);
+
+  lines.push(`### ÁREAS`);
+  lines.push(`- Área construída = ${vars.areaConstruida} m²`);
+  lines.push(`- Área terreno = ${vars.areaTerreno} m²\n`);
+
+  lines.push(`### ALTURAS`);
+  lines.push(`- H_interno = ${vars.heights.hInterno}m`);
+  lines.push(`- H_externo = ${vars.heights.hExterno}m`);
+  lines.push(`- H_muro = ${vars.heights.hMuro}m\n`);
+
+  lines.push(`### PAREDES (MÉTODO H/V — CONFIRMADO)`);
+  lines.push(`HORIZONTAIS:`);
+  const hWalls = vars.walls.filter((w) => w.direction === 'H');
+  for (const w of hWalls) {
+    lines.push(`- ${w.id} = ${w.length}m (${w.classification}) — ${w.description}`);
+  }
+  lines.push(`P_horizontal = ${hWalls.map((w) => w.length).join(' + ')} = ${d.pHorizontal}m\n`);
+
+  lines.push(`VERTICAIS:`);
+  const vWalls = vars.walls.filter((w) => w.direction === 'V');
+  for (const w of vWalls) {
+    lines.push(`- ${w.id} = ${w.length}m (${w.classification}) — ${w.description}`);
+  }
+  lines.push(`P_vertical = ${vWalls.map((w) => w.length).join(' + ')} = ${d.pVertical}m\n`);
+
+  lines.push(`P_total = ${d.pHorizontal} + ${d.pVertical} = ${d.pTotal}m`);
+  lines.push(`P_externo = ${d.pExterno}m`);
+  lines.push(`P_interno = ${d.pInterno}m`);
+  lines.push(`P_muro = ${d.pMuro}m\n`);
+
+  lines.push(`### ABERTURAS`);
+  for (const o of vars.openings) {
+    lines.push(`- ${o.quantity}× ${o.type} ${o.width}×${o.height}m (${o.location}) — ${o.description}`);
+  }
+  lines.push(`A_vaos_portas_int = ${d.aVaosPortasInt}m²`);
+  lines.push(`A_vaos_portas_ext = ${d.aVaosPortasExt}m²`);
+  lines.push(`A_vaos_janelas = ${d.aVaosJanelas}m²`);
+  lines.push(`A_vaos_portoes = ${d.aVaosPortoes}m²`);
+  lines.push(`A_vaos_total = ${d.aVaosTotal}m²\n`);
+
+  lines.push(`### ÁREAS DE PAREDES (DERIVADAS)`);
+  lines.push(`- A_paredes_internas = P_interno(${d.pInterno}m) × H_interno(${vars.heights.hInterno}m) − vaos_int(${d.aVaosPortasInt}m²) = ${d.aParedesInternas}m²`);
+  lines.push(`- A_paredes_externas = P_externo(${d.pExterno}m) × H_externo(${vars.heights.hExterno}m) − vaos_ext(${d.aVaosPortasExt + d.aVaosJanelas}m²) = ${d.aParedesExternas}m²`);
+  lines.push(`- A_paredes_muros = P_muro(${d.pMuro}m) × H_muro(${vars.heights.hMuro}m) − vaos_portoes(${d.aVaosPortoes}m²) = ${d.aParedesMuros}m²`);
+  lines.push(`- A_paredes_total = ${d.aParedesTotal}m²\n`);
+
+  lines.push(`### AMBIENTES`);
+  for (const r of vars.rooms) {
+    lines.push(`- ${r.name}: ${r.area}m² (${r.type})`);
+  }
+
+  lines.push(`\n### OUTROS VALORES DERIVADOS`);
+  lines.push(`- A_cobertura = ${d.aCobertura}m²`);
+  lines.push(`- V_escavação = ${d.vEscavacao}m³`);
+
+  return lines.join('\n');
+}
+
+export function buildBudgetPromptWithVariables(
+  project: ProjectInfo,
+  files: FileInfo[],
+  confirmedVars: ExtractedVariables
+): BudgetPromptResult {
+  const stageList = buildStageList();
+  const catalog = buildCompositionCatalog();
+  const isPopular = project.padraoEmpreendimento === 'POPULAR';
+
+  // === SYSTEM PROMPT ===
+  const systemParts: string[] = [];
+
+  systemParts.push(`Você é um engenheiro orçamentista sênior com 20+ anos de experiência em construção civil brasileira.
+As variáveis do projeto (paredes, áreas, aberturas) já foram extraídas e CONFIRMADAS pelo engenheiro.
+Use EXCLUSIVAMENTE os valores confirmados fornecidos. NÃO re-leia os PDFs para obter medidas.
+Sua tarefa é APENAS gerar o orçamento usando as variáveis pré-confirmadas.`);
+
+  // Confirmed variables section (highest priority)
+  systemParts.push(formatConfirmedVariables(confirmedVars));
+
+  // Popular rules
+  if (isPopular) {
+    systemParts.push(buildPopularRules());
+    systemParts.push(buildCompositionGuide('POPULAR'));
+  } else {
+    systemParts.push(buildCompositionGuide(project.padraoEmpreendimento));
+  }
+
+  // Composition catalog
+  systemParts.push(`## CATÁLOGO DE COMPOSIÇÕES SINAPI DISPONÍVEIS
+Use PREFERENCIALMENTE as composições do catálogo abaixo. O código (ex: CF-01001, SINAPI-73964) deve ser referenciado exatamente.
+Se nenhuma composição existente se encaixar, use code: null e descreva o serviço.
+${catalog}`);
+
+  // Stage list
+  systemParts.push(`## 20 ETAPAS DA OBRA (00-19)
+${stageList}`);
+
+  const systemPrompt = systemParts.join('\n\n');
+
+  // === USER PROMPT ===
+  const userParts: string[] = [];
+
+  userParts.push(`## DADOS DO PROJETO
+- Nome: ${project.name}
+- Tipo: ${project.tipoObra}
+- Padrão: ${project.padraoEmpreendimento}
+- Estado: ${project.enderecoEstado}
+- Cidade: ${project.enderecoCidade}
+- Área construída: ${confirmedVars.areaConstruida} m²`);
+
+  userParts.push(`## ARQUIVOS ANEXADOS (para referência visual apenas — NÃO re-leia medidas)
+${files.map((f) => `- ${f.fileName} (${f.category})`).join('\n')}`);
+
+  userParts.push(`## INSTRUÇÕES
+
+As variáveis do projeto (paredes H/V, alturas, aberturas, ambientes) já estão no system prompt.
+Use-as DIRETAMENTE para calcular quantidades. NÃO extraia medidas dos PDFs novamente.
+
+Para cada etapa (00-19), liste os serviços necessários com:
+- Descrição clara do serviço
+- Código SINAPI/CF quando disponível no catálogo
+- Unidade de medida
+- Quantidade calculada a partir das variáveis confirmadas
+- Preço unitário (use o baseCost do catálogo)
+- aiConfidence: valor de 0.9 a 1.0 (variáveis já confirmadas pelo engenheiro)
+- aiReasoning: explique QUAL variável usou e como calculou
+
+${isPopular ? 'SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR.\n' : ''}`);
+
+  userParts.push(`## FORMATO DE SAÍDA
+Responda APENAS com o JSON abaixo, sem markdown, sem explicações:
+
+{
+  "stages": [
+    {
+      "code": "01",
+      "services": [
+        {
+          "description": "Limpeza do terreno mecanizada",
+          "code": "CF-01001",
+          "unit": "m²",
+          "quantity": 250.00,
+          "unitPrice": 6.50,
+          "aiConfidence": 0.95,
+          "aiReasoning": "A_terreno confirmado = 250m²"
         }
       ]
     }

@@ -90,6 +90,8 @@ enum CompositionSource {
 
 enum BudgetAIStatus {
   PENDING
+  EXTRACTING
+  EXTRACTED
   GENERATING
   GENERATED
   APPROVED
@@ -716,6 +718,11 @@ model BudgetAI {
   aiError           String?
   generatedAt       DateTime?
   filesUsed         Json?
+
+  // Fase 1: Extração de variáveis
+  extractedVariables Json?
+  extractionDurationMs Int?
+  extractedAt       DateTime?
 
   // Flag para indicar que preços foram ajustados manualmente
   manuallyEdited    Boolean         @default(false)

@@ -129,7 +129,7 @@ export function GenerateAIBudgetDialog({
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-purple-600" />
-            <h2 className="text-lg font-bold text-gray-900">Gerar Orcamento por IA</h2>
+            <h2 className="text-lg font-bold text-gray-900">Extrair Variaveis dos PDFs</h2>
           </div>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="h-5 w-5 text-gray-500" />
@@ -285,20 +285,20 @@ export function GenerateAIBudgetDialog({
               {generating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Gerando Orcamento...
+                  Extraindo Variaveis...
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4 mr-2" />
-                  Gerar Orcamento por IA
+                  Extrair Variaveis dos PDFs
                 </>
               )}
             </Button>
-            {existingFiles.length === 0 && (
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Envie pelo menos 1 arquivo para gerar
-              </p>
-            )}
+            <p className="text-xs text-gray-500 text-center mt-2">
+              {existingFiles.length === 0
+                ? 'Envie pelo menos 1 arquivo para extrair'
+                : 'A IA vai ler as medidas dos PDFs. Voce podera revisar antes de gerar o orcamento.'}
+            </p>
           </div>
         </div>
       </div>

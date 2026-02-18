@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
@@ -8,6 +8,7 @@ import { AIMetadataBanner } from '@/components/orcamento-ai/AIMetadataBanner';
 import { ConfidenceBadge } from '@/components/orcamento-ai/ConfidenceBadge';
 import { ArrowLeft, Loader2, Sparkles, TableProperties, AlertTriangle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { VariablesReview } from '@/components/orcamento-ai/VariablesReview';
 
 interface BudgetAIData {
   id: string;
@@ -74,6 +75,8 @@ function BudgetAIContent() {
   const [budget, setBudget] = useState<BudgetAIData | null>(null);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [generatingBudget, setGeneratingBudget] = useState(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchBudget = useCallback(async () => {
     if (!budgetId) return;
@@ -117,9 +120,58 @@ function BudgetAIContent() {
     }
   }, [budgetId]);
 
+  // Start polling for status changes (EXTRACTING or GENERATING)
+  const startPolling = useCallback((id: string) => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/budget-ai/${id}/status`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'EXTRACTED' || data.status === 'GENERATED' || data.status === 'FAILED') {
+            setGeneratingBudget(false);
+            if (pollingRef.current) clearInterval(pollingRef.current);
+            fetchBudget();
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }, 3000);
+  }, [fetchBudget]);
+
   useEffect(() => {
     fetchBudget();
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [fetchBudget]);
+
+  // Auto-start polling when budget is in a transitional status
+  useEffect(() => {
+    if (budget && budgetId && (budget.status === 'EXTRACTING' || budget.status === 'GENERATING')) {
+      startPolling(budgetId);
+    }
+  }, [budget?.status, budgetId, startPolling]);
+
+  // Handle "Generate Budget" from variables review
+  const handleGenerateFromVariables = async () => {
+    if (!budgetId) return;
+    try {
+      setGeneratingBudget(true);
+      const res = await fetch(`/api/budget-ai/${budgetId}/generate`, { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Erro ao gerar orcamento');
+        setGeneratingBudget(false);
+        return;
+      }
+      startPolling(budgetId);
+    } catch (err) {
+      console.error('Erro ao gerar orcamento:', err);
+      setGeneratingBudget(false);
+    }
+  };
 
   const fmt = (v: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -215,6 +267,24 @@ function BudgetAIContent() {
             <div className="text-center py-20 text-gray-500">
               Orcamento nao encontrado
             </div>
+          ) : budget.status === 'EXTRACTING' || (budget.status === 'GENERATING' && generatingBudget) ? (
+            <div className="text-center py-20">
+              <Loader2 className="h-10 w-10 text-purple-600 animate-spin mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {budget.status === 'EXTRACTING' ? 'Extraindo Variaveis...' : 'Gerando Orcamento...'}
+              </h3>
+              <p className="text-sm text-gray-500">
+                {budget.status === 'EXTRACTING'
+                  ? 'A IA esta lendo as medidas dos PDFs. Isso pode levar alguns minutos.'
+                  : 'A IA esta gerando o orcamento com as variaveis confirmadas.'}
+              </p>
+            </div>
+          ) : budget.status === 'EXTRACTED' ? (
+            <VariablesReview
+              budgetAIId={budget.id}
+              onGenerateBudget={handleGenerateFromVariables}
+              generating={generatingBudget}
+            />
           ) : (
             <div className="space-y-4">
               {/* Manually Edited Banner */}
