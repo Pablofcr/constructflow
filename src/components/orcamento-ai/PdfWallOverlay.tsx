@@ -7,7 +7,7 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import { ZoomIn, ZoomOut, Eye, EyeOff } from 'lucide-react';
 import type { ExtractedWall, FloorPlan } from '@/lib/ai/types';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 const CLASSIFICATION_COLORS: Record<ExtractedWall['classification'], string> = {
   muro: '#6B7280',
