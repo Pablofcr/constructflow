@@ -308,6 +308,9 @@ export function VariablesReview({
 
       {/* Walls */}
       <Section title="Paredes (Metodo H/V)">
+        {/* Wall Diagram */}
+        <WallDiagram walls={vars.walls} />
+
         {/* Horizontal walls */}
         <p className="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">
           Horizontais (frente → fundos)
@@ -513,6 +516,235 @@ export function VariablesReview({
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Sub-components
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const CLASSIFICATION_COLORS: Record<ExtractedWall['classification'], string> = {
+  muro: '#6B7280',
+  ext: '#3B82F6',
+  int: '#A855F7',
+  'ext/muro': '#14B8A6',
+};
+
+const CLASSIFICATION_LABELS: Record<ExtractedWall['classification'], string> = {
+  muro: 'Muro',
+  ext: 'Externa',
+  int: 'Interna',
+  'ext/muro': 'Ext/Muro',
+};
+
+function WallDiagram({ walls }: { walls: ExtractedWall[] }) {
+  const hWalls = walls.filter((w) => w.direction === 'H');
+  const vWalls = walls.filter((w) => w.direction === 'V');
+
+  if (hWalls.length === 0 && vWalls.length === 0) return null;
+
+  const padding = 60;
+  const labelSpace = 16;
+  const arrowSpace = 28;
+  const legendHeight = 24;
+  const drawWidth = 400;
+  const drawHeight = 300;
+  const svgWidth = drawWidth + padding * 2;
+  const svgHeight = drawHeight + padding * 2 + arrowSpace + legendHeight;
+
+  // Max lengths for proportional sizing
+  const maxH = Math.max(...hWalls.map((w) => w.length), 1);
+  const maxV = Math.max(...vWalls.map((w) => w.length), 1);
+
+  // H walls: distributed vertically with uniform spacing
+  const hSpacing = hWalls.length > 1 ? drawHeight / (hWalls.length - 1) : 0;
+  // V walls: distributed horizontally with uniform spacing
+  const vSpacing = vWalls.length > 1 ? drawWidth / (vWalls.length - 1) : 0;
+
+  // Each H wall is a horizontal line, length proportional to wall.length/maxH
+  const hLines = hWalls.map((wall, i) => {
+    const y = padding + arrowSpace + (hWalls.length === 1 ? drawHeight / 2 : i * hSpacing);
+    const lineWidth = (wall.length / maxH) * drawWidth * 0.85;
+    const x1 = padding + (drawWidth - lineWidth) / 2;
+    const x2 = x1 + lineWidth;
+    return { wall, y, x1, x2 };
+  });
+
+  // Each V wall is a vertical line, length proportional to wall.length/maxV
+  const vLines = vWalls.map((wall, i) => {
+    const x = padding + (vWalls.length === 1 ? drawWidth / 2 : i * vSpacing);
+    const lineHeight = (wall.length / maxV) * drawHeight * 0.85;
+    const y1 = padding + arrowSpace + (drawHeight - lineHeight) / 2;
+    const y2 = y1 + lineHeight;
+    return { wall, x, y1, y2 };
+  });
+
+  // Legend items - only classifications present in walls
+  const usedClassifications = [...new Set(walls.map((w) => w.classification))];
+
+  return (
+    <div className="mb-4">
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        className="w-full max-w-[520px] mx-auto"
+        style={{ height: 'auto' }}
+      >
+        {/* Background */}
+        <rect x="0" y="0" width={svgWidth} height={svgHeight} rx="8" fill="#FAFAFA" stroke="#E5E7EB" strokeWidth="1" />
+
+        {/* FRENTE arrow at top */}
+        <g>
+          <defs>
+            <marker id="arrowLeft" markerWidth="6" markerHeight="4" refX="0" refY="2" orient="auto">
+              <polygon points="6,0 0,2 6,4" fill="#9CA3AF" />
+            </marker>
+            <marker id="arrowRight" markerWidth="6" markerHeight="4" refX="6" refY="2" orient="auto">
+              <polygon points="0,0 6,2 0,4" fill="#9CA3AF" />
+            </marker>
+          </defs>
+          <line
+            x1={padding + 60}
+            y1={padding - 4}
+            x2={padding + drawWidth - 60}
+            y2={padding - 4}
+            stroke="#9CA3AF"
+            strokeWidth="1"
+            markerStart="url(#arrowLeft)"
+            markerEnd="url(#arrowRight)"
+          />
+          <text
+            x={padding + drawWidth / 2}
+            y={padding - 8}
+            textAnchor="middle"
+            fontSize="10"
+            fontWeight="600"
+            fill="#6B7280"
+          >
+            FRENTE
+          </text>
+        </g>
+
+        {/* H walls (horizontal lines) */}
+        {hLines.map(({ wall, y, x1, x2 }) => {
+          const color = CLASSIFICATION_COLORS[wall.classification];
+          const isMuro = wall.classification === 'muro' || wall.classification === 'ext/muro';
+          return (
+            <g key={wall.id}>
+              <line
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={color}
+                strokeWidth={isMuro ? 4 : 2.5}
+                strokeLinecap="round"
+                strokeDasharray={wall.classification === 'int' ? '6,3' : 'none'}
+              />
+              {/* ID label on the left */}
+              <text
+                x={x1 - 6}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="9"
+                fontWeight="700"
+                fill={color}
+              >
+                {wall.id}
+              </text>
+              {/* Length label centered */}
+              <text
+                x={(x1 + x2) / 2}
+                y={y - 6}
+                textAnchor="middle"
+                fontSize="8"
+                fill="#374151"
+              >
+                {wall.length.toFixed(2)}m
+              </text>
+            </g>
+          );
+        })}
+
+        {/* V walls (vertical lines) */}
+        {vLines.map(({ wall, x, y1, y2 }) => {
+          const color = CLASSIFICATION_COLORS[wall.classification];
+          const isMuro = wall.classification === 'muro' || wall.classification === 'ext/muro';
+          return (
+            <g key={wall.id}>
+              <line
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={color}
+                strokeWidth={isMuro ? 4 : 2.5}
+                strokeLinecap="round"
+                strokeDasharray={wall.classification === 'int' ? '6,3' : 'none'}
+              />
+              {/* ID label on top */}
+              <text
+                x={x}
+                y={y1 - 6}
+                textAnchor="middle"
+                fontSize="9"
+                fontWeight="700"
+                fill={color}
+              >
+                {wall.id}
+              </text>
+              {/* Length label to the right, rotated */}
+              <text
+                x={x + 8}
+                y={(y1 + y2) / 2}
+                textAnchor="middle"
+                fontSize="8"
+                fill="#374151"
+                transform={`rotate(90, ${x + 8}, ${(y1 + y2) / 2})`}
+              >
+                {wall.length.toFixed(2)}m
+              </text>
+            </g>
+          );
+        })}
+
+        {/* FUNDOS label at bottom */}
+        <text
+          x={padding + drawWidth / 2}
+          y={padding + arrowSpace + drawHeight + 18}
+          textAnchor="middle"
+          fontSize="10"
+          fontWeight="600"
+          fill="#9CA3AF"
+        >
+          FUNDOS
+        </text>
+
+        {/* Legend */}
+        {usedClassifications.map((cls, i) => {
+          const legendX = padding + i * 100;
+          const legendY = svgHeight - legendHeight + 4;
+          const color = CLASSIFICATION_COLORS[cls];
+          return (
+            <g key={cls}>
+              <line
+                x1={legendX}
+                y1={legendY}
+                x2={legendX + 20}
+                y2={legendY}
+                stroke={color}
+                strokeWidth={cls === 'muro' || cls === 'ext/muro' ? 3 : 2}
+                strokeLinecap="round"
+                strokeDasharray={cls === 'int' ? '4,2' : 'none'}
+              />
+              <text
+                x={legendX + 25}
+                y={legendY + 3.5}
+                fontSize="9"
+                fill="#6B7280"
+              >
+                {CLASSIFICATION_LABELS[cls]}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
