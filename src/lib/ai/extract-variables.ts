@@ -122,7 +122,7 @@ export async function extractVariables(budgetAIId: string): Promise<void> {
     // Call Claude API with extended thinking (all budget dedicated to reading PDFs)
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 8000,
+      max_tokens: 16000,
       thinking: {
         type: 'enabled',
         budget_tokens: 10000,
@@ -180,6 +180,7 @@ export async function extractVariables(budgetAIId: string): Promise<void> {
         extractedVariables: extractedVars as object,
         extractionDurationMs: durationMs,
         extractedAt: new Date(),
+        aiError: null,
         aiModel: 'claude-sonnet-4-5-20250929',
         aiPromptTokens: response.usage?.input_tokens || null,
         aiOutputTokens: response.usage?.output_tokens || null,
