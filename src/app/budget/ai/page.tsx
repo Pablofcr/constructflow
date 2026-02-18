@@ -282,6 +282,7 @@ function BudgetAIContent() {
           ) : budget.status === 'EXTRACTED' ? (
             <VariablesReview
               budgetAIId={budget.id}
+              projectId={budget.project.id}
               onGenerateBudget={handleGenerateFromVariables}
               generating={generatingBudget}
             />

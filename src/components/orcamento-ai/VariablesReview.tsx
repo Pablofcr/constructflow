@@ -19,9 +19,11 @@ import type {
   DerivedValues,
 } from '@/lib/ai/types';
 import { computeDerivedValues } from '@/lib/ai/types';
+import { PdfWallOverlay } from './PdfWallOverlay';
 
 interface VariablesReviewProps {
   budgetAIId: string;
+  projectId: string;
   onGenerateBudget: () => void;
   generating: boolean;
 }
@@ -61,6 +63,7 @@ const ROOM_TYPES: { value: RoomType; label: string }[] = [
 
 export function VariablesReview({
   budgetAIId,
+  projectId,
   onGenerateBudget,
   generating,
 }: VariablesReviewProps) {
@@ -308,6 +311,15 @@ export function VariablesReview({
 
       {/* Walls */}
       <Section title="Paredes (Metodo H/V)">
+        {/* PDF Wall Overlay */}
+        {vars.floorPlans && vars.floorPlans.length > 0 && (
+          <PdfWallOverlay
+            projectId={projectId}
+            floorPlans={vars.floorPlans}
+            walls={vars.walls}
+          />
+        )}
+
         {/* Wall Diagram */}
         <WallDiagram walls={vars.walls} />
 

@@ -3,7 +3,7 @@ import { anthropic } from './claude-client';
 import { buildExtractionPrompt } from './extraction-prompt';
 import { downloadFilesAsBase64 } from './file-utils';
 import { computeDerivedValues } from './types';
-import type { ExtractedVariables } from './types';
+import type { ExtractedVariables, FloorPlan } from './types';
 
 function validateExtractedVariables(vars: ExtractedVariables): string[] {
   const errors: string[] = [];
@@ -156,6 +156,34 @@ export async function extractVariables(budgetAIId: string): Promise<void> {
       extractedVars = JSON.parse(jsonStr);
     } catch {
       throw new Error(`JSON inválido na extração: ${jsonStr.substring(0, 200)}`);
+    }
+
+    // Post-process floorPlans: resolve fileId from fileName
+    if (extractedVars.floorPlans && extractedVars.floorPlans.length > 0) {
+      for (const fp of extractedVars.floorPlans) {
+        const matchedFile = files.find(
+          (f) => f.fileName.toLowerCase() === fp.fileName.toLowerCase()
+        );
+        if (matchedFile) {
+          fp.fileId = matchedFile.id;
+        } else {
+          console.warn(`FloorPlan fileName "${fp.fileName}" não encontrado nos arquivos do projeto`);
+        }
+      }
+
+      // Soft validations for wall coordinates
+      for (const wall of extractedVars.walls) {
+        if (wall.floorPlanIndex != null) {
+          if (wall.floorPlanIndex >= extractedVars.floorPlans.length) {
+            console.warn(`Parede ${wall.id}: floorPlanIndex ${wall.floorPlanIndex} excede floorPlans.length ${extractedVars.floorPlans.length}`);
+          }
+          if (!wall.coordinates) {
+            console.warn(`Parede ${wall.id}: tem floorPlanIndex mas sem coordinates`);
+          }
+        }
+      }
+    } else {
+      console.warn('IA não retornou floorPlans (plantas baixas identificadas)');
     }
 
     // Validate

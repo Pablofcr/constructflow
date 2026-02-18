@@ -2,12 +2,26 @@
 // Tipos para Extração de Variáveis (Fase 1 do Orçamento IA)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+export interface WallCoordinate {
+  x1: number; y1: number;  // ponto inicial (% da página, 0-100)
+  x2: number; y2: number;  // ponto final (% da página, 0-100)
+}
+
+export interface FloorPlan {
+  fileId: string;       // ProjectFile.id (preenchido pós-parse)
+  fileName: string;     // nome exato do arquivo
+  pageNumber: number;   // 1-indexed
+  label: string;        // "Terreo", "1o Pavimento"
+}
+
 export interface ExtractedWall {
   id: string;           // "H0", "H1", "V0"...
   direction: 'H' | 'V';
   length: number;
   classification: 'muro' | 'ext' | 'int' | 'ext/muro';
   description: string;
+  floorPlanIndex?: number;      // índice no array floorPlans[]
+  coordinates?: WallCoordinate; // posição percentual na página do PDF
 }
 
 export interface ExtractedOpening {
@@ -56,6 +70,7 @@ export interface ExtractedVariables {
   };
   openings: ExtractedOpening[];
   rooms: ExtractedRoom[];
+  floorPlans?: FloorPlan[];
   derived?: DerivedValues;
   aiNotes?: string;
 }

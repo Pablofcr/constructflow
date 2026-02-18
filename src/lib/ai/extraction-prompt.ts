@@ -93,7 +93,20 @@ Para cada porta, janela e portão:
 Liste TODOS os ambientes com:
 - Nome (ex: "Sala", "Quarto 1", "Banheiro Social")
 - Área em m² (leia do projeto ou calcule largura × comprimento)
-- Tipo: banheiro, cozinha, quarto, sala, servico, outro`;
+- Tipo: banheiro, cozinha, quarto, sala, servico, outro
+
+## PLANTAS BAIXAS E COORDENADAS
+
+Identifique qual(is) página(s) dos PDFs contêm planta(s) baixa(s).
+- A primeira página pode ser capa, implantação, situação — NÃO é obrigatoriamente a planta baixa.
+- Para cada planta baixa, informe: arquivo, nº da página, rótulo do pavimento.
+- Se houver múltiplos pavimentos, liste cada um separadamente.
+
+Para cada parede, informe COORDENADAS PERCENTUAIS (0-100) de onde ela aparece na página:
+- (0,0) = canto superior esquerdo, (100,100) = canto inferior direito
+- x1,y1 = início da parede, x2,y2 = fim da parede
+- H walls: y1 ≈ y2 | V walls: x1 ≈ x2
+- Aproximação de 5% é aceitável`;
 
   const userPrompt = `## DADOS DO PROJETO
 - Nome: ${project.name}
@@ -116,27 +129,41 @@ Retorne APENAS o JSON abaixo, sem markdown, sem explicações:
 {
   "areaConstruida": 60.00,
   "areaTerreno": 250.00,
+  "floorPlans": [
+    {
+      "fileId": "",
+      "fileName": "planta-baixa.pdf",
+      "pageNumber": 2,
+      "label": "Terreo"
+    }
+  ],
   "walls": [
     {
       "id": "H0",
       "direction": "H",
       "length": 5.40,
       "classification": "muro",
-      "description": "Muro frontal"
+      "description": "Muro frontal",
+      "floorPlanIndex": 0,
+      "coordinates": { "x1": 15, "y1": 25, "x2": 85, "y2": 25 }
     },
     {
       "id": "H1",
       "direction": "H",
       "length": 5.40,
       "classification": "ext",
-      "description": "Fachada principal"
+      "description": "Fachada principal",
+      "floorPlanIndex": 0,
+      "coordinates": { "x1": 15, "y1": 35, "x2": 85, "y2": 35 }
     },
     {
       "id": "V0",
       "direction": "V",
       "length": 11.10,
       "classification": "ext/muro",
-      "description": "Lateral esquerda"
+      "description": "Lateral esquerda",
+      "floorPlanIndex": 0,
+      "coordinates": { "x1": 15, "y1": 25, "x2": 15, "y2": 85 }
     }
   ],
   "heights": {
@@ -178,6 +205,10 @@ Retorne APENAS o JSON abaixo, sem markdown, sem explicações:
 }
 
 ### REGRAS DO JSON
+- floorPlans[].fileId: deixar vazio (sistema preenche automaticamente)
+- floorPlans[].fileName: nome EXATO do arquivo listado acima
+- walls[].floorPlanIndex: índice 0-based do array floorPlans[]
+- walls[].coordinates: posição percentual na página (0-100), H walls devem ter y1≈y2, V walls devem ter x1≈x2
 - walls: liste TODAS as paredes na sequência H0, H1, H2... V0, V1, V2... (sem pular!)
 - openings: agrupe por tipo+dimensão+local (ex: 5 portas internas iguais = 1 entrada com quantity=5)
 - rooms: liste TODOS os ambientes da planta baixa
