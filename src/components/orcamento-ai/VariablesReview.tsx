@@ -19,7 +19,12 @@ import type {
   DerivedValues,
 } from '@/lib/ai/types';
 import { computeDerivedValues } from '@/lib/ai/types';
-import { PdfWallOverlay } from './PdfWallOverlay';
+import dynamic from 'next/dynamic';
+
+const PdfWallOverlay = dynamic(() => import('./PdfWallOverlay').then((m) => m.PdfWallOverlay), {
+  ssr: false,
+  loading: () => <div className="text-xs text-gray-400 py-4 text-center">Carregando visualizacao PDF...</div>,
+});
 
 interface VariablesReviewProps {
   budgetAIId: string;
