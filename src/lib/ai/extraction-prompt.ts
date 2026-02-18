@@ -102,9 +102,17 @@ Identifique qual(is) página(s) dos PDFs contêm planta(s) baixa(s).
 - Para cada planta baixa, informe: arquivo, nº da página, rótulo do pavimento.
 - Se houver múltiplos pavimentos, liste cada um separadamente.
 
+**ATENÇÃO — MÚLTIPLOS DESENHOS NA MESMA PÁGINA:**
+- Uma mesma página pode conter vários desenhos: planta de coberta/implantação, planta baixa, planta de situação, etc.
+- Você DEVE identificar qual desenho é a PLANTA BAIXA (mostra paredes internas, cômodos, portas, janelas).
+- NÃO confunda com: planta de coberta (mostra telhado), planta de implantação/situação (mostra o lote/terreno), cortes, fachadas.
+- As coordenadas das paredes devem ser posicionadas EXCLUSIVAMENTE sobre o desenho da PLANTA BAIXA.
+- Se a planta baixa ocupa apenas parte da página (ex: metade inferior), as coordenadas devem refletir essa posição real na página.
+
 Para cada parede, informe COORDENADAS PERCENTUAIS (0-100) de onde ela aparece na página:
-- (0,0) = canto superior esquerdo, (100,100) = canto inferior direito
+- (0,0) = canto superior esquerdo da PÁGINA, (100,100) = canto inferior direito da PÁGINA
 - x1,y1 = início da parede, x2,y2 = fim da parede
+- As coordenadas devem cair sobre o desenho da PLANTA BAIXA, não sobre outros desenhos na mesma página
 - H walls: y1 ≈ y2 | V walls: x1 ≈ x2
 - Aproximação de 5% é aceitável`;
 
