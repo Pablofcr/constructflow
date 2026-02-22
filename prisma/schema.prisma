@@ -881,9 +881,35 @@ model PlanningStage {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @default(now()) @updatedAt
 
-  planning          Planning     @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  planning          Planning          @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  services          PlanningService[]
 
   @@unique([planningId, order])
   @@index([planningId])
   @@map("planning_stages")
+}
+
+model PlanningService {
+  id              String        @id @default(uuid())
+  stageId         String
+  description     String
+  code            String?
+  unit            String
+  quantity        Decimal       @db.Decimal(15, 4)
+  unitPrice       Decimal       @db.Decimal(15, 4)
+  totalPrice      Decimal       @db.Decimal(15, 2)
+  weight          Decimal       @db.Decimal(5, 4) @default(0)
+  startDate       DateTime?
+  endDate         DateTime?
+  durationDays    Int?
+  status          StageStatus   @default(PENDING)
+  progressPercent Decimal       @db.Decimal(5, 2) @default(0)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  stage           PlanningStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+
+  @@index([stageId])
+  @@map("planning_services")
 }

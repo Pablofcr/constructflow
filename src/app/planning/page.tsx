@@ -16,9 +16,11 @@ import {
 } from "lucide-react";
 import { CreatePlanningDialog } from "@/components/planejamento/CreatePlanningDialog";
 import { StageEditDialog } from "@/components/planejamento/StageEditDialog";
+import { ServiceEditDialog } from "@/components/planejamento/ServiceEditDialog";
 import { PlanningHeader } from "@/components/planejamento/PlanningHeader";
 import { PlanningStageList } from "@/components/planejamento/PlanningStageList";
 import { GanttChart } from "@/components/planejamento/GanttChart";
+import type { PlanningService } from "@/components/planejamento/PlanningStageCard";
 
 interface PlanningStage {
   id: string;
@@ -59,6 +61,7 @@ export default function PlanningPage() {
   const [planning, setPlanning] = useState<Planning | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [editStage, setEditStage] = useState<PlanningStage | null>(null);
+  const [editService, setEditService] = useState<PlanningService | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "gantt">("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
@@ -97,7 +100,6 @@ export default function PlanningPage() {
 
   const handleEditPlanning = async () => {
     if (!planning) return;
-    // Toggle status (simple for now)
     const nextStatus =
       planning.status === "DRAFT"
         ? "ACTIVE"
@@ -344,6 +346,8 @@ export default function PlanningPage() {
             <PlanningStageList
               stages={filteredStages}
               onEditStage={(stage) => setEditStage(stage)}
+              onEditService={(service) => setEditService(service)}
+              planningId={planning.id}
             />
           ) : (
             <GanttChart
@@ -351,6 +355,8 @@ export default function PlanningPage() {
               planningStartDate={planning.startDate}
               planningEndDate={planning.endDate}
               onEditStage={(stage) => setEditStage(stage)}
+              onEditService={(service) => setEditService(service)}
+              planningId={planning.id}
             />
           )}
         </div>
@@ -362,6 +368,14 @@ export default function PlanningPage() {
         stage={editStage}
         projectId={activeProject.id}
         onClose={() => setEditStage(null)}
+        onSave={fetchPlanning}
+      />
+
+      <ServiceEditDialog
+        open={!!editService}
+        service={editService}
+        planningId={planning.id}
+        onClose={() => setEditService(null)}
         onSave={fetchPlanning}
       />
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { PlanningStageCard } from './PlanningStageCard';
+import { PlanningStageCard, PlanningService } from './PlanningStageCard';
 
 interface Stage {
   id: string;
@@ -24,9 +24,11 @@ interface Stage {
 interface PlanningStageListProps {
   stages: Stage[];
   onEditStage: (stage: Stage) => void;
+  onEditService: (service: PlanningService) => void;
+  planningId: string;
 }
 
-export function PlanningStageList({ stages, onEditStage }: PlanningStageListProps) {
+export function PlanningStageList({ stages, onEditStage, onEditService, planningId }: PlanningStageListProps) {
   if (stages.length === 0) {
     return (
       <div className="text-center py-12">
@@ -38,7 +40,13 @@ export function PlanningStageList({ stages, onEditStage }: PlanningStageListProp
   return (
     <div className="space-y-3">
       {stages.map((stage) => (
-        <PlanningStageCard key={stage.id} stage={stage} onEdit={onEditStage} />
+        <PlanningStageCard
+          key={stage.id}
+          stage={stage}
+          onEdit={onEditStage}
+          onEditService={onEditService}
+          planningId={planningId}
+        />
       ))}
     </div>
   );

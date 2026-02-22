@@ -47,7 +47,20 @@
       "Bash(del:*)",
       "Bash(npx ts-node:*)",
       "Bash(npx tsc:*)",
-      "Bash(start:*)"
+      "Bash(start:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git status:*)",
+      "Bash(npm run dev:*)",
+      "Bash(python:*)",
+      "Bash(for id in de2fd219-14ce-415c-bb57-13aa1948ba38 acbe5609-e571-4979-a59a-d05b96da5529 c95dd50d-9c02-4a0a-a0af-fd8c498899f0)",
+      "Bash(do echo -n \"$id: \")",
+      "Bash(done)",
+      "Bash(for id in de2fd219-14ce-415c-bb57-13aa1948ba38 acbe5609-e571-4979-a59a-d05b96da5529)",
+      "Bash(sqlite3:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npx -y playwright screenshot:*)",
+      "Bash(npx kill-port:*)"
     ]
   }
 }
