@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Loader2, Info } from 'lucide-react';
+import { X, Loader2, Info, Calendar } from 'lucide-react';
 import { BudgetOptionCard } from './BudgetOptionCard';
 
 interface BudgetOption {
@@ -34,8 +34,6 @@ export function CreatePlanningDialog({ open, projectId, onClose, onCreated }: Cr
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<'ESTIMATED' | 'REAL' | 'AI' | null>(null);
   const [name, setName] = useState('Planejamento da Obra');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     if (!open || !projectId) return;
@@ -78,8 +76,6 @@ export function CreatePlanningDialog({ open, projectId, onClose, onCreated }: Cr
           name,
           budgetSourceType: selected,
           ...getSelectedBudgetId(),
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
         }),
       });
       if (res.ok) {
@@ -189,27 +185,15 @@ export function CreatePlanningDialog({ open, projectId, onClose, onCreated }: Cr
             </div>
           )}
 
-          {/* Datas */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data Inicio</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          {/* Cronograma automático */}
+          {selected && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <Calendar className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-700">
+                O cronograma sera gerado automaticamente com base nas datas de inicio e prazo final do projeto, com sobreposicoes realistas entre etapas.
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         {error && (

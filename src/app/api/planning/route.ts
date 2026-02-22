@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_STAGES } from '@/lib/seed-etapas';
+import { computeStageDates, shouldUseExpertTemplate } from '@/lib/planning-schedule';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { projectId, name, budgetSourceType, budgetRealId, budgetAIId, startDate, endDate } = body;
+    const { projectId, name, budgetSourceType, budgetRealId, budgetAIId } = body;
 
     if (!projectId || !budgetSourceType) {
       return NextResponse.json(
@@ -104,7 +105,36 @@ export async function POST(request: NextRequest) {
       totalBudget = stagesData.reduce((sum, s) => sum + s.budgetCost, 0);
     }
 
-    // Criar planning com stages em transação
+    // Buscar datas do projeto para gerar cronograma automático
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { dataInicioEstimada: true, prazoFinal: true },
+    });
+
+    const projectStart = project?.dataInicioEstimada ? new Date(project.dataInicioEstimada) : null;
+    const projectEnd = project?.prazoFinal ? new Date(project.prazoFinal) : null;
+
+    // Calcular cronograma automático se datas do projeto existirem
+    let scheduleDates: Map<number, { startDate: Date; endDate: Date; durationDays: number }> = new Map();
+    let planningStartDate: Date | null = null;
+    let planningEndDate: Date | null = null;
+    let durationMonths: number | null = null;
+
+    if (projectStart && projectEnd) {
+      const useExpert = shouldUseExpertTemplate(
+        budgetSourceType,
+        stagesData.map((s) => ({ code: s.code, order: s.order }))
+      );
+      scheduleDates = computeStageDates(stagesData, projectStart, projectEnd, useExpert);
+      planningStartDate = projectStart;
+      planningEndDate = projectEnd;
+      const totalDays = Math.round(
+        (projectEnd.getTime() - projectStart.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      durationMonths = Math.round(totalDays / 30);
+    }
+
+    // Criar planning com stages
     const planning = await prisma.planning.create({
       data: {
         projectId,
@@ -121,18 +151,25 @@ export async function POST(request: NextRequest) {
               )?.id || null
             : null,
         budgetAIId: budgetSourceType === 'AI' ? budgetAIId : null,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
+        startDate: planningStartDate,
+        endDate: planningEndDate,
+        durationMonths,
         totalBudget,
         stages: {
-          create: stagesData.map((s) => ({
-            name: s.name,
-            code: s.code,
-            order: s.order,
-            budgetCost: s.budgetCost,
-            budgetPercentage: s.budgetPercentage,
-            description: s.description,
-          })),
+          create: stagesData.map((s) => {
+            const dates = scheduleDates.get(s.order);
+            return {
+              name: s.name,
+              code: s.code,
+              order: s.order,
+              budgetCost: s.budgetCost,
+              budgetPercentage: s.budgetPercentage,
+              description: s.description,
+              startDate: dates?.startDate || null,
+              endDate: dates?.endDate || null,
+              durationDays: dates?.durationDays || null,
+            };
+          }),
         },
       },
       include: {
