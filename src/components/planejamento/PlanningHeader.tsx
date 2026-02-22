@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutList, BarChart3, Settings } from 'lucide-react';
+import { LayoutList, BarChart3, Settings, Trash2 } from 'lucide-react';
 import { formatDateBR } from '@/lib/date-utils';
 
 interface Planning {
@@ -19,6 +19,7 @@ interface PlanningHeaderProps {
   viewMode: 'list' | 'gantt';
   onViewModeChange: (mode: 'list' | 'gantt') => void;
   onEditPlanning: () => void;
+  onDeletePlanning: () => void;
 }
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -43,6 +44,7 @@ export function PlanningHeader({
   viewMode,
   onViewModeChange,
   onEditPlanning,
+  onDeletePlanning,
 }: PlanningHeaderProps) {
   const progress = Number(planning.overallProgress);
   const statusConfig = STATUS_LABELS[planning.status] || STATUS_LABELS.DRAFT;
@@ -96,6 +98,13 @@ export function PlanningHeader({
             title="Configuracoes"
           >
             <Settings className="w-4 h-4 text-gray-500" />
+          </button>
+          <button
+            onClick={onDeletePlanning}
+            className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+            title="Excluir planejamento"
+          >
+            <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
           </button>
         </div>
       </div>
