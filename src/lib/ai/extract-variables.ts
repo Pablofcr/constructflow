@@ -1,7 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { anthropic } from './claude-client';
 import { buildExtractionPrompt } from './extraction-prompt';
-import { downloadFilesAsBase64 } from './file-utils';
+import { downloadFilesRaw, buffersToContentBlocks } from './file-utils';
+import { extractPdfVectorData } from './pdf-vector-extract';
+import { formatVectorDataForPrompt } from './pdf-vector-summary';
+import type { PdfVectorExtractionResult } from './pdf-vector-extract';
 import { computeDerivedValues } from './types';
 import type { ExtractedVariables, FloorPlan } from './types';
 
@@ -95,11 +98,38 @@ export async function extractVariables(budgetAIId: string): Promise<void> {
 
     const filesToUse = files.slice(0, 8);
 
-    // Download files from Supabase
-    const fileContents = await downloadFilesAsBase64(filesToUse);
+    // Download raw files from Supabase (buffers)
+    const downloads = await downloadFilesRaw(filesToUse);
 
-    if (fileContents.length === 0) {
+    if (downloads.length === 0) {
       throw new Error('Não foi possível baixar nenhum arquivo');
+    }
+
+    // Convert to Claude content blocks
+    const fileContents = buffersToContentBlocks(downloads);
+
+    // Extract vector data from PDFs (fallback silencioso se falhar)
+    let vectorSummary: string | null = null;
+    let vectorDataUsed = false;
+    try {
+      const vectorResults: PdfVectorExtractionResult[] = [];
+      for (const dl of downloads) {
+        if (dl.mediaType === 'application/pdf') {
+          const result = await extractPdfVectorData(dl.buffer, dl.fileName);
+          vectorResults.push(result);
+        }
+      }
+
+      const vectorCount = vectorResults.filter((r) => r.isVectorPdf).length;
+      if (vectorCount > 0) {
+        vectorSummary = formatVectorDataForPrompt(vectorResults);
+        vectorDataUsed = true;
+        console.log(`📐 Dados vetoriais extraidos de ${vectorCount} PDF(s)`);
+      } else {
+        console.log('📐 Nenhum PDF vetorial detectado — usando apenas visão');
+      }
+    } catch (vectorError) {
+      console.warn('⚠️ Erro na extração vetorial (fallback para visão pura):', vectorError);
     }
 
     // Build extraction prompt
@@ -116,7 +146,8 @@ export async function extractVariables(budgetAIId: string): Promise<void> {
       filesToUse.map((f) => ({
         fileName: f.fileName,
         category: f.category,
-      }))
+      })),
+      vectorSummary
     );
 
     // Call Claude API with extended thinking (all budget dedicated to reading PDFs)
@@ -197,6 +228,7 @@ export async function extractVariables(budgetAIId: string): Promise<void> {
 
     // Compute derived values
     extractedVars.derived = computeDerivedValues(extractedVars);
+    extractedVars.vectorDataUsed = vectorDataUsed;
 
     const durationMs = Date.now() - startTime;
 

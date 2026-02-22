@@ -12,16 +12,24 @@ function getMediaType(path: string): string {
     case 'jpg': case 'jpeg': return 'image/jpeg';
     case 'png': return 'image/png';
     case 'webp': return 'image/webp';
+    case 'gif': return 'image/gif';
     default: return 'application/pdf';
   }
 }
 
-export async function downloadFilesAsBase64(
+export interface RawFileDownload {
+  fileName: string;
+  storagePath: string;
+  buffer: Buffer;
+  mediaType: string;
+}
+
+export async function downloadFilesRaw(
   files: FileRecord[],
   maxFiles = 8
-): Promise<Anthropic.Messages.ContentBlockParam[]> {
+): Promise<RawFileDownload[]> {
   const filesToUse = files.slice(0, maxFiles);
-  const fileContents: Anthropic.Messages.ContentBlockParam[] = [];
+  const downloads: RawFileDownload[] = [];
 
   for (const file of filesToUse) {
     const { data, error } = await supabase.storage
@@ -34,11 +42,23 @@ export async function downloadFilesAsBase64(
     }
 
     const buffer = Buffer.from(await data.arrayBuffer());
-    const base64 = buffer.toString('base64');
     const mediaType = getMediaType(file.storagePath);
+    downloads.push({ fileName: file.fileName, storagePath: file.storagePath, buffer, mediaType });
+  }
 
-    if (mediaType === 'application/pdf') {
-      fileContents.push({
+  return downloads;
+}
+
+export function buffersToContentBlocks(
+  downloads: RawFileDownload[]
+): Anthropic.Messages.ContentBlockParam[] {
+  const blocks: Anthropic.Messages.ContentBlockParam[] = [];
+
+  for (const dl of downloads) {
+    const base64 = dl.buffer.toString('base64');
+
+    if (dl.mediaType === 'application/pdf') {
+      blocks.push({
         type: 'document',
         source: {
           type: 'base64',
@@ -47,16 +67,24 @@ export async function downloadFilesAsBase64(
         },
       });
     } else {
-      fileContents.push({
+      blocks.push({
         type: 'image',
         source: {
           type: 'base64',
-          media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
+          media_type: dl.mediaType as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif',
           data: base64,
         },
       });
     }
   }
 
-  return fileContents;
+  return blocks;
+}
+
+export async function downloadFilesAsBase64(
+  files: FileRecord[],
+  maxFiles = 8
+): Promise<Anthropic.Messages.ContentBlockParam[]> {
+  const downloads = await downloadFilesRaw(files, maxFiles);
+  return buffersToContentBlocks(downloads);
 }

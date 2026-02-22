@@ -112,6 +112,20 @@ enum InsumoType {
   EQUIPMENT
 }
 
+enum PlanningStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum BudgetSourceType {
+  ESTIMATED
+  REAL
+  AI
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODELS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -162,6 +176,7 @@ model Project {
   files                 ProjectFile[]
   teamMembers           TeamMember[]
   projectCompositions   ProjectComposition[]
+  plannings             Planning[]
 
   @@map("projects")
 }
@@ -813,4 +828,62 @@ model CubValue {
   @@index([state])
   @@index([projectType, subtype, standard], map: "cub_values_type_idx")
   @@map("cub_values")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PLANEJAMENTO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model Planning {
+  id                String           @id @default(uuid())
+  projectId         String
+  name              String           @default("Planejamento da Obra")
+  description       String?
+  status            PlanningStatus   @default(DRAFT)
+  budgetSourceType  BudgetSourceType
+  budgetRealId      String?
+  budgetEstimatedId String?
+  budgetAIId        String?
+  startDate         DateTime?
+  endDate           DateTime?
+  durationMonths    Int?
+  totalBudget       Decimal          @default(0) @db.Decimal(15, 2)
+  overallProgress   Decimal          @default(0) @db.Decimal(5, 2)
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+
+  project           Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  stages            PlanningStage[]
+
+  @@index([projectId])
+  @@map("plannings")
+}
+
+model PlanningStage {
+  id                String       @id @default(uuid())
+  planningId        String
+  name              String
+  code              String?
+  order             Int
+  description       String?
+  budgetCost        Decimal      @default(0) @db.Decimal(15, 2)
+  budgetPercentage  Decimal      @default(0) @db.Decimal(5, 2)
+  startDate         DateTime?
+  endDate           DateTime?
+  durationDays      Int?
+  status            StageStatus  @default(PENDING)
+  progressPercent   Decimal      @default(0) @db.Decimal(5, 2)
+  responsibleId     String?
+  responsibleName   String?
+  color             String?
+  notes             String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @default(now()) @updatedAt
+
+  planning          Planning     @relation(fields: [planningId], references: [id], onDelete: Cascade)
+
+  @@unique([planningId, order])
+  @@index([planningId])
+  @@map("planning_stages")
 }

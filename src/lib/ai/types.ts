@@ -73,6 +73,7 @@ export interface ExtractedVariables {
   floorPlans?: FloorPlan[];
   derived?: DerivedValues;
   aiNotes?: string;
+  vectorDataUsed?: boolean;
 }
 
 export function computeDerivedValues(vars: ExtractedVariables): DerivedValues {

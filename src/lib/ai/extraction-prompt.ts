@@ -19,7 +19,8 @@ export interface ExtractionPromptResult {
 
 export function buildExtractionPrompt(
   project: ExtractionProjectInfo,
-  files: ExtractionFileInfo[]
+  files: ExtractionFileInfo[],
+  vectorDataSummary?: string | null
 ): ExtractionPromptResult {
   const areaRef = project.constructedArea ? `${project.constructedArea}` : '??';
 
@@ -51,7 +52,22 @@ Mapeie TODAS as paredes usando o método H/V:
   - Classificação: "muro", "ext" (externa), "int" (interna) ou "ext/muro"
   - Descrição curta (ex: "Muro frontal", "Fachada principal", "Divisória quartos")
 
-## COMO LER MEDIDAS CORRETAMENTE
+${vectorDataSummary ? `## DADOS VETORIAIS EXTRAIDOS AUTOMATICAMENTE DOS PDFs
+
+Os dados abaixo foram extraidos diretamente dos arquivos PDF.
+Use-os para CONFIRMAR e MELHORAR sua leitura visual.
+
+- COTAS NUMÉRICAS: valores EXATOS extraídos — use preferencialmente
+- LINHAS SIGNIFICATIVAS: posição e comprimento de paredes prováveis
+- REGIÕES DETECTADAS: identifique qual desenho é planta baixa vs coberta
+- COORDENADAS: use posições das linhas para coordenadas precisas das paredes
+
+${vectorDataSummary}
+
+Ao mapear paredes H/V, use as cotas extraídas como fonte primária de medidas.
+Ao definir coordinates, use as posições das linhas para posicionar corretamente.
+
+` : ''}## COMO LER MEDIDAS CORRETAMENTE
 
 1. **COTAS**: Procure as linhas de cota (linhas com setas nas extremidades e números)
    - São a fonte MAIS confiável de medidas
