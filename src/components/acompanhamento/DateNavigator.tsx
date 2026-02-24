@@ -19,13 +19,20 @@ export function DateNavigator({
   onDateChange,
   dailyLogs,
 }: DateNavigatorProps) {
+  const formatLocal = (date: Date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const goToDay = (offset: number) => {
     const d = new Date(currentDate + 'T12:00:00');
     d.setDate(d.getDate() + offset);
-    onDateChange(d.toISOString().split('T')[0]);
+    onDateChange(formatLocal(d));
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocal(new Date());
   const isToday = currentDate === today;
 
   // Determine day status for visual indicator

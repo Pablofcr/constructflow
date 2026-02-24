@@ -64,9 +64,13 @@ export default function DailyLogPage() {
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState<TrackingOverview | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("diario");
-  const [currentDate, setCurrentDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [currentDate, setCurrentDate] = useState(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  });
   const [dayData, setDayData] = useState<DayData | null>(null);
   const [dayLoading, setDayLoading] = useState(false);
 

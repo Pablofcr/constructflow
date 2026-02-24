@@ -67,7 +67,8 @@ export function SCurveChart({ planningId }: SCurveChartProps) {
     );
   }
 
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   // Sample data for chart (show every Nth point to avoid overcrowding)
   const totalPoints = data.dates.length;
