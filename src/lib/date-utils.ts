@@ -41,14 +41,19 @@ export function daysInMonth(date: Date): number {
 
 export function formatDateBR(date: Date | string | null | undefined): string {
   if (!date) return '—';
-  const d = typeof date === 'string' ? new Date(date) : date;
+  // Append T12:00:00 to date-only strings to avoid UTC midnight shifting to previous day
+  const d = typeof date === 'string' ? new Date(date.length === 10 ? date + 'T12:00:00' : date) : date;
   return d.toLocaleDateString('pt-BR');
 }
 
 export function toInputDate(date: Date | string | null | undefined): string {
   if (!date) return '';
+  if (typeof date === 'string' && date.length === 10) return date;
   const d = typeof date === 'string' ? new Date(date) : date;
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // ====================================================================
