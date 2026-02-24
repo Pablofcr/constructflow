@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Loader2, Save, Calculator } from 'lucide-react'
+import { ArrowLeft, Loader2, Save, Calculator, Trash2 } from 'lucide-react'
 import { ScenarioMatrix } from '@/components/scenario-matrix'
 import { useProject } from '@/contexts/project-context'
 
@@ -209,6 +209,7 @@ export default function BudgetEstimatedPage() {
   const [budget, setBudget] = useState<BudgetData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   // ✅ ESTADOS EDITÁVEIS (strings para preservar digitação do usuário)
   const [landValueStr, setLandValueStr] = useState('')
@@ -363,6 +364,39 @@ export default function BudgetEstimatedPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!projectId || !budget) return
+    if (!confirm('Tem certeza que deseja apagar este orçamento estimado?\n\nEsta ação não pode ser desfeita.')) return
+
+    setDeleting(true)
+    try {
+      const response = await fetch(`/api/budget/estimated?projectId=${projectId}`, {
+        method: 'DELETE',
+      })
+      if (response.ok) {
+        setBudget(null)
+        setLandValueStr('')
+        setIptuPercentStr('0.5')
+        setCondominiumStr('')
+        setItbiPercentStr('3')
+        setCubValueStr(String(getDefaultCubValue(project?.padraoEmpreendimento, project?.enderecoEstado)))
+        setCubType(getDefaultCubType(project?.padraoEmpreendimento))
+        setAreaStr('')
+        setDurationStr('12')
+        setTaxRegime('PF')
+        alert('Orçamento apagado com sucesso!')
+      } else {
+        const error = await response.json()
+        alert(`Erro ao apagar: ${error.details || error.error}`)
+      }
+    } catch (error) {
+      console.error('Erro ao apagar:', error)
+      alert('Erro ao apagar orçamento')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const formatCurrency = (value: number | null | undefined) => {
     if (!value) return 'R$ 0,00'
     return new Intl.NumberFormat('pt-BR', {
@@ -439,6 +473,25 @@ export default function BudgetEstimatedPage() {
             </div>
             
             <div className="flex items-center gap-3">
+              {budget && (
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-200 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {deleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Apagando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Apagar
+                    </>
+                  )}
+                </button>
+              )}
               <button
                 onClick={handleSave}
                 disabled={saving}
