@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { createBaseline } from '@/lib/create-baseline';
 
 export async function GET(
   request: NextRequest,
@@ -35,6 +36,18 @@ export async function PUT(
     const body = await request.json();
 
     const { name, description, status, startDate, endDate, notes } = body;
+
+    // If transitioning from DRAFT to ACTIVE, create a baseline snapshot
+    if (status === 'ACTIVE') {
+      const current = await prisma.planning.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      if (current?.status === 'DRAFT') {
+        await createBaseline(id);
+      }
+    }
 
     const planning = await prisma.planning.update({
       where: { id },

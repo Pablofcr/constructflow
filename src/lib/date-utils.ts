@@ -50,3 +50,49 @@ export function toInputDate(date: Date | string | null | undefined): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toISOString().split('T')[0];
 }
+
+// ====================================================================
+// Funções para Acompanhamento Diário
+// ====================================================================
+
+export function eachDayOfInterval(start: Date, end: Date): Date[] {
+  const days: Date[] = [];
+  const current = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+  const endUTC = new Date(Date.UTC(end.getFullYear(), end.getMonth(), end.getDate()));
+  while (current <= endUTC) {
+    days.push(new Date(current));
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+  return days;
+}
+
+export function isWeekend(date: Date): boolean {
+  const day = date.getUTCDay();
+  return day === 0 || day === 6;
+}
+
+export function getWorkingDaysInRange(start: Date, end: Date): number {
+  let count = 0;
+  const days = eachDayOfInterval(start, end);
+  for (const day of days) {
+    if (!isWeekend(day)) count++;
+  }
+  return count;
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
+export function formatDateISO(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+export function todayUTC(): Date {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+}

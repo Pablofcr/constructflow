@@ -1,7 +1,8 @@
 'use client';
 
-import { LayoutList, BarChart3, Settings, Trash2 } from 'lucide-react';
+import { LayoutList, BarChart3, Settings, Trash2, Activity } from 'lucide-react';
 import { formatDateBR } from '@/lib/date-utils';
+import Link from 'next/link';
 
 interface Planning {
   id: string;
@@ -71,6 +72,16 @@ export function PlanningHeader({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Acompanhamento link (only when ACTIVE) */}
+          {planning.status === 'ACTIVE' && (
+            <Link
+              href="/daily-log"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 transition-colors mr-2"
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Acompanhamento
+            </Link>
+          )}
           {/* View toggle */}
           <div className="flex bg-gray-100 rounded-lg p-0.5">
             <button

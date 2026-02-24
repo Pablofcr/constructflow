@@ -855,6 +855,8 @@ model Planning {
 
   project           Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   stages            PlanningStage[]
+  baseline          PlanningBaseline?
+  dailyLogs         DailyLog[]
 
   @@index([projectId])
   @@map("plannings")
@@ -909,7 +911,107 @@ model PlanningService {
   updatedAt       DateTime      @updatedAt
 
   stage           PlanningStage @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  dailyLogEntries DailyLogEntry[]
 
   @@index([stageId])
   @@map("planning_services")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BASELINE (snapshot congelado do plano original)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model PlanningBaseline {
+  id              String           @id @default(uuid())
+  planningId      String           @unique
+  frozenAt        DateTime         @default(now())
+  startDate       DateTime?
+  endDate         DateTime?
+  totalBudget     Decimal          @default(0) @db.Decimal(15, 2)
+  planning        Planning         @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  stages          BaselineStage[]
+  @@index([planningId])
+  @@map("planning_baselines")
+}
+
+model BaselineStage {
+  id               String             @id @default(uuid())
+  baselineId       String
+  originalStageId  String
+  name             String
+  code             String?
+  order            Int
+  budgetCost       Decimal            @default(0) @db.Decimal(15, 2)
+  budgetPercentage Decimal            @default(0) @db.Decimal(5, 2)
+  startDate        DateTime?
+  endDate          DateTime?
+  durationDays     Int?
+  baseline         PlanningBaseline   @relation(fields: [baselineId], references: [id], onDelete: Cascade)
+  services         BaselineService[]
+  @@index([baselineId])
+  @@map("baseline_stages")
+}
+
+model BaselineService {
+  id                 String         @id @default(uuid())
+  baselineStageId    String
+  originalServiceId  String
+  description        String
+  code               String?
+  unit               String
+  quantity           Decimal        @db.Decimal(15, 4)
+  unitPrice          Decimal        @db.Decimal(15, 4)
+  totalPrice         Decimal        @db.Decimal(15, 2)
+  weight             Decimal        @db.Decimal(5, 4) @default(0)
+  startDate          DateTime?
+  endDate            DateTime?
+  durationDays       Int?
+  baselineStage      BaselineStage  @relation(fields: [baselineStageId], references: [id], onDelete: Cascade)
+  @@index([baselineStageId])
+  @@map("baseline_services")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACOMPANHAMENTO DIÁRIO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+enum DailyLogStatus {
+  OPEN
+  ATTESTED
+}
+
+model DailyLog {
+  id          String         @id @default(uuid())
+  planningId  String
+  date        DateTime       @db.Date
+  status      DailyLogStatus @default(OPEN)
+  notes       String?
+  weather     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  planning    Planning       @relation(fields: [planningId], references: [id], onDelete: Cascade)
+  entries     DailyLogEntry[]
+  @@unique([planningId, date])
+  @@index([planningId])
+  @@map("daily_logs")
+}
+
+model DailyLogEntry {
+  id                String          @id @default(uuid())
+  dailyLogId        String
+  serviceId         String
+  stageId           String
+  plannedPercent    Decimal         @db.Decimal(8, 4) @default(0)
+  executedAsPlanned Boolean         @default(false)
+  actualPercent     Decimal         @db.Decimal(8, 4) @default(0)
+  deficitPercent    Decimal         @db.Decimal(8, 4) @default(0)
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  dailyLog          DailyLog        @relation(fields: [dailyLogId], references: [id], onDelete: Cascade)
+  service           PlanningService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  @@unique([dailyLogId, serviceId])
+  @@index([dailyLogId])
+  @@index([serviceId])
+  @@map("daily_log_entries")
 }
