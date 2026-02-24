@@ -218,7 +218,8 @@ IMPORTANTE: Use SEMPRE a classificação do MÉTODO H/V para separar P_interno, 
 }
 
 function buildCompositionGuide(padraoEmpreendimento: string): string {
-  if (padraoEmpreendimento !== 'POPULAR') {
+  const isPopularOuBaixo = ['POPULAR', 'BAIXO_PADRAO'].includes(padraoEmpreendimento);
+  if (!isPopularOuBaixo) {
     return `
 ## GUIA DE SELEÇÃO DE COMPOSIÇÕES (Padrão: ${padraoEmpreendimento})
 - Fundação: conforme projeto estrutural (sapata, estaca, viga baldrame conforme complexidade)
@@ -341,7 +342,7 @@ Se você está usando código diferente de CF-03004, CORRIJA para CF-03004
 export function buildBudgetPrompt(project: ProjectInfo, files: FileInfo[]): BudgetPromptResult {
   const stageList = buildStageList();
   const catalog = buildCompositionCatalog();
-  const isPopular = project.padraoEmpreendimento === 'POPULAR';
+  const isPopularOuBaixo = ['POPULAR', 'BAIXO_PADRAO'].includes(project.padraoEmpreendimento);
 
   // === SYSTEM PROMPT (stable content, high priority) ===
   const systemParts: string[] = [];
@@ -351,9 +352,9 @@ Sua especialidade é estimar quantitativos precisos a partir de projetos arquite
 Você SEMPRE calcula áreas de paredes usando perímetro × pé-direito, NUNCA confunde área de piso com área de parede.`);
 
   // Popular rules FIRST (before catalog) — highest priority
-  if (isPopular) {
+  if (isPopularOuBaixo) {
     systemParts.push(buildPopularRules());
-    systemParts.push(buildCompositionGuide('POPULAR'));
+    systemParts.push(buildCompositionGuide(project.padraoEmpreendimento));
   } else {
     systemParts.push(buildCompositionGuide(project.padraoEmpreendimento));
   }
@@ -420,13 +421,13 @@ ${files.map((f) => `- ${f.fileName} (${f.category})`).join('\n')}`);
    - Quantidades devem ser baseadas nos projetos, não estimativas genéricas.
    - Arredonde quantidades para 2 casas decimais.
    - A etapa 00 (Terreno) geralmente fica vazia pois depende de informações financeiras.
-${isPopular ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR do system prompt.' : ''}
+${isPopularOuBaixo ? '   - SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR do system prompt.' : ''}
 
 ### VALIDAÇÃO FINAL antes de retornar o JSON:
-${isPopular ? '✓ Verifique que TODO concreto de superestrutura é FCK 30MPa (não 20MPa nem 25MPa)\n' : ''}✓ Verifique que mostrou P_interno = parede_1 + parede_2 + ... = total (soma explícita)
+${isPopularOuBaixo ? '✓ Verifique que TODO concreto de superestrutura é FCK 30MPa (não 20MPa nem 25MPa)\n' : ''}✓ Verifique que mostrou P_interno = parede_1 + parede_2 + ... = total (soma explícita)
 ✓ Verifique que informou P_muro (mesmo que seja 0m)
 ✓ Verifique que usou H_interno = 2,85m para cálculos internos
-${isPopular ? '✓ Verifique que usou H_externo = 3,47m para fachada externa (NÃO 2,97m)\n' : ''}✓ Verifique que chapisco interno ≥ A_construida × 2
+${isPopularOuBaixo ? '✓ Verifique que usou H_externo = 3,47m para fachada externa (NÃO 2,97m)\n' : ''}✓ Verifique que chapisco interno ≥ A_construida × 2
 ✓ Verifique que chapisco externo ≥ A_construida × 1,5
 
 ### EXEMPLOS DE aiReasoning CORRETO vs INCORRETO
@@ -458,7 +459,7 @@ P_interno = H2 + H3 + V1 + V2 + V3 = 5,40 + 5,40 + 2,50 + 3,20 + 2,80 = 19,30m"
 
 ANTES de retornar o JSON, você DEVE revisar TODO o orçamento e corrigir os seguintes erros se encontrá-los:
 
-${isPopular ? `🔍 VERIFICAR: Busque no JSON inteiro por "FCK 20" ou "FCK 25"
+${isPopularOuBaixo ? `🔍 VERIFICAR: Busque no JSON inteiro por "FCK 20" ou "FCK 25"
 → Se encontrar: APAGUE e reescreva como "FCK 30MPa"
 → Código obrigatório: CF-03004
 
@@ -476,7 +477,7 @@ ${isPopular ? `🔍 VERIFICAR: Busque no JSON inteiro por "FCK 20" ou "FCK 25"
 → Se encontrar pulo na numeração:
 → CORRIJA listando TODAS as paredes sequencialmente
 
-${isPopular ? `🔍 VERIFICAR: Busque por "× H" ou "× 2,97" em cálculos de parede
+${isPopularOuBaixo ? `🔍 VERIFICAR: Busque por "× H" ou "× 2,97" em cálculos de parede
 → Se for parede INTERNA e usar 2,97m ou 3,47m: CORRIJA para H_interno(2,85m)
 → Se for parede EXTERNA e usar 2,85m ou 2,97m: CORRIJA para H_externo(3,47m)
 
@@ -592,7 +593,7 @@ export function buildBudgetPromptWithVariables(
 ): BudgetPromptResult {
   const stageList = buildStageList();
   const catalog = buildCompositionCatalog();
-  const isPopular = project.padraoEmpreendimento === 'POPULAR';
+  const isPopularOuBaixo = ['POPULAR', 'BAIXO_PADRAO'].includes(project.padraoEmpreendimento);
 
   // === SYSTEM PROMPT ===
   const systemParts: string[] = [];
@@ -606,9 +607,9 @@ Sua tarefa é APENAS gerar o orçamento usando as variáveis pré-confirmadas.`)
   systemParts.push(formatConfirmedVariables(confirmedVars));
 
   // Popular rules
-  if (isPopular) {
+  if (isPopularOuBaixo) {
     systemParts.push(buildPopularRules());
-    systemParts.push(buildCompositionGuide('POPULAR'));
+    systemParts.push(buildCompositionGuide(project.padraoEmpreendimento));
   } else {
     systemParts.push(buildCompositionGuide(project.padraoEmpreendimento));
   }
@@ -653,7 +654,7 @@ Para cada etapa (00-19), liste os serviços necessários com:
 - aiConfidence: valor de 0.9 a 1.0 (variáveis já confirmadas pelo engenheiro)
 - aiReasoning: explique QUAL variável usou e como calculou
 
-${isPopular ? 'SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR.\n' : ''}`);
+${isPopularOuBaixo ? 'SIGA RIGOROSAMENTE as regras populares e a tabela USAR/NÃO USAR.\n' : ''}`);
 
   userParts.push(`## FORMATO DE SAÍDA
 Responda APENAS com o JSON abaixo, sem markdown, sem explicações:

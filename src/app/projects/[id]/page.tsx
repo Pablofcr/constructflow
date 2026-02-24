@@ -150,7 +150,8 @@ export default function ProjectDetailPage() {
 
   const getPadraoLabel = (padrao: string) => {
     const labels: Record<string, string> = {
-      POPULAR: 'Popular',
+      POPULAR: 'Popular (PIS)',
+      BAIXO_PADRAO: 'Baixo Padrão',
       MEDIO: 'Médio Padrão',
       MEDIO_PADRAO: 'Médio Padrão',
       ALTO: 'Alto Padrão',

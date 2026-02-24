@@ -380,7 +380,8 @@ export default function EditProjectPage() {
                   <Select value={formData.padraoEmpreendimento} onValueChange={(value) => handleChange('padraoEmpreendimento', value)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="POPULAR">Popular</SelectItem>
+                      <SelectItem value="POPULAR">Popular (PIS)</SelectItem>
+                      <SelectItem value="BAIXO_PADRAO">Baixo Padrão</SelectItem>
                       <SelectItem value="MEDIO_PADRAO">Médio Padrão</SelectItem>
                       <SelectItem value="ALTO_PADRAO">Alto Padrão</SelectItem>
                     </SelectContent>

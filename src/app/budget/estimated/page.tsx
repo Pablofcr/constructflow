@@ -99,6 +99,7 @@ function calculateAreaDiscount(cubType: string | null): number {
 function getDefaultCubType(padrao: string | undefined): string {
   switch (padrao) {
     case 'POPULAR': return 'PIS'
+    case 'BAIXO_PADRAO': return 'R1-B'
     case 'MEDIO': case 'MEDIO_PADRAO': return 'R1-N'
     case 'ALTO': case 'ALTO_PADRAO': return 'R1-A'
     default: return 'R1-N'
@@ -108,24 +109,24 @@ function getDefaultCubType(padrao: string | undefined): string {
 // Tabela CUB por estado e padrão (R$/m²)
 // CE: SINDUSCON-CE jan/2026 (dados oficiais)
 // Demais estados: estimativas baseadas em SINDUSCON-SP out/2025 + proporções regionais
-const CUB_TABLE: Record<string, { PIS: number; 'R1-N': number; 'R1-A': number }> = {
-  CE: { PIS: 1628.59, 'R1-N': 2789.73, 'R1-A': 3305.51 },  // SINDUSCON-CE jan/2026
-  SP: { PIS: 1435.99, 'R1-N': 2538.83, 'R1-A': 3076.48 },
-  RJ: { PIS: 1609.62, 'R1-N': 2845.00, 'R1-A': 3447.68 },
-  MG: { PIS: 1504.33, 'R1-N': 2658.54, 'R1-A': 3221.59 },
-  BA: { PIS: 1239.77, 'R1-N': 2191.00, 'R1-A': 2655.10 },
-  RS: { PIS: 1641.20, 'R1-N': 2901.00, 'R1-A': 3515.50 },
-  PR: { PIS: 1547.88, 'R1-N': 2736.00, 'R1-A': 3315.62 },
-  SC: { PIS: 1813.66, 'R1-N': 3205.00, 'R1-A': 3884.10 },
-  GO: { PIS: 1632.55, 'R1-N': 2885.00, 'R1-A': 3496.11 },
-  PE: { PIS: 1262.46, 'R1-N': 2232.00, 'R1-A': 2704.78 },
-  PA: { PIS: 1350.84, 'R1-N': 2387.00, 'R1-A': 2892.58 },
-  DF: { PIS: 1352.89, 'R1-N': 2391.00, 'R1-A': 2897.42 },
-  MT: { PIS: 1873.47, 'R1-N': 3311.00, 'R1-A': 4012.53 },
-  ES: { PIS: 1680.34, 'R1-N': 2970.00, 'R1-A': 3599.05 },
-  MA: { PIS: 1089.49, 'R1-N': 1925.00, 'R1-A': 2332.86 },
-  RN: { PIS: 1198.36, 'R1-N': 2118.00, 'R1-A': 2566.64 },
-  PI: { PIS: 1771.13, 'R1-N': 3130.00, 'R1-A': 3793.21 },
+const CUB_TABLE: Record<string, { PIS: number; 'R1-B': number; 'R1-N': number; 'R1-A': number }> = {
+  CE: { PIS: 1628.59, 'R1-B': 2311.84, 'R1-N': 2789.73, 'R1-A': 3305.51 },  // SINDUSCON-CE jan/2026
+  SP: { PIS: 1435.99, 'R1-B': 2103.68, 'R1-N': 2538.83, 'R1-A': 3076.48 },
+  RJ: { PIS: 1609.62, 'R1-B': 2357.34, 'R1-N': 2845.00, 'R1-A': 3447.68 },
+  MG: { PIS: 1504.33, 'R1-B': 2203.00, 'R1-N': 2658.54, 'R1-A': 3221.59 },
+  BA: { PIS: 1239.77, 'R1-B': 1815.66, 'R1-N': 2191.00, 'R1-A': 2655.10 },
+  RS: { PIS: 1641.20, 'R1-B': 2404.01, 'R1-N': 2901.00, 'R1-A': 3515.50 },
+  PR: { PIS: 1547.88, 'R1-B': 2267.35, 'R1-N': 2736.00, 'R1-A': 3315.62 },
+  SC: { PIS: 1813.66, 'R1-B': 2656.46, 'R1-N': 3205.00, 'R1-A': 3884.10 },
+  GO: { PIS: 1632.55, 'R1-B': 2390.73, 'R1-N': 2885.00, 'R1-A': 3496.11 },
+  PE: { PIS: 1262.46, 'R1-B': 1849.91, 'R1-N': 2232.00, 'R1-A': 2704.78 },
+  PA: { PIS: 1350.84, 'R1-B': 1978.40, 'R1-N': 2387.00, 'R1-A': 2892.58 },
+  DF: { PIS: 1352.89, 'R1-B': 1981.32, 'R1-N': 2391.00, 'R1-A': 2897.42 },
+  MT: { PIS: 1873.47, 'R1-B': 2743.89, 'R1-N': 3311.00, 'R1-A': 4012.53 },
+  ES: { PIS: 1680.34, 'R1-B': 2460.74, 'R1-N': 2970.00, 'R1-A': 3599.05 },
+  MA: { PIS: 1089.49, 'R1-B': 1595.23, 'R1-N': 1925.00, 'R1-A': 2332.86 },
+  RN: { PIS: 1198.36, 'R1-B': 1755.13, 'R1-N': 2118.00, 'R1-A': 2566.64 },
+  PI: { PIS: 1771.13, 'R1-B': 2594.01, 'R1-N': 3130.00, 'R1-A': 3793.21 },
 }
 
 // Tabela completa CUB CE (SINDUSCON-CE jan/2026) - todos os tipos
@@ -577,6 +578,7 @@ export default function BudgetEstimatedPage() {
                   >
                     <option value="R1-A">Alto Padrão (R1-A)</option>
                     <option value="R1-N">Médio Padrão (R1-N)</option>
+                    <option value="R1-B">Baixo Padrão (R1-B)</option>
                     <option value="PIS">Popular (PIS)</option>
                   </select>
                 </div>
