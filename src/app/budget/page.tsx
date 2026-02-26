@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation'
 import { useProject } from '@/contexts/project-context'
 import { Sidebar } from '@/components/sidebar'
 import { Button } from "@/components/ui/button"
-import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2, Sparkles, Trash2 } from 'lucide-react'
+import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2, Sparkles, Trash2, Ruler } from 'lucide-react'
 import Link from 'next/link'
 import { CreateBudgetDialog } from '@/components/orcamento-real/CreateBudgetDialog'
 import { GenerateAIBudgetDialog } from '@/components/orcamento-ai/GenerateAIBudgetDialog'
+import { GenerateDetailedDialog } from '@/components/orcamento-detalhado/GenerateDetailedDialog'
 
 interface BudgetEstimated {
   totalEstimatedCost: number
@@ -42,6 +43,15 @@ interface BudgetAIData {
   stages: Array<{ id: string; code: string | null; totalCost: number }>
 }
 
+interface BudgetDetailedData {
+  id: string
+  totalDirectCost: number
+  itemCount: number | null
+  areaConstruida: number
+  padrao: string
+  generatedAt: string | null
+}
+
 export default function BudgetPage() {
   const router = useRouter()
   const { activeProject } = useProject()
@@ -51,9 +61,12 @@ export default function BudgetPage() {
   const [budgetAI, setBudgetAI] = useState<BudgetAIData | null>(null)
   const [projectFiles, setProjectFiles] = useState<ProjectFileData[]>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [budgetDetailed, setBudgetDetailed] = useState<BudgetDetailedData | null>(null)
   const [showAIDialog, setShowAIDialog] = useState(false)
+  const [showDetailedDialog, setShowDetailedDialog] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [deletingAI, setDeletingAI] = useState(false)
+  const [deletingDetailed, setDeletingDetailed] = useState(false)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
   const fetchBudgetData = useCallback(async () => {
@@ -119,6 +132,25 @@ export default function BudgetPage() {
           }
         } else {
           setBudgetAI(null)
+        }
+      }
+
+      // Buscar orçamento detalhado
+      const detailedRes = await fetch(`/api/budget-detailed?projectId=${activeProject.id}`)
+      if (detailedRes.ok) {
+        const detailedData = await detailedRes.json()
+        if (detailedData.length > 0) {
+          const d = detailedData[0]
+          setBudgetDetailed({
+            id: d.id,
+            totalDirectCost: Number(d.totalDirectCost),
+            itemCount: d.itemCount,
+            areaConstruida: Number(d.areaConstruida),
+            padrao: d.padrao,
+            generatedAt: d.generatedAt,
+          })
+        } else {
+          setBudgetDetailed(null)
         }
       }
 
@@ -243,6 +275,26 @@ export default function BudgetPage() {
     }
   }
 
+  const handleDeleteDetailed = async () => {
+    if (!budgetDetailed) return
+    if (!confirm('Tem certeza que deseja apagar o orcamento detalhado? Voce podera gerar um novo depois.')) return
+
+    try {
+      setDeletingDetailed(true)
+      const res = await fetch(`/api/budget-detailed/${budgetDetailed.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setBudgetDetailed(null)
+      } else {
+        alert('Erro ao apagar orcamento detalhado')
+      }
+    } catch (err) {
+      console.error('Erro ao apagar orcamento detalhado:', err)
+      alert('Erro ao apagar orcamento detalhado')
+    } finally {
+      setDeletingDetailed(false)
+    }
+  }
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -328,7 +380,7 @@ export default function BudgetPage() {
               <p className="text-gray-500">Carregando orçamentos...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* ORÇAMENTO ESTIMADO */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
@@ -654,15 +706,101 @@ export default function BudgetPage() {
                   )}
                 </div>
               </div>
+
+              {/* ORÇAMENTO DETALHADO */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-6 text-white">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="p-3 bg-white/20 rounded-lg">
+                      <Ruler className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold">Orcamento Detalhado</h2>
+                      <p className="text-sm text-orange-100">Indices por m2 - Automatico</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  {budgetDetailed ? (
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Valor Total</p>
+                        <p className="text-3xl font-bold text-orange-600">
+                          {formatCurrency(budgetDetailed.totalDirectCost)}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Area Construida</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {budgetDetailed.areaConstruida} m2
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Custo/m2</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {budgetDetailed.areaConstruida > 0
+                              ? formatCurrency(budgetDetailed.totalDirectCost / budgetDetailed.areaConstruida)
+                              : '-'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 mb-1">Itens Gerados</p>
+                        <p className="text-sm text-gray-700">{budgetDetailed.itemCount || 0} servicos</p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Link href={`/budget/detailed?budgetId=${budgetDetailed.id}`} className="flex-1">
+                          <Button className="w-full bg-orange-600 hover:bg-orange-700">
+                            Ver Detalhes
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </Link>
+                        <Button
+                          variant="outline"
+                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          onClick={handleDeleteDetailed}
+                          disabled={deletingDetailed}
+                        >
+                          {deletingDetailed ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Ruler className="h-8 w-8 text-orange-400" />
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">
+                        Orcamento Detalhado
+                      </h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                        Gere automaticamente com indices de consumo por m2
+                      </p>
+                      <Button
+                        className="bg-orange-600 hover:bg-orange-700"
+                        onClick={() => setShowDetailedDialog(true)}
+                      >
+                        <Ruler className="h-4 w-4 mr-2" />
+                        Gerar Orcamento Detalhado
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Info Box */}
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-semibold text-blue-900 mb-2">
-              Diferenca entre os 3 Orcamentos
+              Diferenca entre os 4 Orcamentos
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-blue-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-blue-800">
               <div>
                 <p className="font-medium mb-1">Orcamento Estimado:</p>
                 <ul className="list-disc list-inside space-y-1 text-blue-700">
@@ -685,6 +823,14 @@ export default function BudgetPage() {
                   <li>Leitura automatica de PDFs</li>
                   <li>Geracao inteligente via Claude</li>
                   <li>Mapeamento SINAPI automatico</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Orcamento Detalhado:</p>
+                <ul className="list-disc list-inside space-y-1 text-blue-700">
+                  <li>Indices de consumo por m2</li>
+                  <li>Calculo automatico de quantitativos</li>
+                  <li>Precos SINAPI por estado</li>
                 </ul>
               </div>
             </div>
@@ -712,6 +858,16 @@ export default function BudgetPage() {
             onFilesChanged={fetchProjectFiles}
             onGenerate={handleGenerateAI}
             generating={generating}
+          />
+
+          <GenerateDetailedDialog
+            open={showDetailedDialog}
+            projectId={activeProject.id}
+            onClose={() => setShowDetailedDialog(false)}
+            onGenerated={(budgetId) => {
+              setShowDetailedDialog(false)
+              router.push(`/budget/detailed?budgetId=${budgetId}`)
+            }}
           />
         </>
       )}

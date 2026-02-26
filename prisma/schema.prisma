@@ -124,6 +124,13 @@ enum BudgetSourceType {
   ESTIMATED
   REAL
   AI
+  DETAILED
+}
+
+enum BudgetDetailedStatus {
+  DRAFT
+  GENERATED
+  APPROVED
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -177,6 +184,7 @@ model Project {
   teamMembers           TeamMember[]
   projectCompositions   ProjectComposition[]
   plannings             Planning[]
+  budgetDetailed        BudgetDetailed[]
 
   @@map("projects")
 }
@@ -363,6 +371,7 @@ model BudgetReal {
   project             Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   estimatedBudget     BudgetEstimated?  @relation("BudgetRealEstimatedBudget", fields: [estimatedBudgetId], references: [id], onDelete: SetNull)
   stages              BudgetStage[]
+  budgetDetailed      BudgetDetailed?
 
   @@index([projectId])
   @@index([status])
@@ -1014,4 +1023,46 @@ model DailyLogEntry {
   @@index([dailyLogId])
   @@index([serviceId])
   @@map("daily_log_entries")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ORÇAMENTO DETALHADO (Índices por m²)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+model BudgetDetailed {
+  id                String                @id @default(uuid())
+  projectId         String
+  name              String                @default("Orçamento Detalhado")
+  status            BudgetDetailedStatus  @default(DRAFT)
+
+  // Input parameters
+  areaConstruida    Decimal               @db.Decimal(10, 2)
+  areaTerreno       Decimal               @db.Decimal(10, 2)
+  padrao            String
+  roomsData         Json
+  numFloors         Int                   @default(1)
+
+  // Linked BudgetReal (holds stages + services)
+  budgetRealId      String?               @unique
+
+  // State (UF)
+  state             String?
+
+  // Totals (synced from BudgetReal)
+  totalDirectCost   Decimal               @default(0) @db.Decimal(15, 2)
+
+  // Generation metadata
+  generatedAt       DateTime?
+  itemCount         Int?
+
+  notes             String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @default(now())
+
+  // Relations
+  project           Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  budgetReal        BudgetReal?           @relation(fields: [budgetRealId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@map("budget_detailed")
 }
