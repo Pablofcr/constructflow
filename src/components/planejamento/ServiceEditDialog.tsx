@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { toInputDate } from '@/lib/date-utils';
+import { toast } from '@/hooks/use-toast';
 
 interface PlanningServiceData {
   id: string;
@@ -88,6 +89,7 @@ export function ServiceEditDialog({ open, service, planningId, onClose, onSave }
       if (res.ok) {
         onSave();
         onClose();
+        toast({ title: 'Servico atualizado', variant: 'success' });
       } else {
         setError('Erro ao salvar servico. Tente novamente.');
       }

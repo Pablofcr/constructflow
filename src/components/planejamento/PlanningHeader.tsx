@@ -65,70 +65,30 @@ export function PlanningHeader({
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
+      {/* Top row: title + icon buttons */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-lg font-bold text-gray-900">{planning.name}</h2>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 truncate">{planning.name}</h2>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${statusConfig.color}`}>
               {statusConfig.label}
             </span>
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${sourceConfig.color}`}>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${sourceConfig.color}`}>
               {sourceConfig.label}
             </span>
           </div>
-          <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-3 sm:gap-4 mt-1 text-xs text-gray-500 flex-wrap">
             {planning.startDate && <span>Inicio: {formatDateBR(planning.startDate)}</span>}
             {planning.endDate && <span>Fim: {formatDateBR(planning.endDate)}</span>}
             <span className="font-medium text-gray-700">{formatCurrency(planning.totalBudget)}</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          {/* Acompanhamento link (only when ACTIVE) */}
-          {planning.status === 'ACTIVE' && (
-            <Link
-              href="/daily-log"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 transition-colors mr-1"
-            >
-              <Activity className="w-3.5 h-3.5" />
-              Acompanhamento
-            </Link>
-          )}
-          {/* Quick status action */}
-          {quickAction && (
-            <button
-              onClick={() => onQuickStatusChange(quickAction.nextStatus)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors mr-1 ${quickAction.color}`}
-              title={quickAction.label}
-            >
-              <quickAction.icon className="w-3.5 h-3.5" />
-              {quickAction.label}
-            </button>
-          )}
-          {/* View toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => onViewModeChange('list')}
-              className={`p-1.5 rounded-md transition-colors ${
-                viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-              title="Lista"
-            >
-              <LayoutList className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => onViewModeChange('gantt')}
-              className={`p-1.5 rounded-md transition-colors ${
-                viewMode === 'gantt' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-              title="Gantt"
-            >
-              <BarChart3 className="w-4 h-4" />
-            </button>
-          </div>
+        {/* Icon buttons - always visible */}
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           <button
             onClick={onOpenSettings}
-            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors ml-1"
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
             title="Configuracoes"
           >
             <Settings className="w-4 h-4 text-gray-500" />
@@ -139,6 +99,55 @@ export function PlanningHeader({
             title="Excluir planejamento"
           >
             <Trash2 className="w-4 h-4 text-gray-400 hover:text-red-500" />
+          </button>
+        </div>
+      </div>
+
+      {/* Action bar: quick actions + view toggle */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        {/* Quick status action */}
+        {quickAction && (
+          <button
+            onClick={() => onQuickStatusChange(quickAction.nextStatus)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${quickAction.color}`}
+            title={quickAction.label}
+          >
+            <quickAction.icon className="w-3.5 h-3.5" />
+            {quickAction.label}
+          </button>
+        )}
+        {/* Acompanhamento link (only when ACTIVE) */}
+        {planning.status === 'ACTIVE' && (
+          <Link
+            href="/daily-log"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 transition-colors"
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Acompanhamento</span>
+            <span className="sm:hidden">Diario</span>
+          </Link>
+        )}
+        {/* Spacer */}
+        <div className="flex-1" />
+        {/* View toggle */}
+        <div className="flex bg-gray-100 rounded-lg p-0.5">
+          <button
+            onClick={() => onViewModeChange('list')}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+            title="Lista"
+          >
+            <LayoutList className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onViewModeChange('gantt')}
+            className={`p-1.5 rounded-md transition-colors ${
+              viewMode === 'gantt' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'
+            }`}
+            title="Gantt"
+          >
+            <BarChart3 className="w-4 h-4" />
           </button>
         </div>
       </div>

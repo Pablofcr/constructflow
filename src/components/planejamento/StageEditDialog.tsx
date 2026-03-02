@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { ResponsibleSelector } from './ResponsibleSelector';
 import { toInputDate } from '@/lib/date-utils';
+import { toast } from '@/hooks/use-toast';
 
 interface Stage {
   id: string;
@@ -90,6 +91,7 @@ export function StageEditDialog({ open, stage, projectId, onClose, onSave }: Sta
       if (res.ok) {
         onSave();
         onClose();
+        toast({ title: 'Etapa atualizada', variant: 'success' });
       } else {
         setError('Erro ao salvar etapa. Tente novamente.');
       }

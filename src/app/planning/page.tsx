@@ -22,6 +22,7 @@ import { PlanningHeader } from "@/components/planejamento/PlanningHeader";
 import { PlanningStageList } from "@/components/planejamento/PlanningStageList";
 import { GanttChart } from "@/components/planejamento/GanttChart";
 import type { PlanningService } from "@/components/planejamento/PlanningStageCard";
+import { toast } from "@/hooks/use-toast";
 
 interface PlanningStage {
   id: string;
@@ -100,6 +101,14 @@ export default function PlanningPage() {
     fetchPlanning();
   }, [fetchPlanning]);
 
+  const STATUS_NAMES: Record<string, string> = {
+    DRAFT: "Rascunho",
+    ACTIVE: "Ativo",
+    PAUSED: "Pausado",
+    COMPLETED: "Concluido",
+    CANCELLED: "Cancelado",
+  };
+
   const handleQuickStatusChange = async (newStatus: string) => {
     if (!planning) return;
     try {
@@ -110,9 +119,15 @@ export default function PlanningPage() {
       });
       if (res.ok) {
         fetchPlanning();
+        toast({
+          title: `Status alterado para ${STATUS_NAMES[newStatus] || newStatus}`,
+          variant: "success",
+        });
+      } else {
+        toast({ title: "Erro ao alterar status", variant: "error" });
       }
     } catch {
-      // erro de rede
+      toast({ title: "Erro de conexao", variant: "error" });
     }
   };
 
@@ -124,9 +139,12 @@ export default function PlanningPage() {
       if (res.ok) {
         setPlanning(null);
         setShowDeleteConfirm(false);
+        toast({ title: "Planejamento excluido", variant: "success" });
+      } else {
+        toast({ title: "Erro ao excluir planejamento", variant: "error" });
       }
     } catch {
-      // erro de rede
+      toast({ title: "Erro de conexao", variant: "error" });
     } finally {
       setDeleting(false);
     }

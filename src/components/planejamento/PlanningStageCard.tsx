@@ -122,7 +122,7 @@ export function PlanningStageCard({ stage, onEdit, onEditService, planningId }: 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all">
       <div
-        className="flex items-start gap-3 p-4 cursor-pointer"
+        className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 cursor-pointer"
         onClick={handleToggle}
       >
         {/* Expand icon */}
@@ -131,8 +131,8 @@ export function PlanningStageCard({ stage, onEdit, onEditService, planningId }: 
         </div>
 
         {/* Status icon */}
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${config.color}`}>
-          <StatusIcon className="w-5 h-5" />
+        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${config.color}`}>
+          <StatusIcon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
 
         {/* Content */}
@@ -203,19 +203,19 @@ export function PlanningStageCard({ stage, onEdit, onEditService, planningId }: 
 
       {/* Expanded services */}
       {expanded && (
-        <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+        <div className="border-t border-gray-100 px-3 sm:px-4 pb-3 sm:pb-4 pt-3">
           {loadingServices ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
             </div>
           ) : services && services.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-gray-500 border-b border-gray-100">
                     <th className="pb-2 pr-3 font-medium">Servico</th>
-                    <th className="pb-2 px-3 font-medium text-center">Un.</th>
-                    <th className="pb-2 px-3 font-medium text-right">Qtd.</th>
+                    <th className="pb-2 px-3 font-medium text-center hidden sm:table-cell">Un.</th>
+                    <th className="pb-2 px-3 font-medium text-right hidden sm:table-cell">Qtd.</th>
                     <th className="pb-2 px-3 font-medium text-right">Total</th>
                     <th className="pb-2 px-3 font-medium text-center">Status</th>
                     <th className="pb-2 pl-3 font-medium text-right">Progresso</th>
@@ -230,7 +230,7 @@ export function PlanningStageCard({ stage, onEdit, onEditService, planningId }: 
                         className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-blue-50/50 transition-colors"
                         onClick={() => handleServiceClick(svc)}
                       >
-                        <td className="py-2 pr-3 text-gray-700">
+                        <td className="py-2 pr-3 text-gray-700 max-w-[200px] truncate">
                           {svc.code && (
                             <span className="text-[10px] font-mono text-gray-400 mr-1.5">
                               {svc.code}
@@ -238,11 +238,11 @@ export function PlanningStageCard({ stage, onEdit, onEditService, planningId }: 
                           )}
                           {svc.description}
                         </td>
-                        <td className="py-2 px-3 text-gray-500 text-center">{svc.unit}</td>
-                        <td className="py-2 px-3 text-gray-700 text-right">
+                        <td className="py-2 px-3 text-gray-500 text-center hidden sm:table-cell">{svc.unit}</td>
+                        <td className="py-2 px-3 text-gray-700 text-right hidden sm:table-cell">
                           {svc.quantity.toLocaleString('pt-BR', { maximumFractionDigits: 4 })}
                         </td>
-                        <td className="py-2 px-3 text-gray-900 font-medium text-right">
+                        <td className="py-2 px-3 text-gray-900 font-medium text-right whitespace-nowrap">
                           {formatCurrency(svc.totalPrice)}
                         </td>
                         <td className="py-2 px-3 text-center">

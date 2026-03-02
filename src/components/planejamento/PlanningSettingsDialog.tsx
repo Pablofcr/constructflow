@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, AlertTriangle } from 'lucide-react';
 import { toInputDate } from '@/lib/date-utils';
+import { toast } from '@/hooks/use-toast';
 
 interface Planning {
   id: string;
@@ -98,6 +99,7 @@ export function PlanningSettingsDialog({ open, planning, onClose, onSave }: Plan
       if (res.ok) {
         onSave();
         onClose();
+        toast({ title: 'Configuracoes salvas', variant: 'success' });
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'Erro ao salvar configuracoes. Tente novamente.');

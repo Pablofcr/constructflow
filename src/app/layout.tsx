@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ProjectProvider } from "@/contexts/project-context";
 import { ProjectSelector } from "@/components/project-selector";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,6 +50,7 @@ export default function RootLayout({
             </main>
           </div>
         </ProjectProvider>
+        <Toaster />
       </body>
     </html>
   );

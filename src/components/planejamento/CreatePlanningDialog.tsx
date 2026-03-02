@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, Info, Calendar } from 'lucide-react';
 import { BudgetOptionCard } from './BudgetOptionCard';
+import { toast } from '@/hooks/use-toast';
 
 interface BudgetOption {
   available: boolean;
@@ -81,6 +82,7 @@ export function CreatePlanningDialog({ open, projectId, onClose, onCreated }: Cr
       if (res.ok) {
         onCreated();
         onClose();
+        toast({ title: 'Planejamento criado com sucesso', variant: 'success' });
       } else {
         setError('Erro ao criar planejamento. Tente novamente.');
       }
