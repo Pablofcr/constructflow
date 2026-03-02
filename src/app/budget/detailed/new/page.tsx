@@ -23,6 +23,7 @@ import {
   Trash2,
   Sparkles,
   Info,
+  Layers,
 } from 'lucide-react'
 
 // Brazilian states
@@ -115,6 +116,15 @@ interface WizardData {
   telhado: string
   esquadrias: string
   possuiSubsolo: boolean
+  // Step 4 — Modo Profissional
+  proTipoEstrutura: string
+  proTipoLaje: string
+  proTipoParedeExterna: string
+  proTipoParedeInterna: string
+  proTipoTelha: string
+  proComplexidadeCobertura: string
+  proLinhaEsquadria: string
+  proMaterialEsquadria: string
 }
 
 interface ProjectData {
@@ -261,6 +271,120 @@ const STRUCTURAL_FIELDS = [
     ],
   },
 ]
+
+const PRO_SECTIONS = [
+  {
+    title: 'Estrutura e Lajes',
+    fields: [
+      {
+        key: 'proTipoEstrutura',
+        label: 'Tipo de Estrutura',
+        replaces: 'sistemaConstrutivo',
+        options: [
+          { value: 'CONVENCIONAL', label: 'Estrutura convencional', pct: 0 },
+          { value: 'REFORCADA', label: 'Estrutura reforcada', pct: 5 },
+          { value: 'LEVE', label: 'Estrutura leve', pct: -4 },
+        ],
+      },
+      {
+        key: 'proTipoLaje',
+        label: 'Tipo de Laje',
+        replaces: null as string | null,
+        options: [
+          { value: 'MACICA', label: 'Laje macica', pct: 3 },
+          { value: 'NERVURADA', label: 'Laje nervurada', pct: 0 },
+          { value: 'PRE_MOLDADA', label: 'Laje pre-moldada', pct: -6 },
+          { value: 'STEEL_DECK', label: 'Steel deck', pct: 8 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Vedacao e Paredes',
+    fields: [
+      {
+        key: 'proTipoParedeExterna',
+        label: 'Parede Externa',
+        replaces: null as string | null,
+        options: [
+          { value: 'ALVENARIA_CONV', label: 'Alvenaria convencional', pct: 0 },
+          { value: 'BLOCO_ESTRUTURAL', label: 'Bloco estrutural', pct: 2 },
+          { value: 'PRE_FABRICADO', label: 'Pre-fabricado em blocos', pct: -3 },
+          { value: 'ICF', label: 'ICF (formas isolantes)', pct: 10 },
+        ],
+      },
+      {
+        key: 'proTipoParedeInterna',
+        label: 'Parede Interna',
+        replaces: null as string | null,
+        options: [
+          { value: 'ALVENARIA_CONV', label: 'Alvenaria convencional', pct: 0 },
+          { value: 'BLOCO_ESTRUTURAL', label: 'Bloco estrutural', pct: 1 },
+          { value: 'DRYWALL', label: 'Drywall', pct: -2 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Cobertura Detalhada',
+    fields: [
+      {
+        key: 'proTipoTelha',
+        label: 'Tipo de Telha',
+        replaces: 'telhado',
+        options: [
+          { value: 'CERAMICA', label: 'Telha ceramica', pct: 3 },
+          { value: 'FIBROCIMENTO', label: 'Telha fibrocimento', pct: -5 },
+          { value: 'METALICA', label: 'Telha metalica', pct: 5 },
+          { value: 'TERMOACUSTICA', label: 'Telha termoacustica', pct: 8 },
+        ],
+      },
+      {
+        key: 'proComplexidadeCobertura',
+        label: 'Complexidade da Cobertura',
+        replaces: null as string | null,
+        options: [
+          { value: 'SIMPLES', label: 'Cobertura simples', pct: 0 },
+          { value: 'MEDIA', label: 'Cobertura media', pct: 3 },
+          { value: 'COMPLEXA', label: 'Cobertura complexa', pct: 8 },
+        ],
+      },
+    ],
+  },
+  {
+    title: 'Esquadrias Avancadas',
+    fields: [
+      {
+        key: 'proLinhaEsquadria',
+        label: 'Linha da Esquadria',
+        replaces: 'esquadrias',
+        options: [
+          { value: 'ECONOMICA', label: 'Linha economica', pct: -5 },
+          { value: 'PADRAO', label: 'Linha padrao', pct: 0 },
+          { value: 'PREMIUM', label: 'Linha premium', pct: 5 },
+        ],
+      },
+      {
+        key: 'proMaterialEsquadria',
+        label: 'Material da Esquadria',
+        replaces: null as string | null,
+        options: [
+          { value: 'ALUMINIO', label: 'Aluminio', pct: 0 },
+          { value: 'PVC', label: 'PVC', pct: 2 },
+          { value: 'MADEIRA', label: 'Madeira', pct: 4 },
+          { value: 'MISTO', label: 'Misto', pct: 1 },
+        ],
+      },
+    ],
+  },
+]
+
+const PRO_SECTION_ICONS: Record<string, string> = {
+  'Estrutura e Lajes': 'layers',
+  'Vedacao e Paredes': 'building',
+  'Cobertura Detalhada': 'home',
+  'Esquadrias Avancadas': 'door',
+}
 
 const STORAGE_KEY = 'constructflow-wizard-detailed'
 
@@ -506,6 +630,14 @@ function WizardContent() {
       telhado: 'FIBROCIMENTO',
       esquadrias: 'ALUMINIO_PADRAO',
       possuiSubsolo: false,
+      proTipoEstrutura: '',
+      proTipoLaje: '',
+      proTipoParedeExterna: '',
+      proTipoParedeInterna: '',
+      proTipoTelha: '',
+      proComplexidadeCobertura: '',
+      proLinhaEsquadria: '',
+      proMaterialEsquadria: '',
     }
   })
 
@@ -705,22 +837,84 @@ function WizardContent() {
   const areaRef = totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum
   const valorBaseEstimado = cubPerM2 * areaRef
 
-  // Step 4 — multiplier
+  // Step 4 — multiplier (additive model matching Obra Certa)
   const [modoProfissionalOpen, setModoProfissionalOpen] = useState(false)
 
-  const multiplicadorTotal = useMemo(() => {
-    let mult = 1 + (PAVIMENTOS_MULTIPLIER[data.numFloors] || 0) / 100
-    for (const field of STRUCTURAL_FIELDS) {
-      const selectedValue = data[field.key as keyof WizardData] as string
-      const option = field.options.find((o) => o.value === selectedValue)
-      if (option) {
-        mult *= 1 + option.pct / 100
+  interface MultiplierItem {
+    label: string
+    pct: number
+    source: 'essential' | 'profissional'
+  }
+
+  const { multiplicadorTotal, acrescimoPercentual, multiplierItems } = useMemo(() => {
+    const items: MultiplierItem[] = []
+
+    // Determine which essential fields are replaced by professional mode
+    const replacedKeys = new Set<string>()
+    for (const section of PRO_SECTIONS) {
+      for (const field of section.fields) {
+        if (field.replaces && data[field.key as keyof WizardData]) {
+          replacedKeys.add(field.replaces)
+        }
       }
     }
-    if (data.possuiSubsolo) {
-      mult *= 1.25
+
+    let totalPct = 0
+
+    // Pavimentos
+    const pavPct = PAVIMENTOS_MULTIPLIER[data.numFloors] || 0
+    if (pavPct !== 0) {
+      items.push({
+        label: `Pavimentos (${data.numFloors} pav. +${pavPct}%)`,
+        pct: pavPct,
+        source: 'essential',
+      })
+      totalPct += pavPct
     }
-    return mult
+
+    // Essential fields (skip replaced ones)
+    for (const field of STRUCTURAL_FIELDS) {
+      if (replacedKeys.has(field.key)) continue
+      const selectedValue = data[field.key as keyof WizardData] as string
+      const option = field.options.find((o) => o.value === selectedValue)
+      if (option && option.pct !== 0) {
+        items.push({
+          label: `${field.label} (${option.label} (+${option.pct}%))`,
+          pct: option.pct,
+          source: 'essential',
+        })
+        totalPct += option.pct
+      }
+    }
+
+    // Professional fields
+    for (const section of PRO_SECTIONS) {
+      for (const field of section.fields) {
+        const val = data[field.key as keyof WizardData] as string
+        if (!val) continue
+        const option = field.options.find((o) => o.value === val)
+        if (option) {
+          items.push({
+            label: `${field.label} (${option.label})`,
+            pct: option.pct,
+            source: 'profissional',
+          })
+          totalPct += option.pct
+        }
+      }
+    }
+
+    // Subsolo
+    if (data.possuiSubsolo) {
+      totalPct += 25
+      items.push({ label: 'Subsolo (+25%)', pct: 25, source: 'essential' })
+    }
+
+    return {
+      multiplicadorTotal: 1 + totalPct / 100,
+      acrescimoPercentual: totalPct,
+      multiplierItems: items,
+    }
   }, [
     data.numFloors,
     data.fundacao,
@@ -731,9 +925,16 @@ function WizardContent() {
     data.telhado,
     data.esquadrias,
     data.possuiSubsolo,
+    data.proTipoEstrutura,
+    data.proTipoLaje,
+    data.proTipoParedeExterna,
+    data.proTipoParedeInterna,
+    data.proTipoTelha,
+    data.proComplexidadeCobertura,
+    data.proLinhaEsquadria,
+    data.proMaterialEsquadria,
   ])
 
-  const acrescimoPercentual = (multiplicadorTotal - 1) * 100
   const valorEstimado = valorBaseEstimado * multiplicadorTotal
 
   if (!activeProject) {
@@ -1788,13 +1989,185 @@ function WizardContent() {
                   />
                 </button>
                 {modoProfissionalOpen && (
-                  <div className="mt-4 pt-4 border-t border-gray-200 text-center py-6">
-                    <p className="text-sm text-gray-400">
-                      Ajustes profissionais em breve
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-sm text-gray-500 mb-4">
+                      Personalize detalhes avancados da construcao para um
+                      orcamento mais preciso.
                     </p>
+
+                    {/* Warning about field replacement */}
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6">
+                      <div className="flex items-start gap-2">
+                        <Info className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-yellow-700">
+                          Os campos de{' '}
+                          <strong>Sistema Construtivo</strong>,{' '}
+                          <strong>Telhado</strong> e/ou{' '}
+                          <strong>Esquadrias</strong> da secao essencial
+                          serao substituidos pelos valores do Modo
+                          Profissional no calculo.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Professional mode sections */}
+                    {PRO_SECTIONS.map((section) => (
+                      <div key={section.title} className="mb-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          {PRO_SECTION_ICONS[section.title] === 'layers' && (
+                            <Layers className="h-4 w-4 text-orange-600" />
+                          )}
+                          {PRO_SECTION_ICONS[section.title] === 'building' && (
+                            <Building2 className="h-4 w-4 text-orange-600" />
+                          )}
+                          {PRO_SECTION_ICONS[section.title] === 'home' && (
+                            <Home className="h-4 w-4 text-orange-600" />
+                          )}
+                          {PRO_SECTION_ICONS[section.title] === 'door' && (
+                            <FileText className="h-4 w-4 text-orange-600" />
+                          )}
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            {section.title}
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {section.fields.map((field) => (
+                            <div key={field.key}>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {field.label}
+                              </label>
+                              <select
+                                value={
+                                  (data[
+                                    field.key as keyof WizardData
+                                  ] as string) || ''
+                                }
+                                onChange={(e) =>
+                                  updateField(
+                                    field.key as keyof WizardData,
+                                    e.target.value as never
+                                  )
+                                }
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
+                              >
+                                <option value="">
+                                  Selecione (opcional)
+                                </option>
+                                {field.options.map((opt) => (
+                                  <option
+                                    key={opt.value}
+                                    value={opt.value}
+                                  >
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
+
+              {/* Resumo dos Multiplicadores */}
+              {multiplierItems.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                  <h3 className="text-base font-bold text-gray-900 mb-4">
+                    Resumo dos Multiplicadores
+                  </h3>
+                  <div className="space-y-2">
+                    {multiplierItems
+                      .filter((item) => item.source === 'essential')
+                      .map((item, i) => (
+                        <div
+                          key={`e-${i}`}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="text-sm text-gray-600 flex items-center gap-1">
+                            <ChevronRight className="h-3 w-3 text-gray-400" />
+                            {item.label}
+                          </span>
+                          <span
+                            className={`text-sm font-medium ${
+                              item.pct >= 0
+                                ? 'text-orange-600'
+                                : 'text-green-600'
+                            }`}
+                          >
+                            {item.pct >= 0 ? '+' : ''}
+                            {item.pct.toFixed(1).replace('.', ',')}%
+                          </span>
+                        </div>
+                      ))}
+
+                    {multiplierItems.some(
+                      (item) => item.source === 'profissional'
+                    ) && (
+                      <>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-2">
+                          Modo Profissional
+                        </p>
+                        {multiplierItems
+                          .filter(
+                            (item) => item.source === 'profissional'
+                          )
+                          .map((item, i) => (
+                            <div
+                              key={`p-${i}`}
+                              className="flex justify-between items-center"
+                            >
+                              <span className="text-sm text-gray-600 flex items-center gap-1">
+                                <ChevronRight className="h-3 w-3 text-gray-400" />
+                                {item.label}
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  item.pct >= 0
+                                    ? 'text-orange-600'
+                                    : 'text-green-600'
+                                }`}
+                              >
+                                {item.pct >= 0 ? '+' : ''}
+                                {item.pct.toFixed(1).replace('.', ',')}%
+                              </span>
+                            </div>
+                          ))}
+                      </>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-gray-900">
+                        Acrescimo estrutural estimado
+                      </span>
+                      <span
+                        className={`text-lg font-bold ${
+                          acrescimoPercentual >= 0
+                            ? 'text-orange-600'
+                            : 'text-green-600'
+                        }`}
+                      >
+                        {acrescimoPercentual >= 0 ? '+' : ''}
+                        {acrescimoPercentual
+                          .toFixed(1)
+                          .replace('.', ',')}
+                        %
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs text-gray-500">
+                        Multiplicador aplicado
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        x{multiplicadorTotal.toFixed(3)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Calculo em Tempo Real */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
@@ -1895,7 +2268,7 @@ function WizardContent() {
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
-                      }).format(valorBaseEstimado)}
+                      }).format(valorEstimado)}
                     </p>
                   </div>
                 </div>
