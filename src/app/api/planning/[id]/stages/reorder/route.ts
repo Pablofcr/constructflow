@@ -17,6 +17,15 @@ export async function PUT(
       );
     }
 
+    // Validate UUID format for all IDs (defense in depth for raw SQL)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!stageIds.every((id) => uuidRegex.test(id)) || !uuidRegex.test(planningId)) {
+      return NextResponse.json(
+        { error: 'IDs invalidos' },
+        { status: 400 }
+      );
+    }
+
     // Validate all IDs belong to this planning
     const existingStages = await prisma.planningStage.findMany({
       where: { planningId },
@@ -42,23 +51,24 @@ export async function PUT(
     }
 
     // Two-phase transaction to avoid @@unique([planningId, order]) violations
+    // Use raw SQL with CASE for bulk update in a single query per phase
     await prisma.$transaction(async (tx) => {
       // Phase 1: set all orders to negative values (guaranteed unique)
-      for (let i = 0; i < stageIds.length; i++) {
-        await tx.planningStage.update({
-          where: { id: stageIds[i] },
-          data: { order: -(i + 1) },
-        });
-      }
+      const negCases = stageIds
+        .map((id, i) => `WHEN id = '${id}' THEN ${-(i + 1)}`)
+        .join(' ');
+      await tx.$executeRawUnsafe(
+        `UPDATE planning_stages SET "order" = CASE ${negCases} END WHERE "planningId" = '${planningId}'`
+      );
 
-      // Phase 2: set to final positive values
-      for (let i = 0; i < stageIds.length; i++) {
-        await tx.planningStage.update({
-          where: { id: stageIds[i] },
-          data: { order: i + 1 },
-        });
-      }
-    });
+      // Phase 2: set to final 0-based values
+      const posCases = stageIds
+        .map((id, i) => `WHEN id = '${id}' THEN ${i}`)
+        .join(' ');
+      await tx.$executeRawUnsafe(
+        `UPDATE planning_stages SET "order" = CASE ${posCases} END WHERE "planningId" = '${planningId}'`
+      );
+    }, { timeout: 15000 });
 
     return NextResponse.json({ success: true });
   } catch (error) {

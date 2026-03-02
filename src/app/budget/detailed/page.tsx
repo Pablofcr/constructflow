@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { useProject } from '@/contexts/project-context';
 import { StageAccordion } from '@/components/orcamento-real/StageAccordion';
-import { ArrowLeft, Loader2, Ruler, TableProperties } from 'lucide-react';
+import { ArrowLeft, Loader2, Ruler, TableProperties, Trash2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 interface BudgetDetailedData {
@@ -78,6 +78,8 @@ function DetailedPageContent() {
   const { activeProject } = useProject();
   const [budget, setBudget] = useState<BudgetDetailedData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const budgetId = searchParams?.get('budgetId') ?? null;
 
@@ -137,6 +139,24 @@ function DetailedPageContent() {
     }).format(value);
   };
 
+  const handleDelete = async () => {
+    if (!budget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/budget-detailed/${budget.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        router.push('/budget');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Erro ao apagar orcamento');
+      }
+    } catch {
+      alert('Erro de conexao');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -183,14 +203,23 @@ function DetailedPageContent() {
               </h1>
               <p className="text-sm text-gray-500">{budget.project.name}</p>
             </div>
-            {budget.budgetReal && (
-              <Link href={`/api/projects/${budget.project.id}/price-table`}>
-                <button className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 text-sm font-medium">
-                  <TableProperties className="h-4 w-4" />
-                  Tabela de Precos
-                </button>
-              </Link>
-            )}
+            <div className="flex items-center gap-2">
+              {budget.budgetReal && (
+                <Link href={`/api/projects/${budget.project.id}/price-table`}>
+                  <button className="flex items-center gap-2 px-4 py-2 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 text-sm font-medium">
+                    <TableProperties className="h-4 w-4" />
+                    Tabela de Precos
+                  </button>
+                </Link>
+              )}
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Apagar</span>
+              </button>
+            </div>
           </div>
 
           {/* Summary Banner */}
@@ -278,6 +307,43 @@ function DetailedPageContent() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Apagar Orcamento Detalhado</h3>
+                <p className="text-sm text-gray-500">Esta acao nao pode ser desfeita.</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Todas as etapas, servicos e composicoes serao permanentemente removidos.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+              >
+                {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Apagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
