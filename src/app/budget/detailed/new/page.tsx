@@ -101,14 +101,57 @@ interface WizardData {
   numFloors: number
   // Step 2
   rooms: RoomItem[]
+  // Step 3
+  padrao: 'POPULAR' | 'MEDIO_PADRAO' | 'ALTO_PADRAO'
 }
 
 interface ProjectData {
   id: string
   name: string
   tipoObra: string
+  padraoEmpreendimento: string
   enderecoEstado: string
   enderecoCidade: string
+}
+
+const PADRAO_OPTIONS = [
+  {
+    value: 'POPULAR' as const,
+    label: 'Basico',
+    cubRef: 2000,
+    description:
+      'Acabamento economico com materiais simples. Portas internas semi-ocas, janelas de ferro, pisos ceramicos em areas molhadas, pintura basica.',
+  },
+  {
+    value: 'MEDIO_PADRAO' as const,
+    label: 'Padrao',
+    cubRef: 2800,
+    description:
+      'Acabamento intermediario com materiais de qualidade. Portas em madeira, esquadrias em aluminio, porcelanato em areas sociais, pintura acrilica.',
+  },
+  {
+    value: 'ALTO_PADRAO' as const,
+    label: 'Alto Padrao',
+    cubRef: 3800,
+    description:
+      'Acabamento premium com materiais nobres. Portas macicas, esquadrias em PVC ou aluminio premium, porcelanato retificado, marmore em bancadas.',
+  },
+]
+
+function mapPadraoFromProject(padrao: string): 'POPULAR' | 'MEDIO_PADRAO' | 'ALTO_PADRAO' {
+  switch (padrao) {
+    case 'POPULAR':
+    case 'BAIXO_PADRAO':
+      return 'POPULAR'
+    case 'MEDIO_PADRAO':
+    case 'MEDIO':
+      return 'MEDIO_PADRAO'
+    case 'ALTO_PADRAO':
+    case 'ALTO':
+      return 'ALTO_PADRAO'
+    default:
+      return 'POPULAR'
+  }
 }
 
 function TerrainDiagram({
@@ -319,6 +362,7 @@ function WizardContent() {
     areaConstruida: '',
     numFloors: 1,
     rooms: [],
+    padrao: 'POPULAR',
   })
 
   // Room form state
@@ -345,6 +389,7 @@ function WizardContent() {
             cidade: project.enderecoCidade || '',
             tipoObra:
               project.tipoObra === 'COMERCIAL' ? 'CASA_NOVA' : 'CASA_NOVA',
+            padrao: mapPadraoFromProject(project.padraoEmpreendimento || ''),
           }))
         }
       } catch (err) {
@@ -433,6 +478,12 @@ function WizardContent() {
     newRoomType !== '' &&
     Number(newRoomWidth) > 0 &&
     Number(newRoomLength) > 0
+
+  // Step 3 computed
+  const selectedPadrao = PADRAO_OPTIONS.find((p) => p.value === data.padrao) || PADRAO_OPTIONS[0]
+  const cubPerM2 = selectedPadrao.cubRef
+  const areaConstruidaNum = Number(data.areaConstruida) || 0
+  const valorBaseEstimado = cubPerM2 * (totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum)
 
   if (!activeProject) {
     return (
@@ -1132,6 +1183,180 @@ function WizardContent() {
                 <Button
                   className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
                   disabled={!isStep2Valid}
+                  onClick={() => setCurrentStep(3)}
+                >
+                  Proxima Etapa
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ============================================ */}
+          {/* STEP 3 — Acabamento                          */}
+          {/* ============================================ */}
+          {currentStep === 3 && (
+            <>
+              {/* Padrao de Acabamento */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Ruler className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Padrao de Acabamento
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Escolha o nivel de qualidade dos materiais
+                    </p>
+                  </div>
+                </div>
+
+                {/* Gradient bar */}
+                <div className="mt-5 mb-4 h-2.5 rounded-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400" />
+
+                {/* Three selection buttons */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  {PADRAO_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateField('padrao', opt.value)}
+                      className={`py-3 px-4 rounded-lg text-sm font-semibold transition-all ${
+                        data.padrao === opt.value
+                          ? opt.value === 'POPULAR'
+                            ? 'bg-green-500 text-white shadow-md'
+                            : opt.value === 'MEDIO_PADRAO'
+                              ? 'bg-yellow-500 text-white shadow-md'
+                              : 'bg-red-400 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* CUB value per m² */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center mb-4">
+                  <p className="text-sm text-gray-500 mb-1">
+                    Valor por m² (com acabamento)
+                  </p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    }).format(cubPerM2)}
+                    /m²
+                  </p>
+                </div>
+
+                {/* Info: Sobre o CUB */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-2">
+                    <span className="text-blue-500 mt-0.5 text-lg">ℹ</span>
+                    <div>
+                      <p className="text-sm font-semibold text-blue-700">
+                        Sobre o CUB
+                      </p>
+                      <p className="text-sm text-blue-600 mt-0.5">
+                        Valores baseados no Custo Unitario Basico (CUB) do
+                        estado selecionado, atualizados mensalmente pelo
+                        SINDUSCON.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info: Sobre o acabamento selecionado */}
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <Ruler className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-orange-700">
+                        Sobre o Acabamento {selectedPadrao.label}
+                      </p>
+                      <p className="text-sm text-orange-600 mt-0.5">
+                        {selectedPadrao.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumo do Projeto */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">
+                  Resumo do Projeto
+                </h3>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+                      <MapPin className="h-4 w-4 text-blue-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">Estado / Cidade</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {data.estado} / {data.cidade}
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                      <Ruler className="h-4 w-4 text-green-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">Area a Construir</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {(totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum)
+                        .toFixed(2)
+                        .replace('.', ',')}{' '}
+                      m²
+                    </p>
+                  </div>
+
+                  <div className="bg-orange-50 border border-orange-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mb-2">
+                      <Home className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">CUB/m²</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(cubPerM2)}
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center mb-2">
+                      <Building2 className="h-4 w-4 text-emerald-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Valor Base Estimado
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(valorBaseEstimado)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 — Navigation buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  className="h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(2)}
+                >
+                  <ChevronLeft className="h-5 w-5 mr-2" />
+                  Voltar
+                </Button>
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
                   onClick={() => {
                     toast({
                       title: 'Proxima etapa em breve',
