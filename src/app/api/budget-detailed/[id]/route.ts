@@ -69,17 +69,20 @@ export async function DELETE(
       return NextResponse.json({ error: 'Orçamento detalhado não encontrado' }, { status: 404 });
     }
 
-    // Delete BudgetDetailed first (FK constraint)
-    await prisma.budgetDetailed.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      // Delete BudgetDetailed first (FK: budgetRealId -> BudgetReal)
+      await tx.budgetDetailed.delete({ where: { id } });
 
-    // Delete linked BudgetReal (cascade deletes stages + services)
-    if (budget.budgetRealId) {
-      await prisma.budgetReal.delete({ where: { id: budget.budgetRealId } });
-    }
+      // Delete linked BudgetReal (cascade deletes stages + services)
+      if (budget.budgetRealId) {
+        await tx.budgetReal.delete({ where: { id: budget.budgetRealId } });
+      }
+    });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Erro ao deletar orçamento detalhado:', error);
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: 'Erro ao apagar orcamento detalhado', details: message }, { status: 500 });
   }
 }

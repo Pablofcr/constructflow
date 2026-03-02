@@ -285,7 +285,8 @@ export default function BudgetPage() {
       if (res.ok) {
         setBudgetDetailed(null)
       } else {
-        alert('Erro ao apagar orcamento detalhado')
+        const data = await res.json().catch(() => ({}))
+        alert(data.details || data.error || 'Erro ao apagar orcamento detalhado')
       }
     } catch (err) {
       console.error('Erro ao apagar orcamento detalhado:', err)
