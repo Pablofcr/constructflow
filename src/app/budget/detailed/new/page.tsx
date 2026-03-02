@@ -117,26 +117,56 @@ interface ProjectData {
 const PADRAO_OPTIONS = [
   {
     value: 'POPULAR' as const,
-    label: 'Basico',
-    cubRef: 2000,
+    label: 'Popular',
+    cubCode: 'PIS',
     description:
       'Acabamento economico com materiais simples. Portas internas semi-ocas, janelas de ferro, pisos ceramicos em areas molhadas, pintura basica.',
   },
   {
     value: 'MEDIO_PADRAO' as const,
-    label: 'Padrao',
-    cubRef: 2800,
+    label: 'Normal',
+    cubCode: 'R1-N',
     description:
       'Acabamento intermediario com materiais de qualidade. Portas em madeira, esquadrias em aluminio, porcelanato em areas sociais, pintura acrilica.',
   },
   {
     value: 'ALTO_PADRAO' as const,
     label: 'Alto Padrao',
-    cubRef: 3800,
+    cubCode: 'R1-A',
     description:
       'Acabamento premium com materiais nobres. Portas macicas, esquadrias em PVC ou aluminio premium, porcelanato retificado, marmore em bancadas.',
   },
 ]
+
+// CUB fallback table (SINDUSCON jan/2026) — used when DB has no data for a state
+const CUB_FALLBACK: Record<string, { PIS: number; 'R1-N': number; 'R1-A': number }> = {
+  CE: { PIS: 1628.59, 'R1-N': 2789.73, 'R1-A': 3305.51 },
+  SP: { PIS: 1435.99, 'R1-N': 2538.83, 'R1-A': 3076.48 },
+  RJ: { PIS: 1609.62, 'R1-N': 2845.00, 'R1-A': 3447.68 },
+  MG: { PIS: 1504.33, 'R1-N': 2658.54, 'R1-A': 3221.59 },
+  BA: { PIS: 1239.77, 'R1-N': 2191.00, 'R1-A': 2655.10 },
+  RS: { PIS: 1641.20, 'R1-N': 2901.00, 'R1-A': 3515.50 },
+  PR: { PIS: 1547.88, 'R1-N': 2736.00, 'R1-A': 3315.62 },
+  SC: { PIS: 1813.66, 'R1-N': 3205.00, 'R1-A': 3884.10 },
+  GO: { PIS: 1632.55, 'R1-N': 2885.00, 'R1-A': 3496.11 },
+  PE: { PIS: 1262.46, 'R1-N': 2232.00, 'R1-A': 2704.78 },
+  PA: { PIS: 1350.84, 'R1-N': 2387.00, 'R1-A': 2892.58 },
+  DF: { PIS: 1352.89, 'R1-N': 2391.00, 'R1-A': 2897.42 },
+  MT: { PIS: 1873.47, 'R1-N': 3311.00, 'R1-A': 4012.53 },
+  ES: { PIS: 1680.34, 'R1-N': 2970.00, 'R1-A': 3599.05 },
+  MA: { PIS: 1089.49, 'R1-N': 1925.00, 'R1-A': 2332.86 },
+  RN: { PIS: 1198.36, 'R1-N': 2118.00, 'R1-A': 2566.64 },
+  PI: { PIS: 1771.13, 'R1-N': 3130.00, 'R1-A': 3793.21 },
+}
+
+interface CubValues {
+  PIS: number
+  'R1-N': number
+  'R1-A': number
+  referenceLabel: string
+}
+
+const STORAGE_KEY = 'constructflow-wizard-detailed'
 
 function mapPadraoFromProject(padrao: string): 'POPULAR' | 'MEDIO_PADRAO' | 'ALTO_PADRAO' {
   switch (padrao) {
@@ -350,47 +380,70 @@ function WizardContent() {
   const { activeProject } = useProject()
   const [loading, setLoading] = useState(true)
   const [currentStep, setCurrentStep] = useState(1)
-  const [data, setData] = useState<WizardData>({
-    tipoObra: 'CASA_NOVA',
-    nomeProjeto: '',
-    estado: '',
-    cidade: '',
-    frenteTerreno: '',
-    fundosTerreno: '',
-    ladoDireitoTerreno: '',
-    ladoEsquerdoTerreno: '',
-    areaConstruida: '',
-    numFloors: 1,
-    rooms: [],
-    padrao: 'POPULAR',
+  const [data, setData] = useState<WizardData>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch { /* ignore */ }
+      }
+    }
+    return {
+      tipoObra: 'CASA_NOVA' as const,
+      nomeProjeto: '',
+      estado: '',
+      cidade: '',
+      frenteTerreno: '' as const,
+      fundosTerreno: '' as const,
+      ladoDireitoTerreno: '' as const,
+      ladoEsquerdoTerreno: '' as const,
+      areaConstruida: '' as const,
+      numFloors: 1,
+      rooms: [],
+      padrao: 'POPULAR' as const,
+    }
   })
+
+  // Persist wizard data to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  }, [data])
+
+  // CUB values per state
+  const [cubValues, setCubValues] = useState<CubValues | null>(null)
+  const [cubLoading, setCubLoading] = useState(false)
 
   // Room form state
   const [newRoomType, setNewRoomType] = useState('')
   const [newRoomWidth, setNewRoomWidth] = useState<number | ''>('')
   const [newRoomLength, setNewRoomLength] = useState<number | ''>('')
 
-  // Fetch full project data and pre-fill
+  // Fetch full project data and pre-fill (only if no saved data)
   useEffect(() => {
     if (!activeProject) {
       setLoading(false)
       return
     }
 
+    const hasSaved = !!localStorage.getItem(STORAGE_KEY)
+
     const fetchProject = async () => {
       try {
         const res = await fetch(`/api/projects/${activeProject.id}`)
         if (res.ok) {
           const project: ProjectData = await res.json()
-          setData((prev) => ({
-            ...prev,
-            nomeProjeto: project.name || '',
-            estado: project.enderecoEstado || '',
-            cidade: project.enderecoCidade || '',
-            tipoObra:
-              project.tipoObra === 'COMERCIAL' ? 'CASA_NOVA' : 'CASA_NOVA',
-            padrao: mapPadraoFromProject(project.padraoEmpreendimento || ''),
-          }))
+          if (!hasSaved) {
+            setData((prev) => ({
+              ...prev,
+              nomeProjeto: project.name || '',
+              estado: project.enderecoEstado || '',
+              cidade: project.enderecoCidade || '',
+              tipoObra:
+                project.tipoObra === 'COMERCIAL' ? 'CASA_NOVA' : 'CASA_NOVA',
+              padrao: mapPadraoFromProject(project.padraoEmpreendimento || ''),
+            }))
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar dados do projeto:', err)
@@ -401,6 +454,59 @@ function WizardContent() {
 
     fetchProject()
   }, [activeProject])
+
+  // Fetch CUB values when state changes
+  useEffect(() => {
+    if (!data.estado) {
+      setCubValues(null)
+      return
+    }
+
+    const fetchCub = async () => {
+      setCubLoading(true)
+      try {
+        const res = await fetch(
+          `/api/budget/cub?state=${data.estado}`
+        )
+        if (res.ok) {
+          const records = await res.json()
+          if (Array.isArray(records) && records.length > 0) {
+            const pis = records.find((r: { cubCode: string }) => r.cubCode === 'PIS')
+            const r1n = records.find((r: { cubCode: string }) => r.cubCode === 'R1-N')
+            const r1a = records.find((r: { cubCode: string }) => r.cubCode === 'R1-A')
+            if (pis && r1n && r1a) {
+              setCubValues({
+                PIS: pis.totalValue,
+                'R1-N': r1n.totalValue,
+                'R1-A': r1a.totalValue,
+                referenceLabel: `${String(pis.referenceMonth).padStart(2, '0')}/${pis.referenceYear}`,
+              })
+              setCubLoading(false)
+              return
+            }
+          }
+        }
+      } catch {
+        // fallback below
+      }
+
+      // Fallback to hardcoded table
+      const fb = CUB_FALLBACK[data.estado]
+      if (fb) {
+        setCubValues({
+          PIS: fb.PIS,
+          'R1-N': fb['R1-N'],
+          'R1-A': fb['R1-A'],
+          referenceLabel: '01/2026',
+        })
+      } else {
+        setCubValues(null)
+      }
+      setCubLoading(false)
+    }
+
+    fetchCub()
+  }, [data.estado])
 
   // Computed values
   const areaTerreno = useMemo(() => {
@@ -481,9 +587,12 @@ function WizardContent() {
 
   // Step 3 computed
   const selectedPadrao = PADRAO_OPTIONS.find((p) => p.value === data.padrao) || PADRAO_OPTIONS[0]
-  const cubPerM2 = selectedPadrao.cubRef
+  const cubPerM2 = cubValues
+    ? cubValues[selectedPadrao.cubCode as keyof typeof cubValues] as number
+    : 0
   const areaConstruidaNum = Number(data.areaConstruida) || 0
-  const valorBaseEstimado = cubPerM2 * (totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum)
+  const areaRef = totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum
+  const valorBaseEstimado = cubPerM2 * areaRef
 
   if (!activeProject) {
     return (
@@ -1239,18 +1348,37 @@ function WizardContent() {
                 </div>
 
                 {/* CUB value per m² */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center mb-4">
-                  <p className="text-sm text-gray-500 mb-1">
-                    Valor por m² (com acabamento)
-                  </p>
-                  <p className="text-2xl font-bold text-orange-600">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL',
-                    }).format(cubPerM2)}
-                    /m²
-                  </p>
-                </div>
+                {cubLoading ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center mb-4">
+                    <Loader2 className="h-5 w-5 text-orange-600 animate-spin mx-auto mb-1" />
+                    <p className="text-sm text-gray-500">Buscando CUB...</p>
+                  </div>
+                ) : cubPerM2 > 0 ? (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center mb-4">
+                    <p className="text-sm text-gray-500 mb-1">
+                      CUB {selectedPadrao.cubCode} — {data.estado}
+                      {cubValues?.referenceLabel && (
+                        <span className="ml-1 text-gray-400">
+                          (ref. {cubValues.referenceLabel})
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(cubPerM2)}
+                      /m²
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center mb-4">
+                    <p className="text-sm text-yellow-700">
+                      CUB nao disponivel para o estado {data.estado || 'selecionado'}.
+                      Selecione um estado na Etapa 1.
+                    </p>
+                  </div>
+                )}
 
                 {/* Info: Sobre o CUB */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
@@ -1263,7 +1391,13 @@ function WizardContent() {
                       <p className="text-sm text-blue-600 mt-0.5">
                         Valores baseados no Custo Unitario Basico (CUB) do
                         estado selecionado, atualizados mensalmente pelo
-                        SINDUSCON.
+                        SINDUSCON. Codigo {selectedPadrao.cubCode}:{' '}
+                        {selectedPadrao.cubCode === 'PIS'
+                          ? 'Projeto de Interesse Social'
+                          : selectedPadrao.cubCode === 'R1-N'
+                            ? 'Residencia Unifamiliar Normal'
+                            : 'Residencia Unifamiliar Alto Padrao'}
+                        .
                       </p>
                     </div>
                   </div>
