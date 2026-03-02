@@ -579,14 +579,21 @@ function WizardContent() {
             const r1n = records.find((r: { cubCode: string }) => r.cubCode === 'R1-N')
             const r1a = records.find((r: { cubCode: string }) => r.cubCode === 'R1-A')
             if (pis && r1n && r1a) {
-              setCubValues({
-                PIS: pis.totalValue,
-                'R1-N': r1n.totalValue,
-                'R1-A': r1a.totalValue,
-                referenceLabel: `${String(pis.referenceMonth).padStart(2, '0')}/${pis.referenceYear}`,
-              })
-              setCubLoading(false)
-              return
+              // Check if DB data is recent enough vs fallback table
+              const dbDateNum = pis.referenceYear * 12 + pis.referenceMonth
+              const fallbackDateNum = 2026 * 12 + 2 // Feb/2026
+              const hasFallback = !!CUB_FALLBACK[data.estado]
+              if (dbDateNum >= fallbackDateNum || !hasFallback) {
+                setCubValues({
+                  PIS: pis.totalValue,
+                  'R1-N': r1n.totalValue,
+                  'R1-A': r1a.totalValue,
+                  referenceLabel: `${String(pis.referenceMonth).padStart(2, '0')}/${pis.referenceYear}`,
+                })
+                setCubLoading(false)
+                return
+              }
+              // DB data is older than fallback — fall through
             }
           }
         }
