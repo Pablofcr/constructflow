@@ -150,7 +150,7 @@ const PADRAO_OPTIONS = [
   },
 ]
 
-// CUB fallback table (SINDUSCON fev/2026) — used when DB has no data for a state
+// CUB fallback table (SINDUSCON jan/2026) — used when DB has no data for a state
 const CUB_FALLBACK: Record<string, { PIS: number; 'R1-N': number; 'R1-A': number }> = {
   CE: { PIS: 1628.59, 'R1-N': 2789.73, 'R1-A': 3305.51 },
   SP: { PIS: 1435.99, 'R1-N': 2538.83, 'R1-A': 3076.48 },
@@ -581,7 +581,7 @@ function WizardContent() {
             if (pis && r1n && r1a) {
               // Check if DB data is recent enough vs fallback table
               const dbDateNum = pis.referenceYear * 12 + pis.referenceMonth
-              const fallbackDateNum = 2026 * 12 + 2 // Feb/2026
+              const fallbackDateNum = 2026 * 12 + 1 // Jan/2026
               const hasFallback = !!CUB_FALLBACK[data.estado]
               if (dbDateNum >= fallbackDateNum || !hasFallback) {
                 setCubValues({
@@ -608,7 +608,7 @@ function WizardContent() {
           PIS: fb.PIS,
           'R1-N': fb['R1-N'],
           'R1-A': fb['R1-A'],
-          referenceLabel: '02/2026',
+          referenceLabel: '01/2026',
         })
       } else {
         setCubValues(null)
