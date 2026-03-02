@@ -17,6 +17,9 @@ import {
   Ruler,
   Building2,
   ChevronRight,
+  ChevronLeft,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 
 // Brazilian states
@@ -59,6 +62,32 @@ const WIZARD_STEPS = [
   { number: 6, label: 'Ajuste Regional' },
 ]
 
+const ROOM_TYPES = [
+  { value: 'quarto', label: 'Quarto' },
+  { value: 'suite', label: 'Suite' },
+  { value: 'sala', label: 'Sala' },
+  { value: 'cozinha', label: 'Cozinha' },
+  { value: 'banheiro', label: 'Banheiro' },
+  { value: 'lavabo', label: 'Lavabo' },
+  { value: 'area_gourmet', label: 'Area Gourmet' },
+  { value: 'lavanderia', label: 'Lavanderia' },
+  { value: 'corredor', label: 'Corredor' },
+  { value: 'garagem', label: 'Garagem' },
+  { value: 'varanda', label: 'Varanda' },
+  { value: 'escritorio', label: 'Escritorio' },
+  { value: 'despensa', label: 'Despensa' },
+  { value: 'servico', label: 'Area de Servico' },
+  { value: 'outro', label: 'Outro' },
+]
+
+interface RoomItem {
+  id: string
+  type: string
+  label: string
+  width: number
+  length: number
+}
+
 interface WizardData {
   tipoObra: 'CASA_NOVA' | 'REFORMA'
   nomeProjeto: string
@@ -70,6 +99,8 @@ interface WizardData {
   ladoEsquerdoTerreno: number | ''
   areaConstruida: number | ''
   numFloors: number
+  // Step 2
+  rooms: RoomItem[]
 }
 
 interface ProjectData {
@@ -275,6 +306,7 @@ function WizardContent() {
   const router = useRouter()
   const { activeProject } = useProject()
   const [loading, setLoading] = useState(true)
+  const [currentStep, setCurrentStep] = useState(1)
   const [data, setData] = useState<WizardData>({
     tipoObra: 'CASA_NOVA',
     nomeProjeto: '',
@@ -286,9 +318,13 @@ function WizardContent() {
     ladoEsquerdoTerreno: '',
     areaConstruida: '',
     numFloors: 1,
+    rooms: [],
   })
 
-  const currentStep = 1
+  // Room form state
+  const [newRoomType, setNewRoomType] = useState('')
+  const [newRoomWidth, setNewRoomWidth] = useState<number | ''>('')
+  const [newRoomLength, setNewRoomLength] = useState<number | ''>('')
 
   // Fetch full project data and pre-fill
   useEffect(() => {
@@ -361,6 +397,42 @@ function WizardContent() {
   ) => {
     setData((prev) => ({ ...prev, [field]: value }))
   }
+
+  // Room management
+  const addRoom = () => {
+    if (!newRoomType || !newRoomWidth || !newRoomLength) return
+    const roomType = ROOM_TYPES.find((r) => r.value === newRoomType)
+    if (!roomType) return
+    const newRoom: RoomItem = {
+      id: crypto.randomUUID(),
+      type: newRoomType,
+      label: roomType.label,
+      width: Number(newRoomWidth),
+      length: Number(newRoomLength),
+    }
+    setData((prev) => ({ ...prev, rooms: [...prev.rooms, newRoom] }))
+    setNewRoomType('')
+    setNewRoomWidth('')
+    setNewRoomLength('')
+  }
+
+  const removeRoom = (id: string) => {
+    setData((prev) => ({
+      ...prev,
+      rooms: prev.rooms.filter((r) => r.id !== id),
+    }))
+  }
+
+  const totalRoomsArea = useMemo(() => {
+    return data.rooms.reduce((sum, r) => sum + r.width * r.length, 0)
+  }, [data.rooms])
+
+  const isStep2Valid = data.rooms.length > 0
+
+  const canAddRoom =
+    newRoomType !== '' &&
+    Number(newRoomWidth) > 0 &&
+    Number(newRoomLength) > 0
 
   if (!activeProject) {
     return (
@@ -435,15 +507,15 @@ function WizardContent() {
                         step.number === currentStep
                           ? 'bg-orange-500 text-white'
                           : step.number < currentStep
-                            ? 'bg-orange-200 text-orange-800'
+                            ? 'bg-orange-500 text-white'
                             : 'bg-gray-100 text-gray-400'
                       }`}
                     >
-                      {step.number}
+                      {step.number < currentStep ? '✓' : step.number}
                     </div>
                     <span
                       className={`text-[10px] mt-1 font-medium hidden sm:block ${
-                        step.number === currentStep
+                        step.number <= currentStep
                           ? 'text-orange-600'
                           : 'text-gray-400'
                       }`}
@@ -455,7 +527,7 @@ function WizardContent() {
                     <div
                       className={`hidden sm:block w-8 md:w-12 lg:w-16 h-0.5 mx-1 ${
                         step.number < currentStep
-                          ? 'bg-orange-300'
+                          ? 'bg-orange-400'
                           : 'bg-gray-200'
                       }`}
                     />
@@ -465,426 +537,615 @@ function WizardContent() {
             </div>
           </div>
 
-          {/* Section A — Tipo de Obra */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-              Tipo de Obra
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Selecione o tipo de construcao
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Casa Nova */}
-              <button
-                type="button"
-                onClick={() => updateField('tipoObra', 'CASA_NOVA')}
-                className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
-                  data.tipoObra === 'CASA_NOVA'
-                    ? 'border-orange-500 bg-orange-50 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-              >
-                <div
-                  className={`p-3 rounded-lg ${
-                    data.tipoObra === 'CASA_NOVA'
-                      ? 'bg-orange-100'
-                      : 'bg-gray-100'
-                  }`}
-                >
-                  <Home
-                    className={`h-6 w-6 ${
-                      data.tipoObra === 'CASA_NOVA'
-                        ? 'text-orange-600'
-                        : 'text-gray-400'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <p
-                    className={`font-semibold ${
-                      data.tipoObra === 'CASA_NOVA'
-                        ? 'text-orange-900'
-                        : 'text-gray-900'
-                    }`}
-                  >
-                    Casa Nova
-                  </p>
-                  <p
-                    className={`text-sm ${
-                      data.tipoObra === 'CASA_NOVA'
-                        ? 'text-orange-600'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    Construcao do zero
-                  </p>
-                </div>
-              </button>
-
-              {/* Reforma */}
-              <button
-                type="button"
-                onClick={() => updateField('tipoObra', 'REFORMA')}
-                className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
-                  data.tipoObra === 'REFORMA'
-                    ? 'border-orange-500 bg-orange-50 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-              >
-                <div
-                  className={`p-3 rounded-lg ${
-                    data.tipoObra === 'REFORMA'
-                      ? 'bg-orange-100'
-                      : 'bg-gray-100'
-                  }`}
-                >
-                  <Wrench
-                    className={`h-6 w-6 ${
-                      data.tipoObra === 'REFORMA'
-                        ? 'text-orange-600'
-                        : 'text-gray-400'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <p
-                    className={`font-semibold ${
-                      data.tipoObra === 'REFORMA'
-                        ? 'text-orange-900'
-                        : 'text-gray-900'
-                    }`}
-                  >
-                    Reforma
-                  </p>
-                  <p
-                    className={`text-sm ${
-                      data.tipoObra === 'REFORMA'
-                        ? 'text-orange-600'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    Alteracoes em imovel existente
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Section B — Identificacao do Projeto */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-            <div className="flex items-center gap-3 mb-1">
-              <FileText className="h-5 w-5 text-orange-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Identificacao do Projeto
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500 mb-4 ml-8">
-              De um nome para identificar este orcamento
-            </p>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nome do Projeto <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={data.nomeProjeto}
-                onChange={(e) => updateField('nomeProjeto', e.target.value)}
-                placeholder="Ex: Casa Residencial Vila Nova"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-              />
-              <p className="text-xs text-gray-400 mt-1.5">
-                Este nome sera usado para identificar o projeto no relatorio
-                final
-              </p>
-            </div>
-          </div>
-
-          {/* Section C + D — Localizacao + Dimensoes do Terreno */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
-            <div className="flex items-center gap-3 mb-1">
-              <MapPin className="h-5 w-5 text-orange-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Localizacao do Projeto
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500 mb-4 ml-8">
-              Defina onde sera construido e as dimensoes
-            </p>
-
-            {/* Estado + Cidade */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Estado <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={data.estado}
-                  onChange={(e) => updateField('estado', e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
-                >
-                  <option value="">Selecione o estado</option>
-                  {ESTADOS_BR.map((uf) => (
-                    <option key={uf.value} value={uf.value}>
-                      {uf.label} ({uf.value})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Cidade <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={data.cidade}
-                  onChange={(e) => updateField('cidade', e.target.value)}
-                  placeholder="Ex: Sao Paulo"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-                />
-              </div>
-            </div>
-
-            {/* Divider — Dimensoes do Terreno */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center gap-3 mb-1">
-                <Compass className="h-5 w-5 text-orange-600" />
-                <h3 className="text-base font-semibold text-gray-900">
-                  Dimensoes do Terreno
-                </h3>
-              </div>
-              <p className="text-sm text-gray-500 mb-4 ml-8">
-                Informe as medidas do terreno para calculo da area
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Terrain inputs */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Frente (m)
-                    </label>
-                    <input
-                      type="number"
-                      value={data.frenteTerreno}
-                      onChange={(e) =>
-                        updateField(
-                          'frenteTerreno',
-                          e.target.value === '' ? '' : Number(e.target.value)
-                        )
-                      }
-                      placeholder="0"
-                      min={0}
-                      step="0.1"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fundos (m)
-                    </label>
-                    <input
-                      type="number"
-                      value={data.fundosTerreno}
-                      onChange={(e) =>
-                        updateField(
-                          'fundosTerreno',
-                          e.target.value === '' ? '' : Number(e.target.value)
-                        )
-                      }
-                      placeholder="0"
-                      min={0}
-                      step="0.1"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lado Direito (m)
-                    </label>
-                    <input
-                      type="number"
-                      value={data.ladoDireitoTerreno}
-                      onChange={(e) =>
-                        updateField(
-                          'ladoDireitoTerreno',
-                          e.target.value === '' ? '' : Number(e.target.value)
-                        )
-                      }
-                      placeholder="0"
-                      min={0}
-                      step="0.1"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lado Esquerdo (m)
-                    </label>
-                    <input
-                      type="number"
-                      value={data.ladoEsquerdoTerreno}
-                      onChange={(e) =>
-                        updateField(
-                          'ladoEsquerdoTerreno',
-                          e.target.value === '' ? '' : Number(e.target.value)
-                        )
-                      }
-                      placeholder="0"
-                      min={0}
-                      step="0.1"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-                    />
-                  </div>
-                </div>
-
-                {/* Terrain diagram */}
-                <TerrainDiagram
-                  frente={Number(data.frenteTerreno) || 0}
-                  fundos={Number(data.fundosTerreno) || 0}
-                  ladoDireito={Number(data.ladoDireitoTerreno) || 0}
-                  ladoEsquerdo={Number(data.ladoEsquerdoTerreno) || 0}
-                />
-              </div>
-
-              {/* Area do Terreno computed */}
-              {areaTerreno > 0 && (
-                <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-2">
-                  <Ruler className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-orange-900">
-                      Area do Terreno (estimada):{' '}
-                      <span className="font-bold">
-                        {areaTerreno.toFixed(2)} m²
-                      </span>
-                    </p>
-                    <p className="text-xs text-orange-700 mt-0.5">
-                      Area estimada a partir da media dos lados do terreno.
-                      Indicada para estudos preliminares de viabilidade.
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Section E — Area e Pavimentos */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <div className="flex items-center gap-3 mb-1">
-              <Building2 className="h-5 w-5 text-orange-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Area e Pavimentos
-              </h2>
-            </div>
-            <p className="text-sm text-gray-500 mb-4 ml-8">
-              Defina a area construida e o numero de pavimentos
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Area a ser Construida (m²){' '}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={data.areaConstruida}
-                  onChange={(e) =>
-                    updateField(
-                      'areaConstruida',
-                      e.target.value === '' ? '' : Number(e.target.value)
-                    )
-                  }
-                  placeholder="Ex: 120"
-                  min={1}
-                  step="0.01"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Numero de Pavimentos{' '}
-                  <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={data.numFloors}
-                  onChange={(e) =>
-                    updateField('numFloors', Number(e.target.value))
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
-                >
-                  <option value={1}>1 Pavimento (Terreo)</option>
-                  <option value={2}>2 Pavimentos</option>
-                  <option value={3}>3 Pavimentos</option>
-                  <option value={4}>4 Pavimentos</option>
-                  <option value={5}>5 Pavimentos</option>
-                </select>
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Este campo serve apenas para validar se a area construida cabe
-                  no terreno
+          {/* ============================================ */}
+          {/* STEP 1 — Localizacao                        */}
+          {/* ============================================ */}
+          {currentStep === 1 && (
+            <>
+              {/* Section A — Tipo de Obra */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-1">
+                  Tipo de Obra
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Selecione o tipo de construcao
                 </p>
-              </div>
-            </div>
 
-            {/* Area de Implantacao computed */}
-            {areaImplantacao > 0 && (
-              <div
-                className={`mt-4 rounded-lg p-3 flex items-start gap-2 border ${
-                  implantacaoExceedsTerreno
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-blue-50 border-blue-200'
-                }`}
-              >
-                <Building2
-                  className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-                    implantacaoExceedsTerreno
-                      ? 'text-red-600'
-                      : 'text-blue-600'
-                  }`}
-                />
-                <div>
-                  <p
-                    className={`text-sm font-medium ${
-                      implantacaoExceedsTerreno
-                        ? 'text-red-900'
-                        : 'text-blue-900'
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => updateField('tipoObra', 'CASA_NOVA')}
+                    className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
+                      data.tipoObra === 'CASA_NOVA'
+                        ? 'border-orange-500 bg-orange-50 shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
                     }`}
                   >
-                    Area de Implantacao:{' '}
-                    <span className="font-bold">
-                      {areaImplantacao.toFixed(2)} m²
-                    </span>
-                    <span className="font-normal text-xs ml-1">
-                      (projecao no solo)
-                    </span>
+                    <div
+                      className={`p-3 rounded-lg ${
+                        data.tipoObra === 'CASA_NOVA'
+                          ? 'bg-orange-100'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      <Home
+                        className={`h-6 w-6 ${
+                          data.tipoObra === 'CASA_NOVA'
+                            ? 'text-orange-600'
+                            : 'text-gray-400'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <p
+                        className={`font-semibold ${
+                          data.tipoObra === 'CASA_NOVA'
+                            ? 'text-orange-900'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        Casa Nova
+                      </p>
+                      <p
+                        className={`text-sm ${
+                          data.tipoObra === 'CASA_NOVA'
+                            ? 'text-orange-600'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        Construcao do zero
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateField('tipoObra', 'REFORMA')}
+                    className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left ${
+                      data.tipoObra === 'REFORMA'
+                        ? 'border-orange-500 bg-orange-50 shadow-sm'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <div
+                      className={`p-3 rounded-lg ${
+                        data.tipoObra === 'REFORMA'
+                          ? 'bg-orange-100'
+                          : 'bg-gray-100'
+                      }`}
+                    >
+                      <Wrench
+                        className={`h-6 w-6 ${
+                          data.tipoObra === 'REFORMA'
+                            ? 'text-orange-600'
+                            : 'text-gray-400'
+                        }`}
+                      />
+                    </div>
+                    <div>
+                      <p
+                        className={`font-semibold ${
+                          data.tipoObra === 'REFORMA'
+                            ? 'text-orange-900'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        Reforma
+                      </p>
+                      <p
+                        className={`text-sm ${
+                          data.tipoObra === 'REFORMA'
+                            ? 'text-orange-600'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        Alteracoes em imovel existente
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Section B — Identificacao do Projeto */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <FileText className="h-5 w-5 text-orange-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Identificacao do Projeto
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-4 ml-8">
+                  De um nome para identificar este orcamento
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome do Projeto <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={data.nomeProjeto}
+                    onChange={(e) => updateField('nomeProjeto', e.target.value)}
+                    placeholder="Ex: Casa Residencial Vila Nova"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                  />
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Este nome sera usado para identificar o projeto no relatorio
+                    final
                   </p>
-                  {implantacaoExceedsTerreno && (
-                    <p className="text-xs text-red-700 mt-0.5">
-                      A area de implantacao excede a area do terreno estimada (
-                      {areaTerreno.toFixed(2)} m²). Verifique as dimensoes.
-                    </p>
+                </div>
+              </div>
+
+              {/* Section C + D — Localizacao + Dimensoes do Terreno */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <MapPin className="h-5 w-5 text-orange-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Localizacao do Projeto
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-4 ml-8">
+                  Defina onde sera construido e as dimensoes
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Estado <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={data.estado}
+                      onChange={(e) => updateField('estado', e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
+                    >
+                      <option value="">Selecione o estado</option>
+                      {ESTADOS_BR.map((uf) => (
+                        <option key={uf.value} value={uf.value}>
+                          {uf.label} ({uf.value})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cidade <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={data.cidade}
+                      onChange={(e) => updateField('cidade', e.target.value)}
+                      placeholder="Ex: Sao Paulo"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                    />
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="flex items-center gap-3 mb-1">
+                    <Compass className="h-5 w-5 text-orange-600" />
+                    <h3 className="text-base font-semibold text-gray-900">
+                      Dimensoes do Terreno
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4 ml-8">
+                    Informe as medidas do terreno para calculo da area
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Frente (m)
+                        </label>
+                        <input
+                          type="number"
+                          value={data.frenteTerreno}
+                          onChange={(e) =>
+                            updateField(
+                              'frenteTerreno',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          placeholder="0"
+                          min={0}
+                          step="0.1"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fundos (m)
+                        </label>
+                        <input
+                          type="number"
+                          value={data.fundosTerreno}
+                          onChange={(e) =>
+                            updateField(
+                              'fundosTerreno',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          placeholder="0"
+                          min={0}
+                          step="0.1"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Lado Direito (m)
+                        </label>
+                        <input
+                          type="number"
+                          value={data.ladoDireitoTerreno}
+                          onChange={(e) =>
+                            updateField(
+                              'ladoDireitoTerreno',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          placeholder="0"
+                          min={0}
+                          step="0.1"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Lado Esquerdo (m)
+                        </label>
+                        <input
+                          type="number"
+                          value={data.ladoEsquerdoTerreno}
+                          onChange={(e) =>
+                            updateField(
+                              'ladoEsquerdoTerreno',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          placeholder="0"
+                          min={0}
+                          step="0.1"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                        />
+                      </div>
+                    </div>
+
+                    <TerrainDiagram
+                      frente={Number(data.frenteTerreno) || 0}
+                      fundos={Number(data.fundosTerreno) || 0}
+                      ladoDireito={Number(data.ladoDireitoTerreno) || 0}
+                      ladoEsquerdo={Number(data.ladoEsquerdoTerreno) || 0}
+                    />
+                  </div>
+
+                  {areaTerreno > 0 && (
+                    <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-2">
+                      <Ruler className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium text-orange-900">
+                          Area do Terreno (estimada):{' '}
+                          <span className="font-bold">
+                            {areaTerreno.toFixed(2)} m²
+                          </span>
+                        </p>
+                        <p className="text-xs text-orange-700 mt-0.5">
+                          Area estimada a partir da media dos lados do terreno.
+                          Indicada para estudos preliminares de viabilidade.
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Proxima Etapa button */}
-          <Button
-            className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
-            disabled={!isStep1Valid}
-            onClick={() => {
-              toast({
-                title: 'Proxima etapa em breve',
-                description:
-                  'As demais etapas do assistente serao implementadas em breve.',
-              })
-            }}
-          >
-            Proxima Etapa
-            <ChevronRight className="h-5 w-5 ml-2" />
-          </Button>
+              {/* Section E — Area e Pavimentos */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="flex items-center gap-3 mb-1">
+                  <Building2 className="h-5 w-5 text-orange-600" />
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Area e Pavimentos
+                  </h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-4 ml-8">
+                  Defina a area construida e o numero de pavimentos
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Area a ser Construida (m²){' '}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={data.areaConstruida}
+                      onChange={(e) =>
+                        updateField(
+                          'areaConstruida',
+                          e.target.value === '' ? '' : Number(e.target.value)
+                        )
+                      }
+                      placeholder="Ex: 120"
+                      min={1}
+                      step="0.01"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Numero de Pavimentos{' '}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={data.numFloors}
+                      onChange={(e) =>
+                        updateField('numFloors', Number(e.target.value))
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
+                    >
+                      <option value={1}>1 Pavimento (Terreo)</option>
+                      <option value={2}>2 Pavimentos</option>
+                      <option value={3}>3 Pavimentos</option>
+                      <option value={4}>4 Pavimentos</option>
+                      <option value={5}>5 Pavimentos</option>
+                    </select>
+                    <p className="text-xs text-gray-400 mt-1.5">
+                      Este campo serve apenas para validar se a area construida cabe
+                      no terreno
+                    </p>
+                  </div>
+                </div>
+
+                {areaImplantacao > 0 && (
+                  <div
+                    className={`mt-4 rounded-lg p-3 flex items-start gap-2 border ${
+                      implantacaoExceedsTerreno
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-blue-50 border-blue-200'
+                    }`}
+                  >
+                    <Building2
+                      className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+                        implantacaoExceedsTerreno
+                          ? 'text-red-600'
+                          : 'text-blue-600'
+                      }`}
+                    />
+                    <div>
+                      <p
+                        className={`text-sm font-medium ${
+                          implantacaoExceedsTerreno
+                            ? 'text-red-900'
+                            : 'text-blue-900'
+                        }`}
+                      >
+                        Area de Implantacao:{' '}
+                        <span className="font-bold">
+                          {areaImplantacao.toFixed(2)} m²
+                        </span>
+                        <span className="font-normal text-xs ml-1">
+                          (projecao no solo)
+                        </span>
+                      </p>
+                      {implantacaoExceedsTerreno && (
+                        <p className="text-xs text-red-700 mt-0.5">
+                          A area de implantacao excede a area do terreno estimada (
+                          {areaTerreno.toFixed(2)} m²). Verifique as dimensoes.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 1 — Proxima Etapa */}
+              <Button
+                className="w-full bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
+                disabled={!isStep1Valid}
+                onClick={() => setCurrentStep(2)}
+              >
+                Proxima Etapa
+                <ChevronRight className="h-5 w-5 ml-2" />
+              </Button>
+            </>
+          )}
+
+          {/* ============================================ */}
+          {/* STEP 2 — Comodos                             */}
+          {/* ============================================ */}
+          {currentStep === 2 && (
+            <>
+              {/* Header card */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Home className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Comodos do Projeto
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Adicione os ambientes da construcao
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add room form */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">
+                  Adicionar Comodo
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tipo de Comodo
+                    </label>
+                    <select
+                      value={newRoomType}
+                      onChange={(e) => setNewRoomType(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
+                    >
+                      <option value="">Selecione</option>
+                      {ROOM_TYPES.map((rt) => (
+                        <option key={rt.value} value={rt.value}>
+                          {rt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Largura (m)
+                    </label>
+                    <input
+                      type="number"
+                      value={newRoomWidth}
+                      onChange={(e) =>
+                        setNewRoomWidth(
+                          e.target.value === '' ? '' : Number(e.target.value)
+                        )
+                      }
+                      placeholder="0.00"
+                      min={0}
+                      step="0.01"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Comprimento (m)
+                    </label>
+                    <input
+                      type="number"
+                      value={newRoomLength}
+                      onChange={(e) =>
+                        setNewRoomLength(
+                          e.target.value === '' ? '' : Number(e.target.value)
+                        )
+                      }
+                      placeholder="0.00"
+                      min={0}
+                      step="0.01"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow"
+                    />
+                  </div>
+                  <Button
+                    className="bg-orange-600 hover:bg-orange-700 h-[42px]"
+                    disabled={!canAddRoom}
+                    onClick={addRoom}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar Comodo
+                  </Button>
+                </div>
+              </div>
+
+              {/* Room list */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">
+                  Comodos Adicionados
+                </h3>
+
+                {data.rooms.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    <Home className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">
+                      Nenhum comodo adicionado. Use o formulario acima para
+                      adicionar.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {data.rooms.map((room) => (
+                      <div
+                        key={room.id}
+                        className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="font-medium text-gray-900">
+                            {room.label}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {room.width.toFixed(2).replace('.', ',')} ×{' '}
+                            {room.length.toFixed(2).replace('.', ',')} m
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <span className="text-sm font-semibold text-orange-600">
+                            {(room.width * room.length)
+                              .toFixed(2)
+                              .replace('.', ',')}{' '}
+                            m²
+                          </span>
+                          <button
+                            onClick={() => removeRoom(room.id)}
+                            className="text-red-400 hover:text-red-600 p-1 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Summary */}
+                {data.rooms.length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">
+                        Area dos Comodos:
+                      </span>
+                      <span className="text-sm font-bold text-orange-600">
+                        {totalRoomsArea.toFixed(2).replace('.', ',')} m²
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">
+                        Area Planejada (Etapa 1):
+                      </span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {Number(data.areaConstruida || 0)
+                          .toFixed(2)
+                          .replace('.', ',')}{' '}
+                        m²
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step 2 — Navigation buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  className="h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(1)}
+                >
+                  <ChevronLeft className="h-5 w-5 mr-2" />
+                  Voltar
+                </Button>
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
+                  disabled={!isStep2Valid}
+                  onClick={() => {
+                    toast({
+                      title: 'Proxima etapa em breve',
+                      description:
+                        'As demais etapas do assistente serao implementadas em breve.',
+                    })
+                  }}
+                >
+                  Proxima Etapa
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
