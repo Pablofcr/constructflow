@@ -18,8 +18,11 @@ import {
   Building2,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Plus,
   Trash2,
+  Sparkles,
+  Info,
 } from 'lucide-react'
 
 // Brazilian states
@@ -103,6 +106,15 @@ interface WizardData {
   rooms: RoomItem[]
   // Step 3
   padrao: 'POPULAR' | 'MEDIO_PADRAO' | 'ALTO_PADRAO'
+  // Step 4
+  fundacao: string
+  forro: string
+  piso: string
+  fachada: string
+  sistemaConstrutivo: string
+  telhado: string
+  esquadrias: string
+  possuiSubsolo: boolean
 }
 
 interface ProjectData {
@@ -138,7 +150,7 @@ const PADRAO_OPTIONS = [
   },
 ]
 
-// CUB fallback table (SINDUSCON jan/2026) — used when DB has no data for a state
+// CUB fallback table (SINDUSCON fev/2026) — used when DB has no data for a state
 const CUB_FALLBACK: Record<string, { PIS: number; 'R1-N': number; 'R1-A': number }> = {
   CE: { PIS: 1628.59, 'R1-N': 2789.73, 'R1-A': 3305.51 },
   SP: { PIS: 1435.99, 'R1-N': 2538.83, 'R1-A': 3076.48 },
@@ -165,6 +177,90 @@ interface CubValues {
   'R1-A': number
   referenceLabel: string
 }
+
+const PAVIMENTOS_MULTIPLIER: Record<number, number> = {
+  1: 0,
+  2: 22,
+  3: 40,
+  4: 55,
+  5: 70,
+}
+
+const STRUCTURAL_FIELDS = [
+  {
+    key: 'fundacao',
+    label: 'Tipo de Fundacao',
+    options: [
+      { value: 'SAPATA_CORRIDA', label: 'Sapata Corrida', pct: 0 },
+      { value: 'RADIER', label: 'Radier', pct: 4 },
+      { value: 'ESTACA', label: 'Estaca', pct: 12 },
+    ],
+  },
+  {
+    key: 'forro',
+    label: 'Tipo de Forro',
+    options: [
+      { value: 'PVC', label: 'PVC', pct: 0 },
+      { value: 'GESSO', label: 'Gesso', pct: 1.5 },
+      { value: 'GESSO_ACARTONADO', label: 'Gesso Acartonado', pct: 2 },
+      { value: 'MADEIRA', label: 'Madeira', pct: 3 },
+    ],
+  },
+  {
+    key: 'piso',
+    label: 'Revestimento de Piso',
+    options: [
+      { value: 'CERAMICA', label: 'Ceramica', pct: 0 },
+      { value: 'PORCELANATO_SIMPLES', label: 'Porcelanato Simples', pct: 2 },
+      { value: 'PORCELANATO_POLIDO', label: 'Porcelanato Polido', pct: 3.5 },
+      { value: 'VINILICO', label: 'Vinilico', pct: 1.5 },
+      { value: 'PISO_LAMINADO', label: 'Piso Laminado', pct: 2.5 },
+    ],
+  },
+  {
+    key: 'fachada',
+    label: 'Revestimento de Fachada',
+    options: [
+      { value: 'PINTURA_LATEX', label: 'Pintura Latex', pct: 0 },
+      { value: 'TEXTURA', label: 'Textura', pct: 1 },
+      { value: 'GRAFIATO', label: 'Grafiato', pct: 1.5 },
+      { value: 'CERAMICA_FACHADA', label: 'Ceramica', pct: 3 },
+      { value: 'PORCELANATO_FACHADA', label: 'Porcelanato', pct: 4 },
+      { value: 'PEDRA_NATURAL', label: 'Pedra Natural', pct: 6 },
+    ],
+  },
+  {
+    key: 'sistemaConstrutivo',
+    label: 'Sistema Construtivo',
+    options: [
+      { value: 'ALVENARIA_CONVENCIONAL', label: 'Alvenaria Convencional', pct: 0 },
+      { value: 'BLOCOS_CONCRETO', label: 'Blocos de Concreto', pct: 2 },
+      { value: 'STEEL_FRAME', label: 'Steel Frame', pct: 15 },
+      { value: 'WOOD_FRAME', label: 'Wood Frame', pct: 18 },
+    ],
+  },
+  {
+    key: 'telhado',
+    label: 'Tipo de Telhado',
+    options: [
+      { value: 'FIBROCIMENTO', label: 'Fibrocimento', pct: 0 },
+      { value: 'CERAMICA_TELHADO', label: 'Ceramica', pct: 3 },
+      { value: 'METALICO', label: 'Metalico', pct: 5 },
+      { value: 'LAJE_IMPERMEABILIZADA', label: 'Laje Impermeabilizada', pct: 8 },
+    ],
+  },
+  {
+    key: 'esquadrias',
+    label: 'Tipo de Esquadrias',
+    options: [
+      { value: 'ALUMINIO_PADRAO', label: 'Aluminio Padrao', pct: 0 },
+      { value: 'ALUMINIO_PREMIUM', label: 'Aluminio Premium', pct: 1.5 },
+      { value: 'PVC_ESQUADRIA', label: 'PVC', pct: 2 },
+      { value: 'VIDRO_TEMPERADO', label: 'Vidro Temperado', pct: 3 },
+      { value: 'MADEIRA_MACICA', label: 'Madeira Macica', pct: 4 },
+    ],
+  },
+]
 
 const STORAGE_KEY = 'constructflow-wizard-detailed'
 
@@ -402,6 +498,14 @@ function WizardContent() {
       numFloors: 1,
       rooms: [],
       padrao: 'POPULAR' as const,
+      fundacao: 'SAPATA_CORRIDA',
+      forro: 'PVC',
+      piso: 'CERAMICA',
+      fachada: 'PINTURA_LATEX',
+      sistemaConstrutivo: 'ALVENARIA_CONVENCIONAL',
+      telhado: 'FIBROCIMENTO',
+      esquadrias: 'ALUMINIO_PADRAO',
+      possuiSubsolo: false,
     }
   })
 
@@ -497,7 +601,7 @@ function WizardContent() {
           PIS: fb.PIS,
           'R1-N': fb['R1-N'],
           'R1-A': fb['R1-A'],
-          referenceLabel: '01/2026',
+          referenceLabel: '02/2026',
         })
       } else {
         setCubValues(null)
@@ -593,6 +697,37 @@ function WizardContent() {
   const areaConstruidaNum = Number(data.areaConstruida) || 0
   const areaRef = totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum
   const valorBaseEstimado = cubPerM2 * areaRef
+
+  // Step 4 — multiplier
+  const [modoProfissionalOpen, setModoProfissionalOpen] = useState(false)
+
+  const multiplicadorTotal = useMemo(() => {
+    let mult = 1 + (PAVIMENTOS_MULTIPLIER[data.numFloors] || 0) / 100
+    for (const field of STRUCTURAL_FIELDS) {
+      const selectedValue = data[field.key as keyof WizardData] as string
+      const option = field.options.find((o) => o.value === selectedValue)
+      if (option) {
+        mult *= 1 + option.pct / 100
+      }
+    }
+    if (data.possuiSubsolo) {
+      mult *= 1.25
+    }
+    return mult
+  }, [
+    data.numFloors,
+    data.fundacao,
+    data.forro,
+    data.piso,
+    data.fachada,
+    data.sistemaConstrutivo,
+    data.telhado,
+    data.esquadrias,
+    data.possuiSubsolo,
+  ])
+
+  const acrescimoPercentual = (multiplicadorTotal - 1) * 100
+  const valorEstimado = valorBaseEstimado * multiplicadorTotal
 
   if (!activeProject) {
     return (
@@ -1485,6 +1620,286 @@ function WizardContent() {
                   variant="outline"
                   className="h-12 text-base font-semibold"
                   onClick={() => setCurrentStep(2)}
+                >
+                  <ChevronLeft className="h-5 w-5 mr-2" />
+                  Voltar
+                </Button>
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(4)}
+                >
+                  Proxima Etapa
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ============================================ */}
+          {/* STEP 4 — Estrutura                           */}
+          {/* ============================================ */}
+          {currentStep === 4 && (
+            <>
+              {/* Header card */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Wrench className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Caracteristicas Estruturais
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Defina os materiais e sistemas da construcao
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estrutura Essencial */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <Wrench className="h-5 w-5 text-orange-600" />
+                  <h3 className="text-base font-semibold text-gray-900">
+                    Estrutura Essencial
+                  </h3>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Numero de Pavimentos */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Numero de Pavimentos
+                    </label>
+                    <select
+                      value={data.numFloors}
+                      onChange={(e) =>
+                        updateField('numFloors', Number(e.target.value))
+                      }
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
+                    >
+                      <option value={1}>Terreo (base)</option>
+                      <option value={2}>2 Pavimentos (+22%)</option>
+                      <option value={3}>3 Pavimentos (+40%)</option>
+                      <option value={4}>4 Pavimentos (+55%)</option>
+                      <option value={5}>5 Pavimentos (+70%)</option>
+                    </select>
+                  </div>
+
+                  {/* Dynamic structural fields */}
+                  {STRUCTURAL_FIELDS.map((field) => (
+                    <div key={field.key}>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {field.label}
+                      </label>
+                      <select
+                        value={
+                          data[field.key as keyof WizardData] as string
+                        }
+                        onChange={(e) =>
+                          updateField(
+                            field.key as keyof WizardData,
+                            e.target.value as never
+                          )
+                        }
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-shadow bg-white"
+                      >
+                        {field.options.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}{' '}
+                            {opt.pct === 0
+                              ? '(base)'
+                              : `(+${opt.pct}%)`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subsolo */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Building2 className="h-5 w-5 text-gray-600" />
+                    <span className="text-base font-semibold text-gray-900">
+                      Subsolo
+                    </span>
+                    <Info className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-sm text-gray-600">
+                      Possui subsolo?
+                    </span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={data.possuiSubsolo}
+                      onClick={() =>
+                        updateField('possuiSubsolo', !data.possuiSubsolo)
+                      }
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                        data.possuiSubsolo ? 'bg-orange-500' : 'bg-gray-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          data.possuiSubsolo
+                            ? 'translate-x-6'
+                            : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </label>
+                </div>
+              </div>
+
+              {/* Modo Profissional */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setModoProfissionalOpen(!modoProfissionalOpen)
+                  }
+                  className="flex items-center justify-between w-full"
+                >
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 text-orange-500" />
+                    <span className="text-base font-semibold text-gray-900">
+                      Modo Profissional
+                    </span>
+                    <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full font-medium">
+                      Opcional
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`h-5 w-5 text-gray-400 transition-transform ${
+                      modoProfissionalOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+                {modoProfissionalOpen && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 text-center py-6">
+                    <p className="text-sm text-gray-400">
+                      Ajustes profissionais em breve
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Calculo em Tempo Real */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <h3 className="text-base font-bold text-gray-900 mb-4">
+                  Calculo em Tempo Real
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm text-gray-500 flex-shrink-0">
+                      Multiplicador Total:
+                    </span>
+                    <div className="flex-1 mx-2">
+                      <div className="h-1.5 bg-gray-200 rounded-full">
+                        <div
+                          className="h-1.5 bg-orange-500 rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(
+                              ((multiplicadorTotal - 1) / 1.5) * 100,
+                              100
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-orange-600 flex-shrink-0">
+                      x{multiplicadorTotal.toFixed(3)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">
+                      Acrescimo sobre valor base:
+                    </span>
+                    <span className="text-sm font-bold text-orange-600">
+                      +{acrescimoPercentual.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                    <span className="text-sm font-semibold text-gray-900">
+                      Valor Estimado:
+                    </span>
+                    <span className="text-lg font-bold text-orange-600">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(valorEstimado)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumo do Projeto */}
+              <div className="mb-6">
+                <h3 className="text-base font-semibold text-gray-900 mb-3">
+                  Resumo do Projeto
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-orange-50 border border-orange-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mb-2">
+                      <MapPin className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">Estado / Cidade</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {data.estado} / {data.cidade}
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                      <Ruler className="h-4 w-4 text-green-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">Area a Construir</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {areaRef.toFixed(2).replace('.', ',')} m²
+                    </p>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
+                      <Home className="h-4 w-4 text-yellow-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">CUB/m²</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(cubPerM2)}
+                    </p>
+                  </div>
+
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mb-2">
+                      <Building2 className="h-4 w-4 text-red-500" />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Valor Base Estimado
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(valorBaseEstimado)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4 — Navigation buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  className="h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(3)}
                 >
                   <ChevronLeft className="h-5 w-5 mr-2" />
                   Voltar
