@@ -24,6 +24,11 @@ import {
   Sparkles,
   Info,
   Layers,
+  Check,
+  Waves,
+  Umbrella,
+  UtensilsCrossed,
+  LayoutGrid,
 } from 'lucide-react'
 
 // Brazilian states
@@ -125,6 +130,8 @@ interface WizardData {
   proComplexidadeCobertura: string
   proLinhaEsquadria: string
   proMaterialEsquadria: string
+  // Step 5
+  areaExterna: AreaExternaData
 }
 
 interface ProjectData {
@@ -386,6 +393,62 @@ const PRO_SECTION_ICONS: Record<string, string> = {
   'Esquadrias Avancadas': 'door',
 }
 
+// Step 5 — Area Externa config
+interface AreaExternaData {
+  piscina: { enabled: boolean; tipo: string; formato: string; comprimento: number | ''; largura: number | ''; profundidade: number | ''; aquecimento: boolean; iluminacao: boolean }
+  muro: { enabled: boolean; tipo: string; altura: number | ''; percentualPerimetro: number }
+  cobertura: { enabled: boolean; tipo: string; area: number | ''; complexidade: string }
+  gourmet: { enabled: boolean; nivel: string; itens: string[] }
+  pavimentacao: { enabled: boolean; tipo: string; area: number | '' }
+}
+
+const AREA_EXTERNA_DEFAULTS: AreaExternaData = {
+  piscina: { enabled: false, tipo: 'FIBRA', formato: 'RETANGULAR', comprimento: '', largura: '', profundidade: '', aquecimento: false, iluminacao: false },
+  muro: { enabled: false, tipo: 'ALVENARIA', altura: '', percentualPerimetro: 100 },
+  cobertura: { enabled: false, tipo: 'POLICARBONATO', area: '', complexidade: 'SIMPLES' },
+  gourmet: { enabled: false, nivel: 'BASICO', itens: [] },
+  pavimentacao: { enabled: false, tipo: 'CONCRETO', area: '' },
+}
+
+const PISCINA_TIPOS = [
+  { value: 'FIBRA', label: 'Fibra', custoM2: 1500 },
+  { value: 'CONCRETO', label: 'Concreto', custoM2: 2500 },
+  { value: 'VINIL', label: 'Vinil', custoM2: 1800 },
+]
+const PISCINA_FORMATOS = [
+  { value: 'RETANGULAR', label: 'Retangular' },
+  { value: 'ARREDONDADA', label: 'Arredondada' },
+  { value: 'FORMATO_LIVRE', label: 'Formato livre' },
+]
+const MURO_TIPOS = [
+  { value: 'ALVENARIA', label: 'Alvenaria', custoM2: 280 },
+  { value: 'PRE_MOLDADO', label: 'Pre-moldado', custoM2: 220 },
+  { value: 'MISTO', label: 'Misto (alvenaria + gradil)', custoM2: 250 },
+]
+const COBERTURA_EXT_TIPOS = [
+  { value: 'POLICARBONATO', label: 'Policarbonato', custoM2: 350 },
+  { value: 'METALICA', label: 'Metalica', custoM2: 450 },
+  { value: 'MADEIRA', label: 'Madeira', custoM2: 550 },
+]
+const GOURMET_NIVEIS = [
+  { value: 'BASICO', label: 'Basico', mult: 1.0 },
+  { value: 'PADRAO', label: 'Padrao (+12%)', mult: 1.12 },
+  { value: 'PREMIUM', label: 'Premium (+25%)', mult: 1.25 },
+]
+const GOURMET_ITENS = [
+  { value: 'churrasqueira', label: 'Churrasqueira', custo: 3500 },
+  { value: 'fogao', label: 'Fogao', custo: 2000 },
+  { value: 'pia', label: 'Pia', custo: 1500 },
+  { value: 'bancada', label: 'Bancada', custo: 4000 },
+  { value: 'forno_pizza', label: 'Forno de pizza', custo: 5000 },
+  { value: 'coifa', label: 'Coifa', custo: 2500 },
+]
+const PAVIMENTACAO_TIPOS = [
+  { value: 'CONCRETO', label: 'Concreto', custoM2: 85 },
+  { value: 'PAVER', label: 'Paver (bloquete) (+18%)', custoM2: 100.30 },
+  { value: 'CERAMICA_EXT', label: 'Ceramica externa (+12%)', custoM2: 95.20 },
+]
+
 const STORAGE_KEY = 'constructflow-wizard-detailed'
 
 function mapPadraoFromProject(padrao: string): 'POPULAR' | 'MEDIO_PADRAO' | 'ALTO_PADRAO' {
@@ -638,6 +701,7 @@ function WizardContent() {
       proComplexidadeCobertura: '',
       proLinhaEsquadria: '',
       proMaterialEsquadria: '',
+      areaExterna: AREA_EXTERNA_DEFAULTS,
     }
   })
 
@@ -936,6 +1000,122 @@ function WizardContent() {
   ])
 
   const valorEstimado = valorBaseEstimado * multiplicadorTotal
+
+  // Step 5 — Area Externa helpers
+  const updateAreaExterna = <C extends keyof AreaExternaData>(
+    category: C,
+    field: string,
+    value: unknown
+  ) => {
+    setData((prev) => ({
+      ...prev,
+      areaExterna: {
+        ...prev.areaExterna,
+        [category]: {
+          ...(prev.areaExterna?.[category] || {}),
+          [field]: value,
+        },
+      },
+    }))
+  }
+
+  const toggleGourmetItem = (item: string) => {
+    setData((prev) => {
+      const currentItens = prev.areaExterna?.gourmet?.itens || []
+      return {
+        ...prev,
+        areaExterna: {
+          ...prev.areaExterna,
+          gourmet: {
+            ...prev.areaExterna.gourmet,
+            itens: currentItens.includes(item)
+              ? currentItens.filter((i) => i !== item)
+              : [...currentItens, item],
+          },
+        },
+      }
+    })
+  }
+
+  // Terrain perimeter from step 1
+  const perimetroTerreno = useMemo(() => {
+    const f = Number(data.frenteTerreno) || 0
+    const fu = Number(data.fundosTerreno) || 0
+    const ld = Number(data.ladoDireitoTerreno) || 0
+    const le = Number(data.ladoEsquerdoTerreno) || 0
+    return f + fu + ld + le
+  }, [data.frenteTerreno, data.fundosTerreno, data.ladoDireitoTerreno, data.ladoEsquerdoTerreno])
+
+  // External area cost calculations
+  const areaExternaCosts = useMemo(() => {
+    const ae = data.areaExterna || AREA_EXTERNA_DEFAULTS
+    const costs: { label: string; value: number }[] = []
+
+    // Piscina
+    if (ae.piscina?.enabled) {
+      const tipoConfig = PISCINA_TIPOS.find((t) => t.value === ae.piscina.tipo)
+      const area = (Number(ae.piscina.comprimento) || 0) * (Number(ae.piscina.largura) || 0)
+      let custo = area * (tipoConfig?.custoM2 || 1500)
+      const profundidade = Number(ae.piscina.profundidade) || 1.5
+      custo *= profundidade / 1.5 // depth factor
+      if (ae.piscina.aquecimento) custo *= 1.12
+      if (ae.piscina.iluminacao) custo *= 1.05
+      if (custo > 0) costs.push({ label: 'Piscina', value: custo })
+    }
+
+    // Muro
+    if (ae.muro?.enabled) {
+      const tipoConfig = MURO_TIPOS.find((t) => t.value === ae.muro.tipo)
+      const pct = (ae.muro.percentualPerimetro || 100) / 100
+      const comprMuro = perimetroTerreno * pct
+      const altura = Number(ae.muro.altura) || 2
+      const areaMuro = comprMuro * altura
+      let custoM2 = tipoConfig?.custoM2 || 280
+      if (altura > 1.5) custoM2 *= 1.12
+      const custo = areaMuro * custoM2
+      if (custo > 0) costs.push({ label: 'Muro Perimetral', value: custo })
+    }
+
+    // Cobertura Externa
+    if (ae.cobertura?.enabled) {
+      const tipoConfig = COBERTURA_EXT_TIPOS.find((t) => t.value === ae.cobertura.tipo)
+      const area = Number(ae.cobertura.area) || 0
+      let custo = area * (tipoConfig?.custoM2 || 350)
+      if (ae.cobertura.complexidade === 'MEDIA') custo *= 1.08
+      if (custo > 0) costs.push({ label: 'Cobertura Externa', value: custo })
+    }
+
+    // Area Gourmet
+    if (ae.gourmet?.enabled) {
+      const nivelConfig = GOURMET_NIVEIS.find((n) => n.value === ae.gourmet.nivel)
+      const mult = nivelConfig?.mult || 1.0
+      const itensCusto = (ae.gourmet.itens || []).reduce((sum, item) => {
+        const cfg = GOURMET_ITENS.find((g) => g.value === item)
+        return sum + (cfg?.custo || 0)
+      }, 0)
+      const custo = itensCusto * mult
+      if (custo > 0) costs.push({ label: 'Area Gourmet', value: custo })
+    }
+
+    // Pavimentacao
+    if (ae.pavimentacao?.enabled) {
+      const tipoConfig = PAVIMENTACAO_TIPOS.find((t) => t.value === ae.pavimentacao.tipo)
+      const area = Number(ae.pavimentacao.area) || 0
+      const custo = area * (tipoConfig?.custoM2 || 85)
+      if (custo > 0) costs.push({ label: 'Pavimentacao Externa', value: custo })
+    }
+
+    return costs
+  }, [data.areaExterna, perimetroTerreno])
+
+  const totalAreaExternaCost = areaExternaCosts.reduce((sum, c) => sum + c.value, 0)
+  const enabledExternalItems = [
+    data.areaExterna?.piscina?.enabled,
+    data.areaExterna?.muro?.enabled,
+    data.areaExterna?.cobertura?.enabled,
+    data.areaExterna?.gourmet?.enabled,
+    data.areaExterna?.pavimentacao?.enabled,
+  ].filter(Boolean).length
 
   if (!activeProject) {
     return (
@@ -2280,6 +2460,839 @@ function WizardContent() {
                   variant="outline"
                   className="h-12 text-base font-semibold"
                   onClick={() => setCurrentStep(3)}
+                >
+                  <ChevronLeft className="h-5 w-5 mr-2" />
+                  Voltar
+                </Button>
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(5)}
+                >
+                  Proxima Etapa
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ============================================ */}
+          {/* STEP 5 — Area Externa                        */}
+          {/* ============================================ */}
+          {currentStep === 5 && (
+            <>
+              {/* Header card */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <MapPin className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Area Externa (Opcional)
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Habilite os itens que deseja incluir no orcamento
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info box */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-700">
+                  Os valores da area externa sao{' '}
+                  <strong>somados ao orcamento final</strong> sem aplicar o
+                  CUB regional. Selecione apenas os itens aplicaveis ao seu
+                  projeto.
+                </p>
+              </div>
+
+              {/* ---- Piscina ---- */}
+              <div
+                className={`bg-white rounded-lg shadow-sm border mb-4 transition-colors ${
+                  data.areaExterna?.piscina?.enabled
+                    ? 'border-orange-300'
+                    : 'border-gray-200'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateAreaExterna(
+                      'piscina',
+                      'enabled',
+                      !data.areaExterna?.piscina?.enabled
+                    )
+                  }
+                  className="flex items-center justify-between w-full p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-50 rounded-lg">
+                      <Waves className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">
+                      Piscina
+                    </span>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      data.areaExterna?.piscina?.enabled
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {data.areaExterna?.piscina?.enabled && (
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    )}
+                  </div>
+                </button>
+                {data.areaExterna?.piscina?.enabled && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tipo de Piscina
+                        </label>
+                        <select
+                          value={data.areaExterna.piscina.tipo}
+                          onChange={(e) =>
+                            updateAreaExterna('piscina', 'tipo', e.target.value)
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white"
+                        >
+                          {PISCINA_TIPOS.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Formato
+                        </label>
+                        <select
+                          value={data.areaExterna.piscina.formato}
+                          onChange={(e) =>
+                            updateAreaExterna('piscina', 'formato', e.target.value)
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white"
+                        >
+                          {PISCINA_FORMATOS.map((f) => (
+                            <option key={f.value} value={f.value}>
+                              {f.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Comprimento (m)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 8"
+                          value={data.areaExterna.piscina.comprimento}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'piscina',
+                              'comprimento',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Largura (m)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 4"
+                          value={data.areaExterna.piscina.largura}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'piscina',
+                              'largura',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Profundidade media (m)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 1.5"
+                          value={data.areaExterna.piscina.profundidade}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'piscina',
+                              'profundidade',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-orange-600 mb-2">
+                        Itens adicionais
+                      </p>
+                      <div className="flex gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={data.areaExterna.piscina.aquecimento}
+                            onChange={(e) =>
+                              updateAreaExterna(
+                                'piscina',
+                                'aquecimento',
+                                e.target.checked
+                              )
+                            }
+                            className="w-4 h-4 accent-orange-500 rounded"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Aquecimento (+12%)
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={data.areaExterna.piscina.iluminacao}
+                            onChange={(e) =>
+                              updateAreaExterna(
+                                'piscina',
+                                'iluminacao',
+                                e.target.checked
+                              )
+                            }
+                            className="w-4 h-4 accent-orange-500 rounded"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Iluminacao (+5%)
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ---- Muro Perimetral ---- */}
+              <div
+                className={`bg-white rounded-lg shadow-sm border mb-4 transition-colors ${
+                  data.areaExterna?.muro?.enabled
+                    ? 'border-orange-300'
+                    : 'border-gray-200'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateAreaExterna(
+                      'muro',
+                      'enabled',
+                      !data.areaExterna?.muro?.enabled
+                    )
+                  }
+                  className="flex items-center justify-between w-full p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-50 rounded-lg">
+                      <Building2 className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">
+                      Muro Perimetral
+                    </span>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      data.areaExterna?.muro?.enabled
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {data.areaExterna?.muro?.enabled && (
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    )}
+                  </div>
+                </button>
+                {data.areaExterna?.muro?.enabled && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tipo de Muro
+                        </label>
+                        <select
+                          value={data.areaExterna.muro.tipo}
+                          onChange={(e) =>
+                            updateAreaExterna('muro', 'tipo', e.target.value)
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white"
+                        >
+                          {MURO_TIPOS.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Altura media (m)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="2"
+                          value={data.areaExterna.muro.altura}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'muro',
+                              'altura',
+                              e.target.value === '' ? '' : Number(e.target.value)
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        />
+                        {Number(data.areaExterna.muro.altura) > 1.5 && (
+                          <p className="text-xs text-orange-600 mt-1">
+                            Altura {'>'} 1,5m: +12% no custo
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="text-sm font-medium text-gray-700">
+                          Percentual do perimetro
+                        </label>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {data.areaExterna.muro.percentualPerimetro}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={10}
+                        max={100}
+                        value={data.areaExterna.muro.percentualPerimetro}
+                        onChange={(e) =>
+                          updateAreaExterna(
+                            'muro',
+                            'percentualPerimetro',
+                            Number(e.target.value)
+                          )
+                        }
+                        className="w-full accent-orange-500"
+                      />
+                      <div className="flex justify-between text-xs text-gray-400">
+                        <span>10%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                    {perimetroTerreno > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          Perimetro terreno:{' '}
+                          <strong>
+                            {perimetroTerreno.toFixed(2).replace('.', ',')} m
+                          </strong>
+                        </div>
+                        <div>
+                          Comprimento muro:{' '}
+                          <strong>
+                            {(
+                              perimetroTerreno *
+                              (data.areaExterna.muro.percentualPerimetro / 100)
+                            )
+                              .toFixed(2)
+                              .replace('.', ',')}{' '}
+                            m
+                          </strong>
+                        </div>
+                        <div>
+                          Area total:{' '}
+                          <strong>
+                            {(
+                              perimetroTerreno *
+                              (data.areaExterna.muro.percentualPerimetro / 100) *
+                              (Number(data.areaExterna.muro.altura) || 2)
+                            )
+                              .toFixed(2)
+                              .replace('.', ',')}{' '}
+                            m²
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+                    {(() => {
+                      const costItem = areaExternaCosts.find(
+                        (c) => c.label === 'Muro Perimetral'
+                      )
+                      return costItem ? (
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                          <span className="text-sm font-semibold text-gray-900">
+                            Custo estimado:
+                          </span>
+                          <span className="text-sm font-bold text-orange-600">
+                            {new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency: 'BRL',
+                            }).format(costItem.value)}
+                          </span>
+                        </div>
+                      ) : null
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              {/* ---- Cobertura Externa ---- */}
+              <div
+                className={`bg-white rounded-lg shadow-sm border mb-4 transition-colors ${
+                  data.areaExterna?.cobertura?.enabled
+                    ? 'border-orange-300'
+                    : 'border-gray-200'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateAreaExterna(
+                      'cobertura',
+                      'enabled',
+                      !data.areaExterna?.cobertura?.enabled
+                    )
+                  }
+                  className="flex items-center justify-between w-full p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-50 rounded-lg">
+                      <Umbrella className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">
+                      Cobertura Externa
+                    </span>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      data.areaExterna?.cobertura?.enabled
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {data.areaExterna?.cobertura?.enabled && (
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    )}
+                  </div>
+                </button>
+                {data.areaExterna?.cobertura?.enabled && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tipo de Cobertura
+                        </label>
+                        <select
+                          value={data.areaExterna.cobertura.tipo}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'cobertura',
+                              'tipo',
+                              e.target.value
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white"
+                        >
+                          {COBERTURA_EXT_TIPOS.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Area estimada (m²)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 30"
+                          value={data.areaExterna.cobertura.area}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'cobertura',
+                              'area',
+                              e.target.value === ''
+                                ? ''
+                                : Number(e.target.value)
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Complexidade
+                      </p>
+                      <div className="flex gap-6">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="coberturaComplexidade"
+                            checked={
+                              data.areaExterna.cobertura.complexidade ===
+                              'SIMPLES'
+                            }
+                            onChange={() =>
+                              updateAreaExterna(
+                                'cobertura',
+                                'complexidade',
+                                'SIMPLES'
+                              )
+                            }
+                            className="w-4 h-4 accent-orange-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Simples
+                          </span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="coberturaComplexidade"
+                            checked={
+                              data.areaExterna.cobertura.complexidade ===
+                              'MEDIA'
+                            }
+                            onChange={() =>
+                              updateAreaExterna(
+                                'cobertura',
+                                'complexidade',
+                                'MEDIA'
+                              )
+                            }
+                            className="w-4 h-4 accent-orange-500"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Media (+8%)
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ---- Area Gourmet Externa ---- */}
+              <div
+                className={`bg-white rounded-lg shadow-sm border mb-4 transition-colors ${
+                  data.areaExterna?.gourmet?.enabled
+                    ? 'border-orange-300'
+                    : 'border-gray-200'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateAreaExterna(
+                      'gourmet',
+                      'enabled',
+                      !data.areaExterna?.gourmet?.enabled
+                    )
+                  }
+                  className="flex items-center justify-between w-full p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-50 rounded-lg">
+                      <UtensilsCrossed className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">
+                      Area Gourmet Externa
+                    </span>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      data.areaExterna?.gourmet?.enabled
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {data.areaExterna?.gourmet?.enabled && (
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    )}
+                  </div>
+                </button>
+                {data.areaExterna?.gourmet?.enabled && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        Nivel de acabamento
+                      </p>
+                      <div className="flex gap-6">
+                        {GOURMET_NIVEIS.map((n) => (
+                          <label
+                            key={n.value}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <input
+                              type="radio"
+                              name="gourmetNivel"
+                              checked={
+                                data.areaExterna.gourmet.nivel === n.value
+                              }
+                              onChange={() =>
+                                updateAreaExterna('gourmet', 'nivel', n.value)
+                              }
+                              className="w-4 h-4 accent-orange-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {n.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-orange-600 mb-2">
+                        Itens inclusos
+                      </p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {GOURMET_ITENS.map((item) => (
+                          <label
+                            key={item.value}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={(
+                                data.areaExterna.gourmet.itens || []
+                              ).includes(item.value)}
+                              onChange={() => toggleGourmetItem(item.value)}
+                              className="w-4 h-4 accent-orange-500 rounded"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {item.label}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {(data.areaExterna.gourmet.itens || []).length} itens
+                        selecionados
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ---- Pavimentacao Externa ---- */}
+              <div
+                className={`bg-white rounded-lg shadow-sm border mb-4 transition-colors ${
+                  data.areaExterna?.pavimentacao?.enabled
+                    ? 'border-orange-300'
+                    : 'border-gray-200'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateAreaExterna(
+                      'pavimentacao',
+                      'enabled',
+                      !data.areaExterna?.pavimentacao?.enabled
+                    )
+                  }
+                  className="flex items-center justify-between w-full p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-50 rounded-lg">
+                      <LayoutGrid className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-900">
+                      Pavimentacao Externa
+                    </span>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      data.areaExterna?.pavimentacao?.enabled
+                        ? 'bg-orange-500 border-orange-500'
+                        : 'border-gray-300'
+                    }`}
+                  >
+                    {data.areaExterna?.pavimentacao?.enabled && (
+                      <Check className="h-3.5 w-3.5 text-white" />
+                    )}
+                  </div>
+                </button>
+                {data.areaExterna?.pavimentacao?.enabled && (
+                  <div className="px-4 pb-4 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Tipo de Pavimentacao
+                        </label>
+                        <select
+                          value={data.areaExterna.pavimentacao.tipo}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'pavimentacao',
+                              'tipo',
+                              e.target.value
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none bg-white"
+                        >
+                          {PAVIMENTACAO_TIPOS.map((t) => (
+                            <option key={t.value} value={t.value}>
+                              {t.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Area estimada (m²)
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Ex: 50"
+                          value={data.areaExterna.pavimentacao.area}
+                          onChange={(e) =>
+                            updateAreaExterna(
+                              'pavimentacao',
+                              'area',
+                              e.target.value === ''
+                                ? ''
+                                : Number(e.target.value)
+                            )
+                          }
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resumo da Area Externa */}
+              {areaExternaCosts.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+                  <h3 className="text-sm font-bold text-gray-900 mb-3">
+                    Resumo da Area Externa
+                  </h3>
+                  <div className="space-y-2">
+                    {areaExternaCosts.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex justify-between items-center"
+                      >
+                        <span className="text-sm text-gray-600">
+                          {item.label}:
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          }).format(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+                    <span className="text-sm font-bold text-gray-900">
+                      Total area externa:
+                    </span>
+                    <span className="text-sm font-bold text-teal-600">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(totalAreaExternaCost)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Resumo do Projeto */}
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900 mb-3">
+                  Resumo do Projeto
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-orange-50 border border-orange-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mb-2">
+                      <MapPin className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">Estado / Cidade</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {data.estado} / {data.cidade}
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mb-2">
+                      <Ruler className="h-4 w-4 text-green-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">Area a Construir</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {areaRef.toFixed(2).replace('.', ',')} m²
+                    </p>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mb-2">
+                      <Home className="h-4 w-4 text-yellow-600" />
+                    </div>
+                    <p className="text-xs text-gray-500">CUB/m²</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(cubPerM2)}
+                    </p>
+                  </div>
+
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mb-2">
+                      <Building2 className="h-4 w-4 text-red-500" />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Valor Base Estimado
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(valorEstimado + totalAreaExternaCost)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {enabledExternalItems > 0 && (
+                <p className="text-xs text-gray-400 text-center mb-4">
+                  {enabledExternalItems} item
+                  {enabledExternalItems > 1 ? 's' : ''} de area externa
+                  incluido{enabledExternalItems > 1 ? 's' : ''}
+                </p>
+              )}
+
+              {/* Step 5 — Navigation buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  className="h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(4)}
                 >
                   <ChevronLeft className="h-5 w-5 mr-2" />
                   Voltar
