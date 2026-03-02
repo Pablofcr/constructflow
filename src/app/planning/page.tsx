@@ -13,6 +13,7 @@ import {
   PlayCircle,
   CheckCircle,
   AlertTriangle,
+  GripVertical,
 } from "lucide-react";
 import { CreatePlanningDialog } from "@/components/planejamento/CreatePlanningDialog";
 import { StageEditDialog } from "@/components/planejamento/StageEditDialog";
@@ -179,6 +180,30 @@ export default function PlanningPage() {
     { value: "COMPLETED", label: "Concluidas" },
     { value: "BLOCKED", label: "Bloqueadas" },
   ];
+
+  const isDndEnabled =
+    viewMode === "list" && searchTerm === "" && filterStatus === "todos";
+
+  const handleReorder = async (stageIds: string[]) => {
+    if (!planning) return;
+    try {
+      const res = await fetch(
+        `/api/planning/${planning.id}/stages/reorder`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stageIds }),
+        }
+      );
+      if (!res.ok) {
+        toast({ title: "Erro ao reordenar etapas", variant: "error" });
+        fetchPlanning();
+      }
+    } catch {
+      toast({ title: "Erro de conexao", variant: "error" });
+      fetchPlanning();
+    }
+  };
 
   // ======================================================================
   // Estado 1: Sem projeto selecionado
@@ -353,6 +378,14 @@ export default function PlanningPage() {
             </div>
           )}
 
+          {/* Drag hint */}
+          {isDndEnabled && filteredStages.length > 1 && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+              <GripVertical className="w-3.5 h-3.5" />
+              <span>Arraste as etapas pelo icone para reordenar</span>
+            </div>
+          )}
+
           {/* Content */}
           {viewMode === "list" ? (
             <PlanningStageList
@@ -360,6 +393,8 @@ export default function PlanningPage() {
               onEditStage={(stage) => setEditStage(stage)}
               onEditService={(service) => setEditService(service)}
               planningId={planning.id}
+              isDndEnabled={isDndEnabled}
+              onReorder={handleReorder}
             />
           ) : (
             <GanttChart
