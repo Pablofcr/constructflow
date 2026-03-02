@@ -9,7 +9,6 @@ import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2,
 import Link from 'next/link'
 import { CreateBudgetDialog } from '@/components/orcamento-real/CreateBudgetDialog'
 import { GenerateAIBudgetDialog } from '@/components/orcamento-ai/GenerateAIBudgetDialog'
-import { GenerateDetailedDialog } from '@/components/orcamento-detalhado/GenerateDetailedDialog'
 
 interface BudgetEstimated {
   totalEstimatedCost: number
@@ -63,7 +62,6 @@ export default function BudgetPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [budgetDetailed, setBudgetDetailed] = useState<BudgetDetailedData | null>(null)
   const [showAIDialog, setShowAIDialog] = useState(false)
-  const [showDetailedDialog, setShowDetailedDialog] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [deletingAI, setDeletingAI] = useState(false)
   const [deletingDetailed, setDeletingDetailed] = useState(false)
@@ -784,7 +782,7 @@ export default function BudgetPage() {
                       </p>
                       <Button
                         className="bg-orange-600 hover:bg-orange-700"
-                        onClick={() => setShowDetailedDialog(true)}
+                        onClick={() => router.push('/budget/detailed/new')}
                       >
                         <Ruler className="h-4 w-4 mr-2" />
                         Gerar Orcamento Detalhado
@@ -861,15 +859,6 @@ export default function BudgetPage() {
             generating={generating}
           />
 
-          <GenerateDetailedDialog
-            open={showDetailedDialog}
-            projectId={activeProject.id}
-            onClose={() => setShowDetailedDialog(false)}
-            onGenerated={(budgetId) => {
-              setShowDetailedDialog(false)
-              router.push(`/budget/detailed?budgetId=${budgetId}`)
-            }}
-          />
         </>
       )}
     </div>
