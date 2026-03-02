@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutList, BarChart3, Settings, Trash2, Activity } from 'lucide-react';
+import { LayoutList, BarChart3, Settings, Trash2, Activity, Play, Pause } from 'lucide-react';
 import { formatDateBR } from '@/lib/date-utils';
 import Link from 'next/link';
 
@@ -19,7 +19,8 @@ interface PlanningHeaderProps {
   planning: Planning;
   viewMode: 'list' | 'gantt';
   onViewModeChange: (mode: 'list' | 'gantt') => void;
-  onEditPlanning: () => void;
+  onOpenSettings: () => void;
+  onQuickStatusChange: (newStatus: string) => void;
   onDeletePlanning: () => void;
 }
 
@@ -40,16 +41,27 @@ const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
 const formatCurrency = (value: number | string) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
 
+// Quick action config based on current status
+const QUICK_ACTIONS: Record<string, { label: string; icon: typeof Play; nextStatus: string; color: string } | null> = {
+  DRAFT: { label: 'Ativar', icon: Play, nextStatus: 'ACTIVE', color: 'bg-green-50 text-green-700 hover:bg-green-100' },
+  ACTIVE: { label: 'Pausar', icon: Pause, nextStatus: 'PAUSED', color: 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },
+  PAUSED: { label: 'Retomar', icon: Play, nextStatus: 'ACTIVE', color: 'bg-green-50 text-green-700 hover:bg-green-100' },
+  COMPLETED: null,
+  CANCELLED: null,
+};
+
 export function PlanningHeader({
   planning,
   viewMode,
   onViewModeChange,
-  onEditPlanning,
+  onOpenSettings,
+  onQuickStatusChange,
   onDeletePlanning,
 }: PlanningHeaderProps) {
   const progress = Number(planning.overallProgress);
   const statusConfig = STATUS_LABELS[planning.status] || STATUS_LABELS.DRAFT;
   const sourceConfig = SOURCE_LABELS[planning.budgetSourceType] || SOURCE_LABELS.ESTIMATED;
+  const quickAction = QUICK_ACTIONS[planning.status];
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
@@ -76,11 +88,22 @@ export function PlanningHeader({
           {planning.status === 'ACTIVE' && (
             <Link
               href="/daily-log"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 transition-colors mr-2"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-xs font-medium rounded-lg hover:bg-green-100 transition-colors mr-1"
             >
               <Activity className="w-3.5 h-3.5" />
               Acompanhamento
             </Link>
+          )}
+          {/* Quick status action */}
+          {quickAction && (
+            <button
+              onClick={() => onQuickStatusChange(quickAction.nextStatus)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors mr-1 ${quickAction.color}`}
+              title={quickAction.label}
+            >
+              <quickAction.icon className="w-3.5 h-3.5" />
+              {quickAction.label}
+            </button>
           )}
           {/* View toggle */}
           <div className="flex bg-gray-100 rounded-lg p-0.5">
@@ -104,7 +127,7 @@ export function PlanningHeader({
             </button>
           </div>
           <button
-            onClick={onEditPlanning}
+            onClick={onOpenSettings}
             className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors ml-1"
             title="Configuracoes"
           >

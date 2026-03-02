@@ -17,6 +17,7 @@ import {
 import { CreatePlanningDialog } from "@/components/planejamento/CreatePlanningDialog";
 import { StageEditDialog } from "@/components/planejamento/StageEditDialog";
 import { ServiceEditDialog } from "@/components/planejamento/ServiceEditDialog";
+import { PlanningSettingsDialog } from "@/components/planejamento/PlanningSettingsDialog";
 import { PlanningHeader } from "@/components/planejamento/PlanningHeader";
 import { PlanningStageList } from "@/components/planejamento/PlanningStageList";
 import { GanttChart } from "@/components/planejamento/GanttChart";
@@ -66,6 +67,7 @@ export default function PlanningPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [showFilters, setShowFilters] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
@@ -98,22 +100,13 @@ export default function PlanningPage() {
     fetchPlanning();
   }, [fetchPlanning]);
 
-  const handleEditPlanning = async () => {
+  const handleQuickStatusChange = async (newStatus: string) => {
     if (!planning) return;
-    const nextStatus =
-      planning.status === "DRAFT"
-        ? "ACTIVE"
-        : planning.status === "ACTIVE"
-          ? "PAUSED"
-          : planning.status === "PAUSED"
-            ? "ACTIVE"
-            : planning.status;
-
     try {
       const res = await fetch(`/api/planning/${planning.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status: newStatus }),
       });
       if (res.ok) {
         fetchPlanning();
@@ -266,7 +259,8 @@ export default function PlanningPage() {
             planning={planning}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
-            onEditPlanning={handleEditPlanning}
+            onOpenSettings={() => setShowSettings(true)}
+            onQuickStatusChange={handleQuickStatusChange}
             onDeletePlanning={() => setShowDeleteConfirm(true)}
           />
 
@@ -376,6 +370,13 @@ export default function PlanningPage() {
         service={editService}
         planningId={planning.id}
         onClose={() => setEditService(null)}
+        onSave={fetchPlanning}
+      />
+
+      <PlanningSettingsDialog
+        open={showSettings}
+        planning={planning}
+        onClose={() => setShowSettings(false)}
         onSave={fetchPlanning}
       />
 
