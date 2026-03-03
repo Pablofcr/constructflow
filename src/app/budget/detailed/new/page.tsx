@@ -29,6 +29,12 @@ import {
   Umbrella,
   UtensilsCrossed,
   LayoutGrid,
+  TrendingUp,
+  Truck,
+  Users,
+  Landmark,
+  SlidersHorizontal,
+  ShieldCheck,
 } from 'lucide-react'
 
 // Brazilian states
@@ -132,6 +138,12 @@ interface WizardData {
   proMaterialEsquadria: string
   // Step 5
   areaExterna: AreaExternaData
+  // Step 6
+  mercadoLocal: number
+  logisticaAcesso: string
+  maoDeObra: string
+  formaContratacao: string
+  ajusteManualFinal: number
 }
 
 interface ProjectData {
@@ -449,6 +461,23 @@ const PAVIMENTACAO_TIPOS = [
   { value: 'CERAMICA_EXT', label: 'Ceramica externa (+12%)', custoM2: 95.20 },
 ]
 
+// Step 6 — Ajuste Regional config
+const LOGISTICA_OPTIONS = [
+  { value: 'FACIL', label: 'Facil acesso', desc: 'Lote urbano com acesso direto, ruas pavimentadas e entrada facil para caminhoes.', pct: 0 },
+  { value: 'MODERADO', label: 'Acesso moderado', desc: 'Ruas estreitas, pequenas restricoes de manobra ou necessidade pontual de transbordo.', pct: 3 },
+  { value: 'DIFICIL', label: 'Acesso dificil', desc: 'Estrada de chao, aclive acentuado, acesso limitado ou logistica especial.', pct: 7 },
+]
+const MAO_DE_OBRA_OPTIONS = [
+  { value: 'ALTA', label: 'Alta disponibilidade', desc: 'Regiao com boa oferta de profissionais e equipes.', pct: 0, color: 'green' },
+  { value: 'MEDIA', label: 'Disponibilidade media', desc: 'Oferta moderada, pode haver disputa por profissionais.', pct: 5, color: 'green' },
+  { value: 'BAIXA', label: 'Baixa disponibilidade', desc: 'Escassez de mao de obra, podendo exigir deslocamento de equipes.', pct: 10, color: 'green' },
+]
+const CONTRATACAO_OPTIONS = [
+  { value: 'AUTONOMOS', label: 'Autonomos', desc: 'Contratacao direta de profissionais. Menor custo, maior gestao do proprietario.', pct: 0 },
+  { value: 'EMPREITEIRO', label: 'Empreiteiro', desc: 'Execucao por equipe organizada. Custo intermediario, menor gestao direta.', pct: 6 },
+  { value: 'CONSTRUTORA', label: 'Construtora', desc: 'Execucao completa com gestao, garantias e suporte tecnico. Maior custo, menor risco.', pct: 12 },
+]
+
 const STORAGE_KEY = 'constructflow-wizard-detailed'
 
 function mapPadraoFromProject(padrao: string): 'POPULAR' | 'MEDIO_PADRAO' | 'ALTO_PADRAO' {
@@ -702,6 +731,11 @@ function WizardContent() {
       proLinhaEsquadria: '',
       proMaterialEsquadria: '',
       areaExterna: AREA_EXTERNA_DEFAULTS,
+      mercadoLocal: 0,
+      logisticaAcesso: 'FACIL',
+      maoDeObra: 'ALTA',
+      formaContratacao: 'AUTONOMOS',
+      ajusteManualFinal: 0,
     }
   })
 
@@ -1116,6 +1150,19 @@ function WizardContent() {
     data.areaExterna?.gourmet?.enabled,
     data.areaExterna?.pavimentacao?.enabled,
   ].filter(Boolean).length
+
+  // Step 6 — Regional adjustment
+  const valorBaseOrcamento = valorEstimado + totalAreaExternaCost
+
+  const { totalRegionalPct, multiplicadorRegional } = useMemo(() => {
+    const logPct = LOGISTICA_OPTIONS.find((o) => o.value === data.logisticaAcesso)?.pct || 0
+    const maoPct = MAO_DE_OBRA_OPTIONS.find((o) => o.value === data.maoDeObra)?.pct || 0
+    const contPct = CONTRATACAO_OPTIONS.find((o) => o.value === data.formaContratacao)?.pct || 0
+    const total = (data.mercadoLocal || 0) + logPct + maoPct + contPct + (data.ajusteManualFinal || 0)
+    return { totalRegionalPct: total, multiplicadorRegional: 1 + total / 100 }
+  }, [data.mercadoLocal, data.logisticaAcesso, data.maoDeObra, data.formaContratacao, data.ajusteManualFinal])
+
+  const valorFinalAjustado = valorBaseOrcamento * multiplicadorRegional
 
   if (!activeProject) {
     return (
@@ -3299,15 +3346,481 @@ function WizardContent() {
                 </Button>
                 <Button
                   className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(6)}
+                >
+                  Proxima Etapa
+                  <ChevronRight className="h-5 w-5 ml-2" />
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ============================================ */}
+          {/* STEP 6 — Ajuste Regional / Mercado           */}
+          {/* ============================================ */}
+          {currentStep === 6 && (
+            <>
+              {/* Header card */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <MapPin className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      Ajuste Regional / Mercado
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      Refine o orcamento conforme condicoes reais da sua
+                      regiao
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-2">
+                  <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-gray-700">
+                    <p>
+                      <strong>Este passo e opcional.</strong> Aqui voce pode
+                      refinar o orcamento conforme a realidade local da sua
+                      obra, considerando custos de mercado, logistica, mao de
+                      obra e forma de contratacao.
+                    </p>
+                    <p className="mt-2">
+                      Se tiver duvidas, mantenha todos os ajustes em 0% e
+                      avance.{' '}
+                      <strong>O orcamento continuara correto</strong>,
+                      baseado no CUB, estrutura e area externa ja definidos.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mercado Local */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Mercado Local
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Variacao de custos na sua cidade
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-gray-900">
+                      {data.mercadoLocal >= 0 ? '+' : ''}
+                      {data.mercadoLocal}%
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {data.mercadoLocal === 0
+                        ? 'Dentro da media estadual'
+                        : data.mercadoLocal > 0
+                          ? 'Acima da media'
+                          : 'Abaixo da media'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <input
+                    type="range"
+                    min={-10}
+                    max={15}
+                    step={1}
+                    value={data.mercadoLocal}
+                    onChange={(e) =>
+                      updateField('mercadoLocal', Number(e.target.value))
+                    }
+                    className="w-full accent-orange-500"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>-10%</span>
+                    <span>0%</span>
+                    <span>+15%</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  0% = custo medio do estado. Valores positivos indicam
+                  cidades com custo acima da media estadual.
+                </p>
+                <p className="text-xs text-orange-500 italic mt-1">
+                  Exemplo: capitais, regioes turisticas ou cidades com alta
+                  demanda tendem a ter custos maiores.
+                </p>
+              </div>
+
+              {/* Logistica e Acesso */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                      <Truck className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Logistica e Acesso
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Facilidade de acesso ao local da obra
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {LOGISTICA_OPTIONS.find(
+                      (o) => o.value === data.logisticaAcesso
+                    )?.label}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 mb-3">
+                  Condicoes de acesso influenciam transporte de materiais,
+                  produtividade e custo final.
+                </p>
+                <div className="space-y-2">
+                  {LOGISTICA_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        updateField('logisticaAcesso', opt.value)
+                      }
+                      className={`w-full text-left p-4 rounded-lg border transition-colors flex items-center justify-between ${
+                        data.logisticaAcesso === opt.value
+                          ? 'border-amber-300 bg-amber-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {opt.label}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {opt.desc}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-4 h-4 rounded-full flex-shrink-0 ml-4 ${
+                          data.logisticaAcesso === opt.value
+                            ? 'bg-amber-500'
+                            : 'bg-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mao de Obra na Regiao */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded-lg">
+                      <Users className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Mao de Obra na Regiao
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Disponibilidade de profissionais qualificados
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {MAO_DE_OBRA_OPTIONS.find(
+                      (o) => o.value === data.maoDeObra
+                    )?.label}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 mb-3">
+                  A disponibilidade de profissionais impacta diretamente
+                  custos e prazos da obra.
+                </p>
+                <div className="space-y-2">
+                  {MAO_DE_OBRA_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        updateField('maoDeObra', opt.value)
+                      }
+                      className={`w-full text-left p-4 rounded-lg border transition-colors flex items-center justify-between ${
+                        data.maoDeObra === opt.value
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {opt.label}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {opt.desc}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-4 h-4 rounded-full flex-shrink-0 ml-4 ${
+                          data.maoDeObra === opt.value
+                            ? 'bg-green-500'
+                            : 'bg-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Forma de Contratacao */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                      <Landmark className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Forma de Contratacao
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Como a obra sera executada
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                    {CONTRATACAO_OPTIONS.find(
+                      (o) => o.value === data.formaContratacao
+                    )?.label}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  A forma de contratacao influencia custos, riscos e
+                  responsabilidades.
+                </p>
+                <p className="text-xs text-gray-400 italic mb-3">
+                  Este ajuste e apenas estimativo e nao substitui contrato
+                  formal.
+                </p>
+                <div className="space-y-2">
+                  {CONTRATACAO_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        updateField('formaContratacao', opt.value)
+                      }
+                      className={`w-full text-left p-4 rounded-lg border transition-colors flex items-center justify-between ${
+                        data.formaContratacao === opt.value
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {opt.label}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {opt.desc}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-4 h-4 rounded-full flex-shrink-0 ml-4 ${
+                          data.formaContratacao === opt.value
+                            ? 'bg-blue-500'
+                            : 'bg-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ajuste Manual Final */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <SlidersHorizontal className="h-5 w-5 text-gray-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">
+                        Ajuste Manual Final
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Refinamento especifico (opcional)
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-lg font-bold text-gray-900">
+                    {data.ajusteManualFinal >= 0 ? '+' : ''}
+                    {data.ajusteManualFinal}%
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <input
+                    type="range"
+                    min={-5}
+                    max={5}
+                    step={1}
+                    value={data.ajusteManualFinal}
+                    onChange={(e) =>
+                      updateField(
+                        'ajusteManualFinal',
+                        Number(e.target.value)
+                      )
+                    }
+                    className="w-full accent-orange-500"
+                  />
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>-5%</span>
+                    <span>0%</span>
+                    <span>+5%</span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Use apenas para condicoes muito especificas nao
+                  contempladas acima (ex.: obra em condominio com regras
+                  restritivas ou exigencias especiais).
+                </p>
+              </div>
+
+              {/* Resumo dos Ajustes Aplicados */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-4">
+                <h3 className="text-base font-bold text-gray-900 mb-4">
+                  Resumo dos Ajustes Aplicados
+                </h3>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-gray-500">
+                      <th className="text-left font-normal pb-3">
+                        Parametro
+                      </th>
+                      <th className="text-right font-normal pb-3">
+                        Valor
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr>
+                      <td className="py-3 text-gray-900">
+                        Valor base do orcamento
+                      </td>
+                      <td className="py-3 text-right font-mono text-gray-900">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(valorBaseOrcamento)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 text-gray-900">
+                        Ajuste por mercado local
+                      </td>
+                      <td
+                        className={`py-3 text-right font-mono ${
+                          totalRegionalPct !== 0
+                            ? 'text-orange-600'
+                            : 'text-gray-900'
+                        }`}
+                      >
+                        {totalRegionalPct >= 0 ? '+' : ''}
+                        {totalRegionalPct.toFixed(1).replace('.', ',')}%
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 text-gray-900">
+                        Multiplicador regional
+                      </td>
+                      <td className="py-3 text-right font-mono text-gray-900">
+                        x{multiplicadorRegional.toFixed(4).replace('.', ',')}
+                      </td>
+                    </tr>
+                    <tr className="font-bold">
+                      <td className="py-3 text-gray-900">
+                        Valor final ajustado
+                      </td>
+                      <td className="py-3 text-right font-mono text-gray-900">
+                        {new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }).format(valorFinalAjustado)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="text-xs text-gray-400 mt-3">
+                  Os ajustes aplicados refinam o orcamento conforme condicoes
+                  especificas do projeto, sem alterar as bases oficiais do CUB
+                  ou SINAPI.
+                </p>
+              </div>
+
+              {/* Base value breakdown */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-700">
+                  <strong>Valor base utilizado:</strong>{' '}
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(valorBaseOrcamento)}{' '}
+                  (Construcao{' '}
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(valorEstimado)}
+                  {totalAreaExternaCost > 0 && (
+                    <>
+                      {' '}
+                      + Area externa{' '}
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      }).format(totalAreaExternaCost)}
+                    </>
+                  )}
+                  )
+                </p>
+              </div>
+
+              {/* Disclaimer */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-600 text-center">
+                    Nenhum ajuste desta etapa altera os valores oficiais de
+                    CUB ou SINAPI. Eles apenas refinam o orcamento conforme a
+                    realidade especifica do seu projeto.
+                  </p>
+                </div>
+              </div>
+
+              {/* Step 6 — Navigation buttons */}
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant="outline"
+                  className="h-12 text-base font-semibold"
+                  onClick={() => setCurrentStep(5)}
+                >
+                  <ChevronLeft className="h-5 w-5 mr-2" />
+                  Area Externa
+                </Button>
+                <Button
+                  className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
                   onClick={() => {
                     toast({
-                      title: 'Proxima etapa em breve',
+                      title: 'Finalizacao em breve',
                       description:
-                        'As demais etapas do assistente serao implementadas em breve.',
+                        'A geracao do orcamento detalhado sera implementada em breve.',
                     })
                   }}
                 >
-                  Proxima Etapa
+                  Finalizar
                   <ChevronRight className="h-5 w-5 ml-2" />
                 </Button>
               </div>
