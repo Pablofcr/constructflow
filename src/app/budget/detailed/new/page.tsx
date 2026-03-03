@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useProject } from '@/contexts/project-context'
 import { Sidebar } from '@/components/sidebar'
 import { Button } from '@/components/ui/button'
-import { toast } from '@/hooks/use-toast'
 import {
   ArrowLeft,
   Home,
@@ -3812,13 +3811,7 @@ function WizardContent() {
                 </Button>
                 <Button
                   className="bg-orange-600 hover:bg-orange-700 h-12 text-base font-semibold"
-                  onClick={() => {
-                    toast({
-                      title: 'Finalizacao em breve',
-                      description:
-                        'A geracao do orcamento detalhado sera implementada em breve.',
-                    })
-                  }}
+                  onClick={() => router.push('/budget/detailed/report')}
                 >
                   Finalizar
                   <ChevronRight className="h-5 w-5 ml-2" />
