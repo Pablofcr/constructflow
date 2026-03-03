@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useProject } from '@/contexts/project-context'
 import { Sidebar } from '@/components/sidebar'
 import { Button } from "@/components/ui/button"
-import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2, Sparkles, Trash2, Ruler } from 'lucide-react'
+import { Calculator, TrendingUp, FileText, ArrowRight, Plus, Building2, Loader2, Sparkles, Trash2, Ruler, MapPin, PenLine } from 'lucide-react'
 import Link from 'next/link'
 import { CreateBudgetDialog } from '@/components/orcamento-real/CreateBudgetDialog'
 import { GenerateAIBudgetDialog } from '@/components/orcamento-ai/GenerateAIBudgetDialog'
@@ -66,6 +66,15 @@ export default function BudgetPage() {
   const [deletingAI, setDeletingAI] = useState(false)
   const [deletingDetailed, setDeletingDetailed] = useState(false)
   const pollingRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Wizard data from localStorage
+  const [wizardSummary, setWizardSummary] = useState<{
+    valorFinal: number
+    areaRef: number
+    custoM2: number
+    padrao: string
+    localizacao: string
+  } | null>(null)
 
   const fetchBudgetData = useCallback(async () => {
     if (!activeProject) return
@@ -175,6 +184,161 @@ export default function BudgetPage() {
       if (pollingRef.current) clearInterval(pollingRef.current)
     }
   }, [activeProject, fetchBudgetData])
+
+  // Load wizard summary from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('constructflow-wizard-detailed')
+      if (!saved) { setWizardSummary(null); return }
+      const wd = JSON.parse(saved)
+      // Must have minimum required data to show
+      if (!wd.estado || !wd.areaConstruida || !wd.padrao) { setWizardSummary(null); return }
+
+      const PADRAO_MAP: Record<string, { label: string; cubCode: string }> = {
+        POPULAR: { label: 'Popular', cubCode: 'PIS' },
+        MEDIO_PADRAO: { label: 'Normal', cubCode: 'R1-N' },
+        ALTO_PADRAO: { label: 'Alto Padrao', cubCode: 'R1-A' },
+      }
+      const CUB_FB: Record<string, Record<string, number>> = {
+        CE: { PIS: 1628.59, 'R1-N': 2789.73, 'R1-A': 3305.51 },
+        SP: { PIS: 1435.99, 'R1-N': 2538.83, 'R1-A': 3076.48 },
+        RJ: { PIS: 1609.62, 'R1-N': 2845.00, 'R1-A': 3447.68 },
+        MG: { PIS: 1504.33, 'R1-N': 2658.54, 'R1-A': 3221.59 },
+        BA: { PIS: 1239.77, 'R1-N': 2191.00, 'R1-A': 2655.10 },
+        RS: { PIS: 1641.20, 'R1-N': 2901.00, 'R1-A': 3515.50 },
+        PR: { PIS: 1547.88, 'R1-N': 2736.00, 'R1-A': 3315.62 },
+        SC: { PIS: 1813.66, 'R1-N': 3205.00, 'R1-A': 3884.10 },
+        GO: { PIS: 1632.55, 'R1-N': 2885.00, 'R1-A': 3496.11 },
+        PE: { PIS: 1262.46, 'R1-N': 2232.00, 'R1-A': 2704.78 },
+        PA: { PIS: 1350.84, 'R1-N': 2387.00, 'R1-A': 2892.58 },
+        DF: { PIS: 1352.89, 'R1-N': 2391.00, 'R1-A': 2897.42 },
+        MT: { PIS: 1873.47, 'R1-N': 3311.00, 'R1-A': 4012.53 },
+        ES: { PIS: 1680.34, 'R1-N': 2970.00, 'R1-A': 3599.05 },
+        MA: { PIS: 1089.49, 'R1-N': 1925.00, 'R1-A': 2332.86 },
+        RN: { PIS: 1198.36, 'R1-N': 2118.00, 'R1-A': 2566.64 },
+        PI: { PIS: 1771.13, 'R1-N': 3130.00, 'R1-A': 3793.21 },
+      }
+
+      const padraoInfo = PADRAO_MAP[wd.padrao] || PADRAO_MAP.POPULAR
+      const fb = CUB_FB[wd.estado]
+      if (!fb) { setWizardSummary(null); return }
+      const cubPerM2 = fb[padraoInfo.cubCode] || 0
+      if (!cubPerM2) { setWizardSummary(null); return }
+
+      const totalRoomsArea = (wd.rooms || []).reduce((s: number, r: { width: number; length: number }) => s + r.width * r.length, 0)
+      const areaConstruidaNum = Number(wd.areaConstruida) || 0
+      const areaRef = totalRoomsArea > 0 ? totalRoomsArea : areaConstruidaNum
+      const valorBase = cubPerM2 * areaRef
+
+      // Structural multiplier (simplified — same additive logic)
+      const STRUCT_OPTS: Record<string, Record<string, number>> = {
+        fundacao: { SAPATA_CORRIDA: 0, RADIER: 4, ESTACA: 12 },
+        forro: { PVC: 0, GESSO: 1.5, GESSO_ACARTONADO: 2, MADEIRA: 3 },
+        piso: { CERAMICA: 0, PORCELANATO_SIMPLES: 2, PORCELANATO_POLIDO: 3.5, VINILICO: 1.5, PISO_LAMINADO: 2.5 },
+        fachada: { PINTURA_LATEX: 0, TEXTURA: 1, GRAFIATO: 1.5, CERAMICA_FACHADA: 3, PORCELANATO_FACHADA: 4, PEDRA_NATURAL: 6 },
+        sistemaConstrutivo: { ALVENARIA_CONVENCIONAL: 0, BLOCOS_CONCRETO: 2, STEEL_FRAME: 15, WOOD_FRAME: 18 },
+        telhado: { FIBROCIMENTO: 0, CERAMICA_TELHADO: 3, METALICO: 5, LAJE_IMPERMEABILIZADA: 8 },
+        esquadrias: { ALUMINIO_PADRAO: 0, ALUMINIO_PREMIUM: 1.5, PVC_ESQUADRIA: 2, VIDRO_TEMPERADO: 3, MADEIRA_MACICA: 4 },
+      }
+      const PRO_REPLACE: Record<string, string> = {
+        proTipoEstrutura: 'sistemaConstrutivo', proTipoTelha: 'telhado', proLinhaEsquadria: 'esquadrias',
+      }
+      const PRO_OPTS: Record<string, Record<string, number>> = {
+        proTipoEstrutura: { CONVENCIONAL: 0, REFORCADA: 5, LEVE: -4 },
+        proTipoLaje: { MACICA: 3, NERVURADA: 0, PRE_MOLDADA: -6, STEEL_DECK: 8 },
+        proTipoParedeExterna: { ALVENARIA_CONV: 0, BLOCO_ESTRUTURAL: 2, PRE_FABRICADO: -3, ICF: 10 },
+        proTipoParedeInterna: { ALVENARIA_CONV: 0, BLOCO_ESTRUTURAL: 1, DRYWALL: -2 },
+        proTipoTelha: { CERAMICA: 3, FIBROCIMENTO: -5, METALICA: 5, TERMOACUSTICA: 8 },
+        proComplexidadeCobertura: { SIMPLES: 0, MEDIA: 3, COMPLEXA: 8 },
+        proLinhaEsquadria: { ECONOMICA: -5, PADRAO: 0, PREMIUM: 5 },
+        proMaterialEsquadria: { ALUMINIO: 0, PVC: 2, MADEIRA: 4, MISTO: 1 },
+      }
+
+      const replacedKeys = new Set<string>()
+      for (const [proKey, essKey] of Object.entries(PRO_REPLACE)) {
+        if (wd[proKey]) replacedKeys.add(essKey)
+      }
+
+      const PAV_MULT: Record<number, number> = { 1: 0, 2: 22, 3: 40, 4: 55, 5: 70 }
+      let totalPct = PAV_MULT[wd.numFloors] || 0
+      for (const [key, opts] of Object.entries(STRUCT_OPTS)) {
+        if (replacedKeys.has(key)) continue
+        totalPct += opts[wd[key]] || 0
+      }
+      for (const [key, opts] of Object.entries(PRO_OPTS)) {
+        if (wd[key]) totalPct += opts[wd[key]] || 0
+      }
+      if (wd.possuiSubsolo) totalPct += 25
+
+      const multTotal = 1 + totalPct / 100
+      const valorEstimado = valorBase * multTotal
+
+      // External area costs (simplified)
+      let totalExtCost = 0
+      const ae = wd.areaExterna
+      if (ae) {
+        const perim = (Number(wd.frenteTerreno) || 0) + (Number(wd.fundosTerreno) || 0) +
+          (Number(wd.ladoDireitoTerreno) || 0) + (Number(wd.ladoEsquerdoTerreno) || 0)
+        if (ae.piscina?.enabled) {
+          const piscinaC: Record<string, number> = { FIBRA: 1500, CONCRETO: 2500, VINIL: 1800 }
+          const area = (Number(ae.piscina.comprimento) || 0) * (Number(ae.piscina.largura) || 0)
+          let c = area * (piscinaC[ae.piscina.tipo] || 1500) * ((Number(ae.piscina.profundidade) || 1.5) / 1.5)
+          if (ae.piscina.aquecimento) c *= 1.12
+          if (ae.piscina.iluminacao) c *= 1.05
+          totalExtCost += c
+        }
+        if (ae.muro?.enabled) {
+          const muroC: Record<string, number> = { ALVENARIA: 280, PRE_MOLDADO: 220, MISTO: 250 }
+          const alt = Number(ae.muro.altura) || 2
+          let cm2 = muroC[ae.muro.tipo] || 280
+          if (alt > 1.5) cm2 *= 1.12
+          totalExtCost += perim * ((ae.muro.percentualPerimetro || 100) / 100) * alt * cm2
+        }
+        if (ae.cobertura?.enabled) {
+          const cobC: Record<string, number> = { POLICARBONATO: 350, METALICA: 450, MADEIRA: 550 }
+          let c = (Number(ae.cobertura.area) || 0) * (cobC[ae.cobertura.tipo] || 350)
+          if (ae.cobertura.complexidade === 'MEDIA') c *= 1.08
+          totalExtCost += c
+        }
+        if (ae.gourmet?.enabled) {
+          const gNivelM: Record<string, number> = { BASICO: 1, PADRAO: 1.12, PREMIUM: 1.25 }
+          const gItemC: Record<string, number> = { churrasqueira: 3500, fogao: 2000, pia: 1500, bancada: 4000, forno_pizza: 5000, coifa: 2500 }
+          const itensC = (ae.gourmet.itens || []).reduce((s: number, i: string) => s + (gItemC[i] || 0), 0)
+          totalExtCost += itensC * (gNivelM[ae.gourmet.nivel] || 1)
+        }
+        if (ae.pavimentacao?.enabled) {
+          const pavC: Record<string, number> = { CONCRETO: 85, PAVER: 100.30, CERAMICA_EXT: 95.20 }
+          totalExtCost += (Number(ae.pavimentacao.area) || 0) * (pavC[ae.pavimentacao.tipo] || 85)
+        }
+      }
+
+      // Regional adjustments
+      const logP: Record<string, number> = { FACIL: 0, MODERADO: 3, DIFICIL: 7 }
+      const maoP: Record<string, number> = { ALTA: 0, MEDIA: 5, BAIXA: 10 }
+      const conP: Record<string, number> = { AUTONOMOS: 0, EMPREITEIRO: 6, CONSTRUTORA: 12 }
+      const regPct = (wd.mercadoLocal || 0) + (logP[wd.logisticaAcesso] || 0) +
+        (maoP[wd.maoDeObra] || 0) + (conP[wd.formaContratacao] || 0) + (wd.ajusteManualFinal || 0)
+      const valorFinal = (valorEstimado + totalExtCost) * (1 + regPct / 100)
+
+      const ESTADOS: Record<string, string> = {
+        AC: 'AC', AL: 'AL', AP: 'AP', AM: 'AM', BA: 'BA', CE: 'CE', DF: 'DF', ES: 'ES',
+        GO: 'GO', MA: 'MA', MT: 'MT', MS: 'MS', MG: 'MG', PA: 'PA', PB: 'PB', PR: 'PR',
+        PE: 'PE', PI: 'PI', RJ: 'RJ', RN: 'RN', RS: 'RS', RO: 'RO', RR: 'RR', SC: 'SC',
+        SP: 'SP', SE: 'SE', TO: 'TO',
+      }
+      const loc = wd.cidade ? `${wd.cidade}, ${ESTADOS[wd.estado] || wd.estado}` : ESTADOS[wd.estado] || wd.estado
+
+      setWizardSummary({
+        valorFinal,
+        areaRef,
+        custoM2: areaRef > 0 ? valorFinal / areaRef : 0,
+        padrao: padraoInfo.label,
+        localizacao: loc,
+      })
+    } catch {
+      setWizardSummary(null)
+    }
+  }, [])
 
   const startPolling = (budgetAIId: string) => {
     if (pollingRef.current) clearInterval(pollingRef.current)
@@ -766,6 +930,52 @@ export default function BudgetPage() {
                           disabled={deletingDetailed}
                         >
                           {deletingDetailed ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : wizardSummary ? (
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Valor Estimado</p>
+                        <p className="text-3xl font-bold text-orange-600">
+                          {formatCurrency(wizardSummary.valorFinal)}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Area</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {wizardSummary.areaRef.toFixed(0)} m2
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Custo/m2</p>
+                          <p className="text-lg font-semibold text-gray-900">
+                            {formatCurrency(wizardSummary.custoM2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-gray-100 flex items-center gap-2 text-sm text-gray-600">
+                        <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                        {wizardSummary.localizacao} — {wizardSummary.padrao}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 bg-orange-600 hover:bg-orange-700"
+                          onClick={() => router.push('/budget/detailed/report')}
+                        >
+                          Ver Detalhes
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="border-orange-200 text-orange-600 hover:bg-orange-50"
+                          onClick={() => router.push('/budget/detailed/new')}
+                        >
+                          <PenLine className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
